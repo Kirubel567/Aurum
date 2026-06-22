@@ -1,1 +1,5 @@
-// User management matrix — Phase 4 implementation
+import { RouteStub } from "@/src/shared/layouts/RouteStub";
+
+export default function AdminUsersPage() {
+  return <RouteStub title="User Management" />;
+}

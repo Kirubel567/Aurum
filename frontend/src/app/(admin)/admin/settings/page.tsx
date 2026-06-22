@@ -1,1 +1,5 @@
-// System settings terminal — Phase 4 implementation
+import { RouteStub } from "@/src/shared/layouts/RouteStub";
+
+export default function AdminSettingsPage() {
+  return <RouteStub title="System Settings" />;
+}

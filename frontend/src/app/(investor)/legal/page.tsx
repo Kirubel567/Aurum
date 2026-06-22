@@ -1,1 +1,5 @@
-// Legal contract locker — Phase 4 implementation
+import { RouteStub } from "@/src/shared/layouts/RouteStub";
+
+export default function LegalPage() {
+  return <RouteStub title="Contract Locker" />;
+}

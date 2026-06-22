@@ -1,1 +1,5 @@
-// Investor dashboard — Phase 4 implementation
+import { RouteStub } from "@/src/shared/layouts/RouteStub";
+
+export default function DashboardPage() {
+  return <RouteStub title="Dashboard" />;
+}
