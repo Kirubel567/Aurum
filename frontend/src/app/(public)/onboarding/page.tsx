@@ -1,5 +1,5 @@
-import { RouteStub } from "@/src/shared/layouts/RouteStub";
+import { OnboardingWizard } from "./_components/OnboardingWizard";
 
 export default function OnboardingPage() {
-  return <RouteStub title="Onboarding" />;
+  return <OnboardingWizard />;
 }

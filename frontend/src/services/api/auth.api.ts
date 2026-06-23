@@ -1,5 +1,10 @@
 import { simulateRequest } from "./client";
-import type { AuthSession, LoginPayload } from "@/src/types/auth.types";
+import type {
+  AuthSession,
+  LoginPayload,
+  RegistrationPayload,
+  RegistrationResult,
+} from "@/src/types/auth.types";
 
 const MOCK_INVESTOR_SESSION: AuthSession = {
   user: {
@@ -53,4 +58,22 @@ export async function refreshToken(): Promise<AuthSession> {
   };
   currentSession = refreshed;
   return simulateRequest(refreshed, 250);
+}
+
+export async function register(
+  payload: RegistrationPayload
+): Promise<RegistrationResult> {
+  const userId = `usr_${Date.now()}`;
+  const session: AuthSession = {
+    user: {
+      id: userId,
+      email: payload.email,
+      name: payload.fullName,
+      role: "investor",
+    },
+    accessToken: `mock_token_${userId}`,
+    expiresAt: new Date(Date.now() + 86400000).toISOString(),
+  };
+  currentSession = session;
+  return simulateRequest({ session, userId }, 500);
 }
