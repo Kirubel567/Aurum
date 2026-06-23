@@ -17,11 +17,11 @@ export function ContactInfoStep({
   onChange,
 }: ContactInfoStepProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-2">
         <FieldLabel required>Street Address</FieldLabel>
         <IconInput
-          icon={<MapPin className="size-5" />}
+          icon={<MapPin className="size-4" />}
           placeholder="Enter your street address"
           value={data.streetAddress}
           onChange={(e) => onChange("streetAddress", e.target.value)}
@@ -29,11 +29,11 @@ export function ContactInfoStep({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="space-y-2">
           <FieldLabel required>City</FieldLabel>
           <IconInput
-            icon={<Building2 className="size-5" />}
+            icon={<Building2 className="size-4" />}
             placeholder="Enter your city"
             value={data.city}
             onChange={(e) => onChange("city", e.target.value)}
@@ -43,7 +43,7 @@ export function ContactInfoStep({
         <div className="space-y-2">
           <FieldLabel required>State / Province</FieldLabel>
           <IconInput
-            icon={<MapPinned className="size-5" />}
+            icon={<MapPinned className="size-4" />}
             placeholder="Enter state or province"
             value={data.stateProvince}
             onChange={(e) => onChange("stateProvince", e.target.value)}
@@ -52,11 +52,11 @@ export function ContactInfoStep({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="space-y-2 md:col-span-1">
           <FieldLabel required>Postal / ZIP Code</FieldLabel>
           <IconInput
-            icon={<MapPin className="size-5" />}
+            icon={<MapPin className="size-4" />}
             placeholder="Enter postal or ZIP code"
             value={data.postalCode}
             onChange={(e) => onChange("postalCode", e.target.value)}

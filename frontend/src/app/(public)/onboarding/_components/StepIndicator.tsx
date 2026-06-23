@@ -12,8 +12,8 @@ interface StepIndicatorProps {
 
 export function StepIndicator({ activeStep }: StepIndicatorProps) {
   return (
-    <div className="relative mb-12 flex items-center justify-between px-4">
-      <div className="absolute top-5 right-8 left-8 z-0 h-px bg-slate-200" />
+    <div className="relative mb-8 flex items-start justify-between gap-3 px-2">
+      <div className="absolute top-4 right-7 left-7 z-0 h-px bg-slate-200" />
 
       {REGISTRATION_STEPS.map((step) => {
         const isActive = step.id === activeStep;
@@ -22,11 +22,11 @@ export function StepIndicator({ activeStep }: StepIndicatorProps) {
         return (
           <div
             key={step.id}
-            className="relative z-10 flex flex-col items-center gap-3"
+            className="relative z-10 flex flex-1 flex-col items-center gap-2"
           >
             <div
               className={cn(
-                "flex size-10 items-center justify-center rounded-full text-sm font-bold transition-all duration-300",
+                "flex size-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300",
                 isActive &&
                   "bg-[#050B14] text-white shadow-lg shadow-black/10",
                 isCompleted &&
@@ -40,7 +40,7 @@ export function StepIndicator({ activeStep }: StepIndicatorProps) {
             </div>
             <span
               className={cn(
-                "text-sm font-semibold transition-colors",
+                "text-center text-xs font-semibold transition-colors sm:text-sm",
                 isActive && "text-[#050B14]",
                 isCompleted && "text-[#050B14]",
                 !isActive && !isCompleted && "text-slate-400"

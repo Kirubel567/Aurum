@@ -3,5 +3,5 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="min-h-screen">{children}</div>;
+  return <div className="theme-investor min-h-screen bg-[#020617]">{children}</div>;
 }

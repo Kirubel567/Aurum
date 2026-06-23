@@ -50,34 +50,34 @@ export function LoginForm() {
   };
 
   return (
-    <div className="font-[family-name:var(--font-jakarta)] min-h-screen bg-[#0e141a]">
+    <div className="font-(family-name:--font-jakarta) min-h-screen bg-[#020617]">
       <RegisterHeader variant="login" />
 
-      <main className="flex min-h-[calc(100vh-5rem)] w-full flex-col lg:flex-row">
+      <main className="flex min-h-[calc(100vh-4rem)] w-full flex-col lg:flex-row">
         <BrandSidebar />
 
-        <section className="flex w-full flex-1 items-center justify-center bg-[#F8FAFC] p-6 lg:w-[60%] lg:p-16">
+        <section className="flex w-full flex-1 items-center justify-center bg-[#F8FAFC] p-5 sm:p-6 lg:w-[60%] lg:p-10">
           <div
             className={cn(
-              "w-full max-w-lg rounded-[32px] border border-slate-200 bg-white",
-              "p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] lg:p-12"
+              "w-full max-w-md rounded-[28px] border border-slate-200/90 bg-white",
+              "p-6 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.18)] sm:p-8"
             )}
           >
-            <div className="mb-10 text-center lg:text-left">
-              <h2 className="text-2xl font-extrabold tracking-tight text-[#050B14] sm:text-3xl">
+            <div className="mb-8 text-center lg:text-left">
+              <h2 className="text-2xl font-bold tracking-tight text-[#050B14] sm:text-3xl">
                 Welcome Back
               </h2>
-              <p className="mt-2 text-base text-slate-500">
+              <p className="mt-2 text-sm leading-6 text-slate-500">
                 Sign in to access your investor portal.
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <FieldLabel required>Email Address</FieldLabel>
                 <IconInput
                   type="email"
-                  icon={<Mail className="size-5" />}
+                  icon={<Mail className="size-4" />}
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -88,7 +88,7 @@ export function LoginForm() {
                 <FieldLabel required>Password</FieldLabel>
                 <IconInput
                   type="password"
-                  icon={<Lock className="size-5" />}
+                  icon={<Lock className="size-4" />}
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -104,7 +104,7 @@ export function LoginForm() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#050B14] py-4 text-sm font-bold text-white shadow-lg shadow-black/10 transition-all hover:bg-[#0a1628] active:scale-[0.98] disabled:opacity-70"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#050B14] text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all hover:bg-[#0a1628] active:scale-[0.98] disabled:opacity-70"
               >
                 {submitting ? (
                   <>

@@ -146,28 +146,28 @@ export function OnboardingWizard() {
   const { title, subtitle } = STEP_TITLES[step];
 
   return (
-    <div className="font-[family-name:var(--font-jakarta)] min-h-screen bg-[#0e141a] text-[#dde3eb]">
+    <div className="font-(family-name:--font-jakarta) min-h-screen bg-[#020617] text-[#dde3eb]">
       <RegisterHeader />
 
-      <main className="flex min-h-[calc(100vh-5rem)] w-full flex-col lg:flex-row">
+      <main className="flex min-h-[calc(100vh-4rem)] w-full flex-col lg:flex-row">
         <BrandSidebar />
 
-        <section className="flex w-full flex-1 items-center justify-center bg-[#F8FAFC] p-6 lg:w-[60%] lg:p-16">
+        <section className="flex w-full flex-1 items-center justify-center bg-[#F8FAFC] p-5 sm:p-6 lg:w-[60%] lg:p-10">
           <div
             className={cn(
-              "w-full max-w-3xl rounded-[32px] border border-slate-200 bg-white",
-              "p-8 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.05)] lg:p-12"
+              "w-full max-w-2xl rounded-[28px] border border-slate-200/90 bg-white",
+              "p-6 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.18)] sm:p-8"
             )}
           >
-            <div className="mb-12 flex items-center gap-6">
-              <div className="flex size-16 items-center justify-center rounded-full bg-[#dce3f0]">
-                <User className="size-8 text-[#151c26]" />
+            <div className="mb-8 flex items-center gap-4">
+              <div className="flex size-12 items-center justify-center rounded-full bg-[#dce3f0]">
+                <User className="size-5 text-[#151c26]" />
               </div>
               <div>
-                <h2 className="text-2xl font-extrabold tracking-tight text-[#050B14] sm:text-3xl">
+                <h2 className="text-2xl font-bold tracking-tight text-[#050B14] sm:text-3xl">
                   {title}
                 </h2>
-                <p className="text-base text-slate-500">{subtitle}</p>
+                <p className="text-sm leading-6 text-slate-500">{subtitle}</p>
               </div>
             </div>
 
@@ -178,7 +178,7 @@ export function OnboardingWizard() {
                 e.preventDefault();
                 handleContinue();
               }}
-              className="space-y-6"
+              className="space-y-5"
             >
               {step === 1 && (
                 <PersonalInfoStep
@@ -202,12 +202,12 @@ export function OnboardingWizard() {
                 />
               )}
 
-              <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+              <div className="flex flex-col gap-3 pt-1 sm:flex-row">
                 {step > 1 && (
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-6 py-4 text-sm font-bold text-[#050B14] transition-all hover:bg-slate-50"
+                    className="flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-[#050B14] transition-all hover:bg-slate-50"
                   >
                     <ArrowLeft className="size-4" />
                     Back
@@ -217,7 +217,7 @@ export function OnboardingWizard() {
                   type="submit"
                   disabled={submitting}
                   className={cn(
-                    "flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#050B14] py-4 text-sm font-bold text-white shadow-lg shadow-black/10 transition-all duration-300 hover:bg-[#0a1628] active:scale-[0.98] disabled:opacity-70",
+                    "flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#050B14] text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all duration-300 hover:bg-[#0a1628] active:scale-[0.98] disabled:opacity-70",
                     step === 1 && "w-full"
                   )}
                 >

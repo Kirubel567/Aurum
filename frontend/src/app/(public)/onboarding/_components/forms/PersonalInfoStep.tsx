@@ -28,12 +28,12 @@ export function PersonalInfoStep({
   onChange,
 }: PersonalInfoStepProps) {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="space-y-2">
           <FieldLabel required>Full Name</FieldLabel>
           <IconInput
-            icon={<User className="size-5" />}
+            icon={<User className="size-4" />}
             placeholder="Enter your full name"
             value={data.fullName}
             onChange={(e) => onChange("fullName", e.target.value)}
@@ -43,7 +43,7 @@ export function PersonalInfoStep({
         <div className="space-y-2">
           <FieldLabel required>Username</FieldLabel>
           <IconInput
-            icon={<AtSign className="size-5" />}
+            icon={<AtSign className="size-4" />}
             placeholder="Choose a username"
             value={data.username}
             onChange={(e) => onChange("username", e.target.value)}
@@ -52,12 +52,12 @@ export function PersonalInfoStep({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="space-y-2">
           <FieldLabel required>Email Address</FieldLabel>
           <IconInput
             type="email"
-            icon={<Mail className="size-5" />}
+            icon={<Mail className="size-4" />}
             placeholder="Enter your email address"
             value={data.email}
             onChange={(e) => onChange("email", e.target.value)}
@@ -71,7 +71,7 @@ export function PersonalInfoStep({
               <select
                 value={data.phoneCountryCode}
                 onChange={(e) => onChange("phoneCountryCode", e.target.value)}
-                className="flex h-full items-center gap-2 rounded-l-xl border border-r-0 border-slate-200 bg-white px-3 py-3.5 text-sm font-semibold text-[#050B14] outline-none focus:border-[#e9c349] focus:ring-2 focus:ring-[#e9c349]/20"
+                className="flex h-11 items-center gap-2 rounded-l-xl border border-r-0 border-slate-200 bg-white px-3 text-sm font-semibold text-[#050B14] outline-none focus:border-[#e9c349] focus:ring-2 focus:ring-[#e9c349]/20"
               >
                 {PHONE_COUNTRY_CODES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -85,7 +85,7 @@ export function PersonalInfoStep({
               placeholder="Enter your phone number"
               value={data.phoneNumber}
               onChange={(e) => onChange("phoneNumber", e.target.value)}
-              className="w-full rounded-r-xl border border-slate-200 bg-white px-4 py-3.5 text-[#050B14] outline-none transition-all focus:border-[#e9c349] focus:ring-2 focus:ring-[#e9c349]/20"
+              className="h-11 w-full rounded-r-xl border border-slate-200 bg-white px-4 text-sm text-[#050B14] outline-none transition-all placeholder:text-sm placeholder:text-slate-400 focus:border-[#e9c349] focus:ring-2 focus:ring-[#e9c349]/20"
             />
           </div>
           {errors.phoneNumber && (
@@ -94,11 +94,11 @@ export function PersonalInfoStep({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <div className="space-y-2">
           <FieldLabel required>Country</FieldLabel>
           <IconSelect
-            icon={<Globe className="size-5" />}
+            icon={<Globe className="size-4" />}
             value={data.country}
             onChange={(e) => onChange("country", e.target.value)}
             error={errors.country}
@@ -115,7 +115,7 @@ export function PersonalInfoStep({
           <FieldLabel required>Date of Birth</FieldLabel>
           <IconInput
             type="date"
-            icon={<Calendar className="size-5" />}
+            icon={<Calendar className="size-4" />}
             value={data.dateOfBirth}
             onChange={(e) => onChange("dateOfBirth", e.target.value)}
             error={errors.dateOfBirth}
@@ -126,7 +126,7 @@ export function PersonalInfoStep({
       <div className="space-y-2">
         <FieldLabel>Referral Code (Optional)</FieldLabel>
         <IconInput
-          icon={<Ticket className="size-5" />}
+          icon={<Ticket className="size-4" />}
           placeholder="Enter referral code (if you have one)"
           value={data.referralCode}
           onChange={(e) => onChange("referralCode", e.target.value)}
