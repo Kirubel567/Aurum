@@ -50,7 +50,7 @@ export function AdminSidebar() {
                   <Icon className="size-3.5 shrink-0" />
                   {item.label}
                 </span>
-                {item.badge !== undefined && item.badge > 0 && (
+                {typeof item.badge === "number" && item.badge > 0 && (
                   <Badge
                     variant="secondary"
                     className={cn(

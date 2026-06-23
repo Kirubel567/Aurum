@@ -4,10 +4,8 @@ export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
-  badge?: string;
+  badge?: string | number;
   action?: "logout";
 }
 
-export interface AdminNavItem extends NavItem {
-  badge?: number;
-}
+export interface AdminNavItem extends NavItem {}

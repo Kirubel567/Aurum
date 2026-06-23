@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2, User } from "lucide-react";
 
 import { submitRegistration } from "@/src/features/onboarding/services/onboarding.service";
+import { useDepositStore } from "@/src/features/onboarding/store/deposit.store";
 import {
   contactInfoSchema,
   personalInfoSchema,
@@ -46,6 +47,8 @@ const STEP_TITLES: Record<RegistrationStep, { title: string; subtitle: string }>
 export function OnboardingWizard() {
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
+  const setDepositStatus = useDepositStore((s) => s.setDepositStatus);
+  const setDepositHydrated = useDepositStore((s) => s.setHydrated);
   const addToast = useNotificationStore((s) => s.addToast);
 
   const [step, setStep] = useState<RegistrationStep>(1);
@@ -119,9 +122,11 @@ export function OnboardingWizard() {
     try {
       const result = await submitRegistration(data);
       setSession(result.session);
+      setDepositStatus(result.session.depositStatus);
+      setDepositHydrated(true);
       addToast({
         title: "Account created",
-        description: "Welcome to Aurum Sovereign Capital.",
+        description: "Complete your deposit verification to access the portal.",
         variant: "success",
       });
       router.push(ROUTES.DASHBOARD);

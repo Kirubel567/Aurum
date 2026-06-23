@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Lock, Mail } from "lucide-react";
 
-import { login } from "@/src/services/api/auth.api";
+import { loginViaApi } from "@/src/features/onboarding/services/deposit.service";
+import { useDepositStore } from "@/src/features/onboarding/store/deposit.store";
 import { ROUTES } from "@/src/lib/constants/routes";
 import { useAuthStore } from "@/src/store/auth.store";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ export function LoginForm() {
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
   const setLoading = useAuthStore((s) => s.setLoading);
+  const setDepositStatus = useDepositStore((s) => s.setDepositStatus);
+  const setDepositHydrated = useDepositStore((s) => s.setHydrated);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,8 +39,10 @@ export function LoginForm() {
     setSubmitting(true);
     setLoading(true);
     try {
-      const session = await login({ email, password });
+      const { session } = await loginViaApi({ email, password });
       setSession(session);
+      setDepositStatus(session.depositStatus);
+      setDepositHydrated(true);
       router.push(
         session.user.role === "admin" ? ROUTES.ADMIN : ROUTES.DASHBOARD
       );

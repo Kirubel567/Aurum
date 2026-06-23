@@ -1,6 +1,7 @@
-import { register as registerApi } from "@/src/services/api/auth.api";
-import type { RegistrationPayload, RegistrationResult } from "@/src/types/auth.types";
 import type { RegistrationData } from "@/src/app/(public)/onboarding/_types/registration";
+import { registerViaApi } from "@/src/features/onboarding/services/deposit.service";
+import type { RegisterApiResponse } from "@/src/features/onboarding/types/deposit.types";
+import type { RegistrationPayload } from "@/src/types/auth.types";
 
 export function toRegistrationPayload(data: RegistrationData): RegistrationPayload {
   return {
@@ -22,6 +23,6 @@ export function toRegistrationPayload(data: RegistrationData): RegistrationPaylo
 
 export async function submitRegistration(
   data: RegistrationData
-): Promise<RegistrationResult> {
-  return registerApi(toRegistrationPayload(data));
+): Promise<RegisterApiResponse> {
+  return registerViaApi(toRegistrationPayload(data));
 }
