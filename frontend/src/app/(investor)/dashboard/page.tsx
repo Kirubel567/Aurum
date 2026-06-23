@@ -1,5 +1,5 @@
-import { RouteStub } from "@/src/shared/layouts/RouteStub";
+import { DashboardPage } from "@/src/features/dashboard/components/DashboardPage";
 
-export default function DashboardPage() {
-  return <RouteStub title="Dashboard" />;
+export default function Page() {
+  return <DashboardPage />;
 }

@@ -13,6 +13,7 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string;
+  investorId?: string;
   phone?: string;
   country?: string;
   timezone?: string;

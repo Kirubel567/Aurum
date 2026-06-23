@@ -10,11 +10,13 @@ import type {
 const MOCK_PROFILE: UserProfile = {
   id: "usr_inv_001",
   email: "investor@aurum.capital",
-  name: "Alexander Mercer",
-  phone: "+1 212 555 0142",
-  country: "United States",
-  timezone: "America/New_York",
-  avatarUrl: "/avatars/investor.jpg",
+  name: "Abebe Kebede",
+  investorId: "ASC-78345",
+  phone: "+251 911 234 567",
+  country: "Ethiopia",
+  timezone: "Africa/Addis_Ababa",
+  avatarUrl:
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuBusOAkS0vXQCsiYdt0l1B0P0GSlULEzXZtEcn4ckhVFhzZsoyShRM4DV2KdT3kSZ5MjZVUBrBEbcA_8ffxp-nLeAaZI-BRNQ0RAmd-7BSW7-hLVbpbYfVjkNpvUGb3NpSKqxyJffuLg4PjiVGOGiNK4ngiOFHUXP6afdqDwkEtyfBs8PfPv8fZU6xDH904Htbs3P2ZdYBuW9GOU6ewYozUv5GXgZ9xedvqcgg7l7Es84xAHiTvYkYiK3oA18N532EGPQeLLthHYp8",
   kycStatus: "verified",
 };
 
