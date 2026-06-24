@@ -82,3 +82,10 @@ export async function simulateAdminAction(
   });
   return parseJson<{ depositStatus: DepositSession["depositStatus"] }>(response);
 }
+
+export async function verifyEmailViaApi(): Promise<{ emailVerified: boolean }> {
+  const response = await fetch("/api/onboarding/verify-email", {
+    method: "POST",
+  });
+  return parseJson<{ emailVerified: boolean }>(response);
+}

@@ -1,11 +1,11 @@
 import { create } from "zustand";
 
-import type { AuthSession } from "@/src/types/auth.types";
+import type { DepositSession } from "@/src/features/onboarding/types/deposit.types";
 
 interface AuthState {
-  session: AuthSession | null;
+  session: DepositSession | null;
   isLoading: boolean;
-  setSession: (session: AuthSession | null) => void;
+  setSession: (session: DepositSession | null) => void;
   setLoading: (loading: boolean) => void;
   clearSession: () => void;
 }

@@ -47,6 +47,17 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  if (
+    session.user.role !== "admin" &&
+    session.depositStatus !== "approved"
+  ) {
+    const gateUrl = request.nextUrl.clone();
+    gateUrl.pathname = ROUTES.DASHBOARD;
+    if (pathname !== ROUTES.DASHBOARD) {
+      return NextResponse.redirect(gateUrl);
+    }
+  }
+
   return NextResponse.next();
 }
 

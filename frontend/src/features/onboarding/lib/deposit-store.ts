@@ -18,7 +18,8 @@ function isStoredDepositUser(value: unknown): value is StoredDepositUser {
     typeof record.id === "string" &&
     typeof record.email === "string" &&
     typeof record.password === "string" &&
-    typeof record.fullName === "string"
+    typeof record.fullName === "string" &&
+    typeof record.depositStatus === "string"
   );
 }
 
@@ -28,7 +29,10 @@ function parseStorePayload(raw: string): StoredDepositUser[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isStoredDepositUser);
+    return parsed.filter(isStoredDepositUser).map((user) => ({
+      ...user,
+      emailVerified: user.emailVerified ?? false,
+    }));
   } catch {
     console.warn("[deposit-store] Corrupt store payload; starting empty.");
     return [];
@@ -98,14 +102,19 @@ export async function getDepositUserByEmail(
 }
 
 export async function createDepositUser(
-  user: Omit<StoredDepositUser, "createdAt" | "updatedAt" | "depositStatus"> & {
+  user: Omit<
+    StoredDepositUser,
+    "createdAt" | "updatedAt" | "depositStatus" | "emailVerified"
+  > & {
     depositStatus?: DepositStatus;
+    emailVerified?: boolean;
   }
 ): Promise<StoredDepositUser> {
   const users = await readStore();
   const now = new Date().toISOString();
   const record: StoredDepositUser = {
     ...user,
+    emailVerified: user.emailVerified ?? false,
     depositStatus: user.depositStatus ?? "none",
     createdAt: now,
     updatedAt: now,

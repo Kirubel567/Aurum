@@ -106,10 +106,10 @@ export function ProofUploader({ onSubmitted, rejected }: ProofUploaderProps) {
         <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-[#C5A059]/30 bg-[#C5A059]/10">
           <UploadCloud className="size-7 text-[#C5A059]" />
         </div>
-        <h2 className="text-2xl font-semibold tracking-tight text-white">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
           {rejected ? "Resubmit Payment Proof" : "Upload Wire Receipt"}
         </h2>
-        <p className="mx-auto max-w-lg text-sm leading-6 text-white/60">
+        <p className="mx-auto max-w-lg text-sm leading-6 text-slate-600">
           {rejected
             ? "Your previous document could not be verified. Upload a clear image or PDF of your official bank transfer receipt."
             : "Securely upload an image or PDF of your bank wire transfer confirmation for sovereign audit review."}
@@ -127,7 +127,7 @@ export function ProofUploader({ onSubmitted, rejected }: ProofUploaderProps) {
           "relative rounded-2xl border-2 border-dashed p-8 text-center transition-colors",
           dragActive
             ? "border-[#C5A059] bg-[#C5A059]/10"
-            : "border-white/15 bg-white/[0.02]"
+            : "border-slate-200 bg-slate-50"
         )}
       >
         <input
@@ -144,28 +144,30 @@ export function ProofUploader({ onSubmitted, rejected }: ProofUploaderProps) {
         {!file ? (
           <label htmlFor="proof-upload" className="cursor-pointer">
             <FileUp className="mx-auto size-10 text-[#C5A059]" />
-            <p className="mt-4 text-sm font-medium text-white">
+            <p className="mt-4 text-sm font-medium text-slate-900">
               Drag & drop your receipt here
             </p>
-            <p className="mt-1 text-xs text-white/45">
+            <p className="mt-1 text-xs text-slate-500">
               PDF, JPG, PNG, or WEBP — max {formatMaxProofSize()}
             </p>
-            <span className="mt-4 inline-flex h-10 items-center rounded-lg border border-[#C5A059]/35 px-4 text-xs font-semibold uppercase tracking-wide text-[#C5A059]">
+            <span className="mt-4 inline-flex h-10 items-center rounded-lg border border-[#C5A059]/35 px-4 text-xs font-semibold uppercase tracking-wide text-[#9A7B3C]">
               Browse Files
             </span>
           </label>
         ) : (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left">
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">{file.name}</p>
-              <p className="text-xs text-white/45">
+              <p className="truncate text-sm font-medium text-slate-900">
+                {file.name}
+              </p>
+              <p className="text-xs text-slate-500">
                 {(file.size / 1024 / 1024).toFixed(2)} MB
               </p>
             </div>
             <button
               type="button"
               onClick={() => setFile(null)}
-              className="flex size-8 items-center justify-center rounded-lg text-white/50 hover:bg-white/10 hover:text-white"
+              className="flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               aria-label="Remove file"
             >
               <X className="size-4" />
@@ -175,7 +177,7 @@ export function ProofUploader({ onSubmitted, rejected }: ProofUploaderProps) {
       </div>
 
       {error && (
-        <p className="text-center text-sm text-[#EF4444]" role="alert">
+        <p className="text-center text-sm text-red-600" role="alert">
           {error}
         </p>
       )}
@@ -186,8 +188,8 @@ export function ProofUploader({ onSubmitted, rejected }: ProofUploaderProps) {
         disabled={submitting}
         className={cn(
           "flex h-12 w-full items-center justify-center gap-2 rounded-xl",
-          "bg-[#C5A059] text-sm font-semibold text-[#0B1221]",
-          "transition-all hover:bg-[#d4b06a] active:scale-[0.99] disabled:opacity-70"
+          "bg-[#C5A059] text-sm font-semibold text-white",
+          "transition-all hover:bg-[#b8944f] active:scale-[0.99] disabled:opacity-70"
         )}
       >
         {submitting ? (

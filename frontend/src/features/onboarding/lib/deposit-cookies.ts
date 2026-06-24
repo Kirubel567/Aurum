@@ -43,7 +43,8 @@ export function buildDepositSession(
     fullName: string;
     role: "investor" | "admin";
   },
-  depositStatus: DepositSession["depositStatus"]
+  depositStatus: DepositSession["depositStatus"],
+  emailVerified = true
 ): DepositSession {
   return {
     user: {
@@ -55,5 +56,6 @@ export function buildDepositSession(
     accessToken: `mock_token_${user.id}`,
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
     depositStatus,
+    emailVerified,
   };
 }

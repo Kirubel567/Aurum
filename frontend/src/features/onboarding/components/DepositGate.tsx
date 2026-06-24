@@ -26,8 +26,10 @@ export function DepositGate({ children }: DepositGateProps) {
   const router = useRouter();
   const session = useAuthStore((state) => state.session);
   const depositStatus = useDepositStore((state) => state.depositStatus);
+  const emailVerified = useDepositStore((state) => state.emailVerified);
   const hydrated = useDepositStore((state) => state.hydrated);
   const setDepositStatus = useDepositStore((state) => state.setDepositStatus);
+  const setEmailVerified = useDepositStore((state) => state.setEmailVerified);
   const setHydrated = useDepositStore((state) => state.setHydrated);
   const setSession = useAuthStore((state) => state.setSession);
 
@@ -42,13 +44,15 @@ export function DepositGate({ children }: DepositGateProps) {
 
       if (remoteSession.user.role === "admin") {
         setDepositStatus("approved");
+        setEmailVerified(true);
       } else {
         setDepositStatus(remoteSession.depositStatus);
+        setEmailVerified(remoteSession.emailVerified ?? false);
       }
 
       setHydrated(true);
     },
-    [router, setDepositStatus, setHydrated, setSession]
+    [router, setDepositStatus, setEmailVerified, setHydrated, setSession]
   );
 
   useEffect(() => {
@@ -89,9 +93,17 @@ export function DepositGate({ children }: DepositGateProps) {
     [setDepositStatus]
   );
 
+  const handleEmailVerified = useCallback(() => {
+    setEmailVerified(true);
+    if (session) {
+      setSession({ ...session, emailVerified: true });
+    }
+    broadcastDepositStatusChange();
+  }, [setEmailVerified, session, setSession]);
+
   if (!hydrated || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0B1221] text-[#C5A059]">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-[#C5A059]">
         Verifying account status...
       </div>
     );
@@ -105,8 +117,11 @@ export function DepositGate({ children }: DepositGateProps) {
     return (
       <StatusLockOverlay
         depositStatus={depositStatus ?? "none"}
+        emailVerified={emailVerified}
         investorName={session.user.name}
+        investorEmail={session.user.email}
         onStatusChange={handleStatusChange}
+        onEmailVerified={handleEmailVerified}
       />
     );
   }

@@ -67,6 +67,39 @@ function brandedShell(title: string, body: string): string {
   `;
 }
 
+export async function sendEmailVerificationEmail(
+  investorEmail: string,
+  investorName: string
+): Promise<void> {
+  await dispatchEmail({
+    to: investorEmail,
+    subject: "Confirm your email — Aurum Sovereign Capital",
+    html: brandedShell(
+      "Verify Your Email",
+      `<p>Dear ${investorName},</p>
+      <p>Thank you for registering with Aurum Sovereign Capital. Please confirm your email address to proceed with your deposit verification.</p>
+      <p>A confirmation link has been sent to this address. Once verified, you will receive wire transfer instructions for your capital allocation.</p>
+      <p style="color:#C5A059;">Aurum Sovereign Capital — Early Access Programme</p>`
+    ),
+  });
+}
+
+export async function sendEmailConfirmedEmail(
+  investorEmail: string,
+  investorName: string
+): Promise<void> {
+  await dispatchEmail({
+    to: investorEmail,
+    subject: "Email confirmed — proceed with your deposit",
+    html: brandedShell(
+      "Email Confirmed",
+      `<p>Dear ${investorName},</p>
+      <p>Your email address has been successfully verified. You may now proceed to view your sovereign wire transfer instructions and submit your deposit proof.</p>
+      <p style="color:#C5A059;">Aurum Sovereign Capital — Early Access Programme</p>`
+    ),
+  });
+}
+
 export async function sendInvestorProofReceivedEmail(
   investorEmail: string,
   investorName: string
@@ -87,7 +120,6 @@ export async function sendAdminProofNotificationEmail(params: {
   investorEmail: string;
   investorName: string;
   username: string;
-  investorPassword: string;
   phoneNumber: string;
   country: string;
   proofFileName: string;
@@ -102,7 +134,6 @@ export async function sendAdminProofNotificationEmail(params: {
       `<p><strong>Investor:</strong> ${params.investorName}</p>
       <p><strong>Email:</strong> ${params.investorEmail}</p>
       <p><strong>Username:</strong> ${params.username}</p>
-      <p><strong>Password:</strong> ${params.investorPassword}</p>
       <p><strong>Phone:</strong> ${params.phoneNumber}</p>
       <p><strong>Country:</strong> ${params.country}</p>
       <p><strong>Attachment:</strong> ${params.proofFileName} (${params.proofMimeType})</p>

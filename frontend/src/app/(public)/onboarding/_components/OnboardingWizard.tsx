@@ -48,6 +48,7 @@ export function OnboardingWizard() {
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
   const setDepositStatus = useDepositStore((s) => s.setDepositStatus);
+  const setEmailVerified = useDepositStore((s) => s.setEmailVerified);
   const setDepositHydrated = useDepositStore((s) => s.setHydrated);
   const addToast = useNotificationStore((s) => s.addToast);
 
@@ -123,6 +124,7 @@ export function OnboardingWizard() {
       const result = await submitRegistration(data);
       setSession(result.session);
       setDepositStatus(result.session.depositStatus);
+      setEmailVerified(result.session.emailVerified ?? false);
       setDepositHydrated(true);
       addToast({
         title: "Account created",

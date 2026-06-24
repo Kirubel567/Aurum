@@ -21,6 +21,7 @@ export interface StoredDepositUser {
   username: string;
   phoneNumber: string;
   country: string;
+  emailVerified: boolean;
   depositStatus: DepositStatus;
   proofFileName?: string;
   proofMimeType?: string;
@@ -31,6 +32,7 @@ export interface StoredDepositUser {
 
 export interface DepositSession extends AuthSession {
   depositStatus: DepositStatus;
+  emailVerified: boolean;
 }
 
 export interface RegisterApiResponse {

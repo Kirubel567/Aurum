@@ -5,6 +5,7 @@ import {
   setDepositSessionCookie,
 } from "@/src/features/onboarding/lib/deposit-cookies";
 import { getDepositUserByEmail } from "@/src/features/onboarding/lib/deposit-store";
+import { verifyPassword } from "@/src/features/onboarding/lib/password-hash";
 import type { LoginPayload } from "@/src/types/auth.types";
 
 export async function POST(request: Request) {
@@ -26,14 +27,23 @@ export async function POST(request: Request) {
           fullName: "Elena Voss",
           role: "admin",
         },
-        "approved"
+        "approved",
+        true
       );
       await setDepositSessionCookie(session);
       return NextResponse.json({ session });
     }
 
     const user = await getDepositUserByEmail(payload.email);
-    if (!user || user.password !== payload.password) {
+    if (!user) {
+      return NextResponse.json(
+        { error: "Invalid credentials. Please try again." },
+        { status: 401 }
+      );
+    }
+
+    const passwordValid = await verifyPassword(payload.password, user.password);
+    if (!passwordValid) {
       return NextResponse.json(
         { error: "Invalid credentials. Please try again." },
         { status: 401 }
@@ -47,7 +57,8 @@ export async function POST(request: Request) {
         fullName: user.fullName,
         role: "investor",
       },
-      user.depositStatus
+      user.depositStatus,
+      user.emailVerified ?? false
     );
 
     await setDepositSessionCookie(session);

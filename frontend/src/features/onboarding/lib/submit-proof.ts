@@ -50,7 +50,6 @@ export async function processDepositProofSubmission(
       investorEmail: session.user.email,
       investorName: session.user.name,
       username: user?.username ?? session.user.email,
-      investorPassword: user?.password ?? "[unavailable — local store reset]",
       phoneNumber: user?.phoneNumber ?? "Not on record",
       country: user?.country ?? "Not on record",
       proofFileName: file.name,

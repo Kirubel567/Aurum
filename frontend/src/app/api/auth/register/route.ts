@@ -4,10 +4,12 @@ import {
   buildDepositSession,
   setDepositSessionCookie,
 } from "@/src/features/onboarding/lib/deposit-cookies";
+import { sendEmailVerificationEmail } from "@/src/features/onboarding/lib/email";
 import {
   createDepositUser,
   getDepositUserByEmail,
 } from "@/src/features/onboarding/lib/deposit-store";
+import { hashPassword } from "@/src/features/onboarding/lib/password-hash";
 import type { RegistrationApiPayload } from "@/src/features/onboarding/types/deposit.types";
 
 export async function POST(request: Request) {
@@ -30,15 +32,17 @@ export async function POST(request: Request) {
     }
 
     const userId = `usr_${Date.now()}`;
+    const hashedPassword = await hashPassword(payload.password);
     const user = await createDepositUser({
       id: userId,
       email: payload.email,
-      password: payload.password,
+      password: hashedPassword,
       fullName: payload.fullName,
       username: payload.username,
       phoneNumber: payload.phoneNumber,
       country: payload.country,
       depositStatus: "none",
+      emailVerified: false,
     });
 
     const session = buildDepositSession(
@@ -48,10 +52,17 @@ export async function POST(request: Request) {
         fullName: user.fullName,
         role: "investor",
       },
-      user.depositStatus
+      user.depositStatus,
+      user.emailVerified
     );
 
     await setDepositSessionCookie(session);
+
+    try {
+      await sendEmailVerificationEmail(user.email, user.fullName);
+    } catch (emailError) {
+      console.error("[register] Verification email dispatch failed:", emailError);
+    }
 
     return NextResponse.json({
       session,

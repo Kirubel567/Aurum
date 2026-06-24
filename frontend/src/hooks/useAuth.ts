@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { fetchDepositSession } from "@/src/features/onboarding/services/deposit.service";
+import {
+  fetchDepositSession,
+  loginViaApi,
+} from "@/src/features/onboarding/services/deposit.service";
 import { useDepositStore } from "@/src/features/onboarding/store/deposit.store";
-import * as authApi from "@/src/services/api/auth.api";
 import { useAuthStore } from "@/src/store/auth.store";
 import type { LoginPayload } from "@/src/types/auth.types";
 
@@ -12,6 +14,7 @@ export function useAuth() {
   const { session, isLoading, setSession, setLoading, clearSession } =
     useAuthStore();
   const setDepositStatus = useDepositStore((s) => s.setDepositStatus);
+  const setEmailVerified = useDepositStore((s) => s.setEmailVerified);
   const setDepositHydrated = useDepositStore((s) => s.setHydrated);
   const resetDeposit = useDepositStore((s) => s.reset);
   const [hydrated, setHydrated] = useState(false);
@@ -23,32 +26,35 @@ export function useAuth() {
         setSession(s);
         if (s?.depositStatus) {
           setDepositStatus(s.depositStatus);
+          setEmailVerified(s.emailVerified ?? false);
         } else {
           setDepositStatus(null);
+          setEmailVerified(false);
         }
         setDepositHydrated(true);
         setHydrated(true);
       })
       .finally(() => setLoading(false));
-  }, [setSession, setLoading, setDepositStatus, setDepositHydrated]);
+  }, [setSession, setLoading, setDepositStatus, setEmailVerified, setDepositHydrated]);
 
   const login = useCallback(
     async (payload: LoginPayload) => {
       setLoading(true);
       try {
-        const newSession = await authApi.login(payload);
+        const { session: newSession } = await loginViaApi(payload);
         setSession(newSession);
+        setDepositStatus(newSession.depositStatus);
+        setEmailVerified(newSession.emailVerified ?? false);
         return newSession;
       } finally {
         setLoading(false);
       }
     },
-    [setSession, setLoading]
+    [setSession, setLoading, setDepositStatus, setEmailVerified]
   );
 
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
-    await authApi.logout();
     clearSession();
     resetDeposit();
   }, [clearSession, resetDeposit]);

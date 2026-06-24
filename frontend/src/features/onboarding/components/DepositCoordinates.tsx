@@ -20,12 +20,12 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   };
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
       <div className="min-w-0">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/45">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">
           {label}
         </p>
-        <p className="truncate text-sm font-medium text-white">{value}</p>
+        <p className="truncate text-sm font-medium text-slate-900">{value}</p>
       </div>
       <button
         type="button"
@@ -53,10 +53,10 @@ export function DepositCoordinates({ onContinue }: DepositCoordinatesProps) {
         <div className="mx-auto flex size-14 items-center justify-center rounded-2xl border border-[#C5A059]/30 bg-[#C5A059]/10">
           <Landmark className="size-7 text-[#C5A059]" />
         </div>
-        <h2 className="text-2xl font-semibold tracking-tight text-white">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
           Sovereign Wire Instructions
         </h2>
-        <p className="mx-auto max-w-lg text-sm leading-6 text-white/60">
+        <p className="mx-auto max-w-lg text-sm leading-6 text-slate-600">
           {bank.instructions}
         </p>
       </div>
@@ -73,10 +73,10 @@ export function DepositCoordinates({ onContinue }: DepositCoordinatesProps) {
       <div className="flex items-start gap-3 rounded-xl border border-[#C5A059]/20 bg-[#C5A059]/5 p-4">
         <Building2 className="mt-0.5 size-5 shrink-0 text-[#C5A059]" />
         <div>
-          <p className="text-sm font-medium text-[#C5A059]">
+          <p className="text-sm font-medium text-[#9A7B3C]">
             Settlement Currency: {bank.currency}
           </p>
-          <p className="mt-1 text-xs leading-5 text-white/55">
+          <p className="mt-1 text-xs leading-5 text-slate-600">
             Transfers must originate from an account in the investor&apos;s legal
             name. Third-party wires will be rejected during audit.
           </p>
@@ -88,8 +88,8 @@ export function DepositCoordinates({ onContinue }: DepositCoordinatesProps) {
         onClick={onContinue}
         className={cn(
           "flex h-12 w-full items-center justify-center gap-2 rounded-xl",
-          "bg-[#C5A059] text-sm font-semibold text-[#0B1221]",
-          "transition-all hover:bg-[#d4b06a] active:scale-[0.99]"
+          "bg-[#C5A059] text-sm font-semibold text-white",
+          "transition-all hover:bg-[#b8944f] active:scale-[0.99]"
         )}
       >
         <Hash className="size-4" />
