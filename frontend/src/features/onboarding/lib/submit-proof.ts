@@ -65,6 +65,7 @@ export async function processDepositProofSubmission(
       proofFileName: file.name,
       proofBase64,
       proofMimeType: file.type,
+      investorId: session.user.id,
     }),
   ]);
 

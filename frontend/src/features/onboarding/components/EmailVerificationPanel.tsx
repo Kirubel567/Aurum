@@ -20,15 +20,27 @@ export function EmailVerificationPanel({
           Verify Your Email
         </h2>
         <p className="mx-auto max-w-md text-sm leading-6 text-slate-600">
-          A confirmation link has been sent to your email address.
+          A confirmation link has been sent to:
         </p>
-        <p className="text-sm font-medium text-slate-700">{investorEmail}</p>
+        <p className="text-sm font-semibold text-slate-800">{investorEmail}</p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
-        Please check your inbox and click the confirmation link to proceed with
-        your deposit verification. Wire transfer instructions will be available
-        once your email is confirmed.
+        Click the confirmation link in your email to proceed with your deposit
+        verification. Wire transfer instructions will be available once your
+        email is confirmed.
+      </div>
+
+      <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
+        <span className="mt-0.5 text-base leading-none">📬</span>
+        <p className="text-xs leading-5 text-amber-800">
+          <span className="font-semibold">Can&apos;t find the email?</span>{" "}
+          Please check your <span className="font-semibold">Spam</span> or{" "}
+          <span className="font-semibold">Junk</span> folder — the email may
+          have been filtered automatically. Mark it as{" "}
+          <span className="font-semibold">Not Spam</span> to ensure you receive
+          all future notifications from Aurum Sovereign Capital.
+        </p>
       </div>
     </div>
   );

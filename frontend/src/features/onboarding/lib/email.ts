@@ -1,3 +1,5 @@
+import { resolveAppBaseUrl } from "@/src/features/onboarding/lib/email-verification-token";
+
 interface SendEmailOptions {
   to: string | string[];
   subject: string;
@@ -9,8 +11,9 @@ interface SendEmailOptions {
 }
 
 const FROM_EMAIL =
-  process.env.RESEND_FROM_EMAIL ?? "onboarding@aurum.capital";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@aurum.capital";
+  process.env.RESEND_FROM_EMAIL ?? "onboarding@aurumsovereigncapital.com";
+const ADMIN_EMAIL =
+  process.env.ADMIN_EMAIL ?? "kirubel.wubet1996@gmail.com";
 
 export class EmailDispatchError extends Error {
   constructor(message: string) {
@@ -28,16 +31,14 @@ export class EmailConfigurationError extends Error {
 
 function assertResendConfigured(): string {
   const apiKey = process.env.RESEND_API_KEY;
-
   if (!apiKey) {
     if (process.env.NODE_ENV === "production") {
       throw new EmailConfigurationError(
-        "RESEND_API_KEY is required in production. Email dispatch cannot initialize."
+        "RESEND_API_KEY is required in production."
       );
     }
     return "";
   }
-
   return apiKey;
 }
 
@@ -77,59 +78,60 @@ async function dispatchEmail(options: SendEmailOptions): Promise<void> {
   }
 }
 
-// ── Shared layout shell ───────────────────────────────────────────────────────
+// ── Shared layout shell (light mode) ─────────────────────────────────────────
 
 function shell(previewText: string, body: string): string {
+  const logoUrl = `${resolveAppBaseUrl()}/brand/aurum-icon-gold.png`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aurum Sovereign Capital</title>
-  <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 </head>
-<body style="margin:0;padding:0;background-color:#0d1117;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
-  <!-- Preview text (hidden) -->
-  <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${previewText}&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;</span>
+<body style="margin:0;padding:0;background-color:#f1f5f9;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <span style="display:none;max-height:0;overflow:hidden;">${previewText}&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;‌&nbsp;</span>
 
-  <!-- Outer wrapper -->
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0d1117;padding:40px 16px;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f5f9;padding:40px 16px;">
     <tr>
       <td align="center">
-        <!-- Card -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;background-color:#111827;border-radius:16px;border:1px solid rgba(197,160,89,0.2);overflow:hidden;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;">
 
-          <!-- Header bar -->
+          <!-- Logo header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#0a0e17 0%,#111827 100%);padding:32px 36px 28px;border-bottom:1px solid rgba(197,160,89,0.15);">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td>
-                    <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#C5A059;">Aurum Sovereign Capital</p>
-                    <p style="margin:0;font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:0.1em;">Early Access Programme</p>
-                  </td>
-                  <td align="right">
-                    <div style="width:36px;height:36px;background:linear-gradient(135deg,#C5A059,#a8894a);border-radius:8px;display:inline-block;text-align:center;line-height:36px;font-size:18px;font-weight:800;color:#0a0e17;">A</div>
-                  </td>
-                </tr>
-              </table>
+            <td align="center" style="padding-bottom:20px;">
+              <img src="${logoUrl}" alt="Aurum Sovereign Capital" width="48" height="48" style="display:block;border-radius:10px;" />
+              <p style="margin:8px 0 0;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#92744a;">Aurum Sovereign Capital</p>
             </td>
           </tr>
 
-          <!-- Body -->
+          <!-- Card -->
           <tr>
-            <td style="padding:36px 36px 40px;">
-              ${body}
-            </td>
-          </tr>
+            <td style="background-color:#ffffff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.06);">
 
-          <!-- Footer -->
-          <tr>
-            <td style="padding:20px 36px 28px;border-top:1px solid rgba(255,255,255,0.06);">
-              <p style="margin:0;font-size:11px;color:rgba(255,255,255,0.25);line-height:1.6;">
-                You received this email because you registered for the Aurum Sovereign Capital Early Access Programme.
-                This is an automated message — please do not reply directly to this email.
-              </p>
+              <!-- Gold top bar -->
+              <tr>
+                <td style="height:4px;background:linear-gradient(90deg,#C5A059,#e8c878,#C5A059);font-size:0;line-height:0;">&nbsp;</td>
+              </tr>
+
+              <!-- Body -->
+              <tr>
+                <td style="padding:36px 36px 40px;">
+                  ${body}
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="padding:20px 36px 28px;border-top:1px solid #f1f5f9;background-color:#f8fafc;">
+                  <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.6;">
+                    You received this email because you registered for the Aurum Sovereign Capital Early Access Programme.
+                    This is an automated message — please do not reply directly to this email.
+                  </p>
+                </td>
+              </tr>
+
             </td>
           </tr>
 
@@ -141,20 +143,25 @@ function shell(previewText: string, body: string): string {
 </html>`;
 }
 
+// ── Building blocks ───────────────────────────────────────────────────────────
+
 function h1(text: string): string {
-  return `<h1 style="margin:0 0 12px;font-size:24px;font-weight:700;color:#f8fafc;line-height:1.3;">${text}</h1>`;
+  return `<h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#0f172a;line-height:1.3;">${text}</h1>`;
 }
 
 function p(text: string): string {
-  return `<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:rgba(248,250,252,0.7);">${text}</p>`;
+  return `<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#475569;">${text}</p>`;
 }
 
-function ctaButton(text: string, href: string): string {
+function ctaButton(text: string, href: string, color = "#C5A059"): string {
   return `
     <table cellpadding="0" cellspacing="0" border="0" style="margin:28px 0;">
       <tr>
-        <td style="background:linear-gradient(135deg,#C5A059,#a8894a);border-radius:10px;">
-          <a href="${href}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:14px;font-weight:700;color:#0a0e17;text-decoration:none;letter-spacing:0.02em;">${text}</a>
+        <td style="background-color:${color};border-radius:10px;">
+          <a href="${href}" target="_blank"
+            style="display:inline-block;padding:14px 32px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;letter-spacing:0.02em;">
+            ${text}
+          </a>
         </td>
       </tr>
     </table>`;
@@ -163,25 +170,26 @@ function ctaButton(text: string, href: string): string {
 function infoRow(label: string, value: string): string {
   return `
     <tr>
-      <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);">
-        <span style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);">${label}</span>
-        <p style="margin:4px 0 0;font-size:14px;font-weight:500;color:#f8fafc;">${value}</p>
+      <td style="padding:10px 16px;border-bottom:1px solid #f1f5f9;">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#94a3b8;">${label}</span>
+        <p style="margin:3px 0 0;font-size:14px;font-weight:500;color:#0f172a;">${value}</p>
       </td>
     </tr>`;
 }
 
 function infoTable(rows: string): string {
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;background-color:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"
+      style="margin:20px 0;background-color:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;overflow:hidden;">
       ${rows}
     </table>`;
 }
 
 function notice(text: string, variant: "gold" | "red" | "green" = "gold"): string {
-  const colors: Record<string, { bg: string; border: string; text: string }> = {
-    gold: { bg: "rgba(197,160,89,0.08)", border: "rgba(197,160,89,0.25)", text: "rgba(197,160,89,0.9)" },
-    red: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.25)", text: "rgba(239,68,68,0.9)" },
-    green: { bg: "rgba(16,185,129,0.08)", border: "rgba(16,185,129,0.25)", text: "rgba(16,185,129,0.9)" },
+  const colors = {
+    gold:  { bg: "#fffbeb", border: "#fcd34d", text: "#92400e" },
+    red:   { bg: "#fef2f2", border: "#fca5a5", text: "#991b1b" },
+    green: { bg: "#f0fdf4", border: "#86efac", text: "#166534" },
   };
   const c = colors[variant];
   return `<p style="margin:20px 0 0;padding:14px 16px;background:${c.bg};border:1px solid ${c.border};border-radius:10px;font-size:13px;line-height:1.6;color:${c.text};">${text}</p>`;
@@ -201,12 +209,15 @@ export async function sendEmailVerificationEmail(
       "One step away — confirm your email to access your deposit instructions.",
       `
       ${h1("Verify Your Email Address")}
-      ${p(`Welcome, <strong style="color:#f8fafc;">${investorName}</strong>. Your registration has been received.`)}
-      ${p("To access your sovereign deposit instructions and complete your early-stage capital allocation, please confirm your email address by clicking the button below.")}
+      ${p(`Welcome, <strong style="color:#0f172a;">${investorName}</strong>. Your registration has been received.`)}
+      ${p("To access your sovereign deposit instructions and complete your early-stage capital allocation, please confirm your email address.")}
       ${ctaButton("Confirm Email Address", verificationUrl)}
-      ${p("This verification link expires in <strong style=\"color:#f8fafc;\">24 hours</strong>. If you did not register for Aurum Sovereign Capital, you can safely disregard this message.")}
-      ${notice("For security, never share this link with anyone. Aurum Sovereign Capital will never ask for your password.")}
-    `
+      ${p("This link expires in <strong style=\"color:#0f172a;\">24 hours</strong>. If you did not register, you can safely ignore this message.")}
+      ${notice("For your security, never share this link with anyone. Aurum Sovereign Capital will never ask for your password.")}
+      <p style="margin:16px 0 0;padding:14px 16px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;font-size:13px;line-height:1.6;color:#92400e;">
+        📬 <strong>Can&apos;t find this email next time?</strong> Check your <strong>Spam</strong> or <strong>Junk</strong> folder and mark us as <strong>Not Spam</strong> to ensure you receive all future notifications including your approval confirmation.
+      </p>
+      `
     ),
   });
 }
@@ -224,7 +235,7 @@ export async function sendEmailConfirmedEmail(
       "Your email is verified. Proceed with your capital deposit.",
       `
       ${h1("Email Successfully Confirmed")}
-      ${p(`Your email address has been verified, <strong style="color:#f8fafc;">${investorName}</strong>.`)}
+      ${p(`Your email address has been verified, <strong style="color:#0f172a;">${investorName}</strong>.`)}
       ${p("You can now sign in to view your sovereign deposit instructions, select your preferred banking institution, and submit your payment proof for audit verification.")}
       ${infoTable(
         infoRow("Next Step", "Sign in and initiate your bank transfer") +
@@ -232,7 +243,7 @@ export async function sendEmailConfirmedEmail(
         infoRow("Verification Timeline", "Within 24–48 hours of receipt submission")
       )}
       ${notice("The platform launch date will be communicated to all verified investors via email before trading begins.")}
-    `
+      `
     ),
   });
 }
@@ -250,21 +261,20 @@ export async function sendInvestorProofReceivedEmail(
       "We have received your deposit receipt and it is now under review.",
       `
       ${h1("Deposit Proof Received")}
-      ${p(`Thank you, <strong style="color:#f8fafc;">${investorName}</strong>. Your payment receipt has been successfully submitted to our sovereign audit desk.`)}
+      ${p(`Thank you, <strong style="color:#0f172a;">${investorName}</strong>. Your payment receipt has been submitted to our sovereign audit desk.`)}
       ${p("Our team is currently reviewing your transfer documentation. You will receive an email confirmation immediately upon approval.")}
       ${infoTable(
         infoRow("Status", "Under Review") +
         infoRow("Expected Review Time", "24–48 hours") +
         infoRow("Notification Method", "Email")
       )}
-      ${p("Please ensure the email address associated with your account remains active. No further action is required from you at this time.")}
-      ${notice("Once approved, your early-stage capital allocation will be officially secured. The platform launch date will be announced via email before trading begins.", "gold")}
-    `
+      ${notice("Once approved, your early-stage capital allocation will be officially secured. The platform launch date will be announced via email before trading begins.")}
+      `
     ),
   });
 }
 
-// ── Email 4: Admin Proof Notification ────────────────────────────────────────
+// ── Email 4: Admin Proof Notification (with approve/reject buttons) ───────────
 
 export async function sendAdminProofNotificationEmail(params: {
   investorEmail: string;
@@ -276,6 +286,7 @@ export async function sendAdminProofNotificationEmail(params: {
   proofFileName: string;
   proofBase64: string;
   proofMimeType: string;
+  investorId: string;
 }): Promise<void> {
   const formattedAmount = new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -283,14 +294,18 @@ export async function sendAdminProofNotificationEmail(params: {
     maximumFractionDigits: 0,
   }).format(params.intendedDepositAmount);
 
+  const baseUrl = resolveAppBaseUrl();
+  const approveUrl = `${baseUrl}/api/admin/deposit-decision?action=approve&userId=${params.investorId}`;
+  const rejectUrl  = `${baseUrl}/api/admin/deposit-decision?action=reject&userId=${params.investorId}`;
+
   await dispatchEmail({
     to: ADMIN_EMAIL,
     subject: `[Action Required] New deposit proof — ${params.investorName}`,
     html: shell(
-      `${params.investorName} has submitted a deposit receipt for ${formattedAmount}. Review required.`,
+      `${params.investorName} submitted a deposit receipt for ${formattedAmount}. Review required.`,
       `
       ${h1("New Deposit Proof Submission")}
-      ${p("An investor has submitted a payment receipt for sovereign audit verification. The receipt is attached to this email. Review and approve or reject from the admin panel.")}
+      ${p("An investor has submitted a payment receipt. The proof is attached. Review the details below and approve or reject.")}
       ${infoTable(
         infoRow("Investor Name", params.investorName) +
         infoRow("Email Address", params.investorEmail) +
@@ -299,10 +314,31 @@ export async function sendAdminProofNotificationEmail(params: {
         infoRow("Country", params.country) +
         infoRow("Intended Deposit Amount", formattedAmount) +
         infoRow("Proof File", `${params.proofFileName} (${params.proofMimeType})`) +
-        infoRow("Submitted", new Date().toLocaleString("en-US", { timeZone: "Africa/Addis_Ababa", dateStyle: "full", timeStyle: "short" }))
+        infoRow("Submitted", new Date().toLocaleString("en-US", {
+          timeZone: "Africa/Addis_Ababa",
+          dateStyle: "full",
+          timeStyle: "short",
+        }))
       )}
-      ${notice("The proof receipt is attached to this email as an image/PDF. Retain this message as the authoritative audit record for this submission.", "gold")}
-    `
+      <table cellpadding="0" cellspacing="0" border="0" style="margin:28px 0;">
+        <tr>
+          <td style="background-color:#16a34a;border-radius:10px;padding:0;">
+            <a href="${approveUrl}" target="_blank"
+              style="display:inline-block;padding:13px 28px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+              ✓ Approve Deposit
+            </a>
+          </td>
+          <td style="width:12px;"></td>
+          <td style="background-color:#dc2626;border-radius:10px;padding:0;">
+            <a href="${rejectUrl}" target="_blank"
+              style="display:inline-block;padding:13px 28px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
+              ✗ Reject Deposit
+            </a>
+          </td>
+        </tr>
+      </table>
+      ${notice("The proof receipt is attached to this email. Retain this message as the authoritative audit record.", "gold")}
+      `
     ),
     attachments: [
       {
@@ -321,21 +357,21 @@ export async function sendInvestorApprovalEmail(
 ): Promise<void> {
   await dispatchEmail({
     to: investorEmail,
-    subject: "Allocation secured — deposit verified",
+    subject: "Allocation secured — deposit verified ✓",
     html: shell(
       "Your deposit has been verified. Your early-stage allocation is officially secured.",
       `
       ${h1("Your Allocation Is Secured")}
-      ${p(`Congratulations, <strong style="color:#f8fafc;">${investorName}</strong>. Your bank transfer receipt has been successfully audited and approved by our sovereign verification desk.`)}
+      ${p(`Congratulations, <strong style="color:#0f172a;">${investorName}</strong>. Your bank transfer receipt has been successfully audited and approved by our sovereign verification desk.`)}
       ${p("Your early-stage capital allocation in Aurum Sovereign Capital is now officially secured.")}
       ${infoTable(
         infoRow("Verification Status", "✓ Approved") +
         infoRow("Allocation Status", "Secured — Early Access") +
         infoRow("Platform Status", "Pre-launch")
       )}
-      ${p("The Aurum trading terminal is currently completing final pre-launch configurations. You will receive a direct email notification the moment the platform opens for live capital execution. No further action is needed.")}
+      ${p("The Aurum trading terminal is completing final pre-launch configurations. You will receive a direct email notification the moment the platform opens for live capital execution.")}
       ${notice("Keep this email as your official confirmation of participation in the Aurum Sovereign Capital Early Access Programme.", "green")}
-    `
+      `
     ),
   });
 }
@@ -353,17 +389,17 @@ export async function sendInvestorRejectionEmail(
       "We could not verify your payment document. Please resubmit a valid receipt.",
       `
       ${h1("Document Verification Unsuccessful")}
-      ${p(`Dear <strong style="color:#f8fafc;">${investorName}</strong>, we were unable to verify the payment document you submitted.`)}
+      ${p(`Dear <strong style="color:#0f172a;">${investorName}</strong>, we were unable to verify the payment document you submitted.`)}
       ${p("This may be due to one of the following reasons:")}
-      <ul style="margin:0 0 16px;padding-left:20px;color:rgba(248,250,252,0.7);font-size:15px;line-height:2;">
+      <ul style="margin:0 0 16px;padding-left:20px;color:#475569;font-size:15px;line-height:2.2;">
         <li>The document is blurry or partially cut off</li>
-        <li>The transfer amount or account details are not visible</li>
+        <li>The transfer amount or account details are not clearly visible</li>
         <li>The document does not appear to be an official bank receipt</li>
         <li>The transfer details do not match our records</li>
       </ul>
       ${p("Please sign in to your account and upload a clear, official bank transfer receipt to continue.")}
-      ${notice("If you believe this is an error or require assistance, please contact our support team by replying to this email.", "red")}
-    `
+      ${notice("If you believe this is an error or require assistance, please contact our support team.", "red")}
+      `
     ),
   });
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { Bell, Clock3, Loader2, LogOut, ShieldAlert } from "lucide-react";
+import { Bell, CheckCircle2, Clock3, Loader2, LogOut, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { broadcastDepositStatusChange } from "@/src/features/onboarding/lib/deposit-sync";
 import { signOutInvestor } from "@/src/features/onboarding/lib/investor-sign-out";
@@ -41,11 +41,20 @@ export function StatusLockOverlay({
   onStatusChange,
 }: StatusLockOverlayProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const justVerified = searchParams.get("emailVerified") === "1";
+  const [showVerifiedBanner, setShowVerifiedBanner] = useState(justVerified);
   const [step, setStep] = useState<DepositStep>(() =>
     resolveInitialStep(depositStatus, emailVerified)
   );
   const [depositAmount, setDepositAmount] = useState("");
   const [signingOut, setSigningOut] = useState(false);
+
+  useEffect(() => {
+    if (!justVerified) return;
+    const timer = window.setTimeout(() => setShowVerifiedBanner(false), 6000);
+    return () => window.clearTimeout(timer);
+  }, [justVerified]);
 
   useEffect(() => {
     if (emailVerified && step === "email-verify") {
@@ -96,6 +105,21 @@ export function StatusLockOverlay({
         </div>
 
         <div className="px-6 py-8 pb-12 sm:px-8 sm:pb-16">
+          {showVerifiedBanner && (
+            <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+              <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-emerald-600" />
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">
+                  Email verified successfully!
+                </p>
+                <p className="mt-0.5 text-xs leading-5 text-emerald-700">
+                  Your email address has been confirmed. Please proceed with
+                  your deposit instructions below.
+                </p>
+              </div>
+            </div>
+          )}
+
           {!emailVerified && (
             <EmailVerificationPanel investorEmail={investorEmail} />
           )}
