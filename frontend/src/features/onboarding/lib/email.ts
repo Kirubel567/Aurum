@@ -150,10 +150,17 @@ export async function sendAdminProofNotificationEmail(params: {
   username: string;
   phoneNumber: string;
   country: string;
+  intendedDepositAmount: number;
   proofFileName: string;
   proofBase64: string;
   proofMimeType: string;
 }): Promise<void> {
+  const formattedAmount = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(params.intendedDepositAmount);
+
   await dispatchEmail({
     to: ADMIN_EMAIL,
     subject: `[Action Required] Deposit proof — ${params.investorName}`,
@@ -164,6 +171,7 @@ export async function sendAdminProofNotificationEmail(params: {
       <p><strong>Username:</strong> ${params.username}</p>
       <p><strong>Phone:</strong> ${params.phoneNumber}</p>
       <p><strong>Country:</strong> ${params.country}</p>
+      <p><strong>Intended Deposit Amount:</strong> ${formattedAmount}</p>
       <p><strong>Attachment:</strong> ${params.proofFileName} (${params.proofMimeType})</p>
       <p>The attached payment receipt is included for manual verification. Retain this message as the authoritative audit record.</p>`
     ),

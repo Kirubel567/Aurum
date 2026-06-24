@@ -5,6 +5,7 @@ import {
 import {
   ALLOWED_PROOF_MIME_TYPES,
   MAX_PROOF_FILE_BYTES,
+  validateDepositAmount,
 } from "@/src/features/onboarding/lib/deposit-limits";
 import {
   sendAdminProofNotificationEmail,
@@ -30,12 +31,20 @@ function validateProofPayload(file: File): void {
 
 export async function processDepositProofSubmission(
   file: File,
-  sessionOverride?: DepositSession
+  sessionOverride?: DepositSession,
+  depositAmountRaw?: string
 ): Promise<SubmitProofResult> {
   const session = sessionOverride ?? (await getDepositSessionCookie());
   if (!session) {
     throw new Error("Unauthorized");
   }
+
+  const amountError = validateDepositAmount(depositAmountRaw ?? "");
+  if (amountError) {
+    throw new Error(amountError);
+  }
+
+  const intendedDepositAmount = Number(depositAmountRaw);
 
   validateProofPayload(file);
 
@@ -52,6 +61,7 @@ export async function processDepositProofSubmission(
       username: user?.username ?? session.user.email,
       phoneNumber: user?.phoneNumber ?? "Not on record",
       country: user?.country ?? "Not on record",
+      intendedDepositAmount,
       proofFileName: file.name,
       proofBase64,
       proofMimeType: file.type,
@@ -61,6 +71,7 @@ export async function processDepositProofSubmission(
   if (user) {
     const updated = await updateDepositUser(user.id, {
       depositStatus: "pending",
+      intendedDepositAmount,
       proofFileName: file.name,
       proofMimeType: file.type,
       proofBase64,

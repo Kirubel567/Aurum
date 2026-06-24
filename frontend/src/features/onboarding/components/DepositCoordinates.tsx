@@ -5,6 +5,10 @@ import { useState } from "react";
 
 import { copyToClipboard } from "@/src/features/onboarding/lib/copy-to-clipboard";
 import {
+  MIN_DEPOSIT_AMOUNT_USD,
+  validateDepositAmount,
+} from "@/src/features/onboarding/lib/deposit-limits";
+import {
   DEFAULT_ETHIOPIAN_BANK_ID,
   ETHIOPIAN_BANK_ACCOUNTS,
   getEthiopianBankById,
@@ -13,12 +17,19 @@ import { useNotificationStore } from "@/src/store/notification.store";
 import { cn } from "@/lib/utils";
 
 interface DepositCoordinatesProps {
+  amount: string;
+  onAmountChange: (value: string) => void;
   onContinue: () => void;
 }
 
-export function DepositCoordinates({ onContinue }: DepositCoordinatesProps) {
+export function DepositCoordinates({
+  amount,
+  onAmountChange,
+  onContinue,
+}: DepositCoordinatesProps) {
   const [selectedBankId, setSelectedBankId] = useState(DEFAULT_ETHIOPIAN_BANK_ID);
   const [copied, setCopied] = useState(false);
+  const [amountError, setAmountError] = useState("");
   const addToast = useNotificationStore((s) => s.addToast);
 
   const selectedBank =
@@ -44,6 +55,16 @@ export function DepositCoordinates({ onContinue }: DepositCoordinatesProps) {
     });
   };
 
+  const handleContinue = () => {
+    const validationError = validateDepositAmount(amount);
+    if (validationError) {
+      setAmountError(validationError);
+      return;
+    }
+    setAmountError("");
+    onContinue();
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
@@ -58,6 +79,37 @@ export function DepositCoordinates({ onContinue }: DepositCoordinatesProps) {
           capital allocation to the account details below. Upload your official
           receipt once the transfer is complete.
         </p>
+      </div>
+
+      <div className="space-y-2">
+        <label
+          htmlFor="deposit-amount"
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
+        >
+          Intended Deposit Amount (Min. $1,200 USD)
+        </label>
+        <input
+          id="deposit-amount"
+          type="number"
+          min={MIN_DEPOSIT_AMOUNT_USD}
+          required
+          value={amount}
+          onChange={(event) => {
+            onAmountChange(event.target.value);
+            setAmountError("");
+          }}
+          placeholder="Enter amount in USD"
+          className={cn(
+            "h-12 w-full rounded-xl border border-slate-200 bg-white px-4",
+            "text-sm font-medium text-slate-900 placeholder:text-slate-400",
+            "shadow-sm transition-colors focus:border-[#C5A059] focus:outline-none focus:ring-2 focus:ring-[#C5A059]/20"
+          )}
+        />
+        {amountError && (
+          <p className="text-xs text-red-600" role="alert">
+            {amountError}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -146,7 +198,7 @@ export function DepositCoordinates({ onContinue }: DepositCoordinatesProps) {
 
       <button
         type="button"
-        onClick={onContinue}
+        onClick={handleContinue}
         className={cn(
           "flex h-12 w-full items-center justify-center gap-2 rounded-xl",
           "bg-[#C5A059] text-sm font-semibold text-white",

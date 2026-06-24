@@ -5,7 +5,9 @@ import { useCallback, useState } from "react";
 
 import { broadcastDepositStatusChange } from "@/src/features/onboarding/lib/deposit-sync";
 import {
+  MIN_DEPOSIT_AMOUNT_USD,
   formatMaxProofSize,
+  validateDepositAmount,
   validateProofFile,
 } from "@/src/features/onboarding/lib/deposit-limits";
 import { submitProofViaApi } from "@/src/features/onboarding/services/deposit.service";
@@ -15,6 +17,9 @@ import { cn } from "@/lib/utils";
 interface ProofUploaderProps {
   onSubmitted: () => void;
   rejected?: boolean;
+  depositAmount: string;
+  onDepositAmountChange: (value: string) => void;
+  showDepositAmount?: boolean;
 }
 
 const ACCEPTED_EXTENSIONS = ".pdf,.jpg,.jpeg,.png,.webp";
@@ -32,11 +37,18 @@ function resolveUploadError(error: unknown): string {
   return "Submission failed. Please try again.";
 }
 
-export function ProofUploader({ onSubmitted, rejected }: ProofUploaderProps) {
+export function ProofUploader({
+  onSubmitted,
+  rejected,
+  depositAmount,
+  onDepositAmountChange,
+  showDepositAmount = false,
+}: ProofUploaderProps) {
   const addToast = useNotificationStore((state) => state.addToast);
   const [file, setFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState("");
+  const [amountError, setAmountError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const notifyError = useCallback(
@@ -73,6 +85,13 @@ export function ProofUploader({ onSubmitted, rejected }: ProofUploaderProps) {
   };
 
   const handleSubmit = async () => {
+    const validationError = validateDepositAmount(depositAmount);
+    if (validationError) {
+      setAmountError(validationError);
+      notifyError(validationError);
+      return;
+    }
+
     if (!file) {
       notifyError("Please upload your bank wire receipt before submitting.");
       return;
@@ -80,10 +99,12 @@ export function ProofUploader({ onSubmitted, rejected }: ProofUploaderProps) {
 
     setSubmitting(true);
     setError("");
+    setAmountError("");
 
     try {
       const formData = new FormData();
       formData.append("proof", file);
+      formData.append("depositAmount", depositAmount);
       await submitProofViaApi(formData);
       addToast({
         title: "Proof submitted",
@@ -115,6 +136,39 @@ export function ProofUploader({ onSubmitted, rejected }: ProofUploaderProps) {
             : "Securely upload an image or PDF of your bank wire transfer confirmation for sovereign audit review."}
         </p>
       </div>
+
+      {showDepositAmount && (
+        <div className="space-y-2">
+          <label
+            htmlFor="proof-deposit-amount"
+            className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
+          >
+            Intended Deposit Amount (Min. $1,200 USD)
+          </label>
+          <input
+            id="proof-deposit-amount"
+            type="number"
+            min={MIN_DEPOSIT_AMOUNT_USD}
+            required
+            value={depositAmount}
+            onChange={(event) => {
+              onDepositAmountChange(event.target.value);
+              setAmountError("");
+            }}
+            placeholder="Enter amount in USD"
+            className={cn(
+              "h-12 w-full rounded-xl border border-slate-200 bg-white px-4",
+              "text-sm font-medium text-slate-900 placeholder:text-slate-400",
+              "shadow-sm transition-colors focus:border-[#C5A059] focus:outline-none focus:ring-2 focus:ring-[#C5A059]/20"
+            )}
+          />
+          {amountError && (
+            <p className="text-xs text-red-600" role="alert">
+              {amountError}
+            </p>
+          )}
+        </div>
+      )}
 
       <div
         onDragOver={(event) => {

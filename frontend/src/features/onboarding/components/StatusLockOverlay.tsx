@@ -44,6 +44,7 @@ export function StatusLockOverlay({
   const [step, setStep] = useState<DepositStep>(() =>
     resolveInitialStep(depositStatus, emailVerified)
   );
+  const [depositAmount, setDepositAmount] = useState("");
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
@@ -100,11 +101,19 @@ export function StatusLockOverlay({
           )}
 
           {emailVerified && depositStatus === "none" && step === "coordinates" && (
-            <DepositCoordinates onContinue={() => setStep("upload")} />
+            <DepositCoordinates
+              amount={depositAmount}
+              onAmountChange={setDepositAmount}
+              onContinue={() => setStep("upload")}
+            />
           )}
 
           {emailVerified && depositStatus === "none" && step === "upload" && (
-            <ProofUploader onSubmitted={() => handleProofSubmitted("pending")} />
+            <ProofUploader
+              depositAmount={depositAmount}
+              onDepositAmountChange={setDepositAmount}
+              onSubmitted={() => handleProofSubmitted("pending")}
+            />
           )}
 
           {depositStatus === "pending" && (
@@ -159,6 +168,9 @@ export function StatusLockOverlay({
               </div>
               <ProofUploader
                 rejected
+                depositAmount={depositAmount}
+                onDepositAmountChange={setDepositAmount}
+                showDepositAmount
                 onSubmitted={() => handleProofSubmitted("pending")}
               />
             </div>

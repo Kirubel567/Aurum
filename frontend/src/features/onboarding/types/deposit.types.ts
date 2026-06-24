@@ -25,6 +25,7 @@ export interface StoredDepositUser {
   emailVerificationToken?: string;
   emailVerificationTokenExpiresAt?: string;
   depositStatus: DepositStatus;
+  intendedDepositAmount?: number;
   proofFileName?: string;
   proofMimeType?: string;
   proofBase64?: string;

@@ -16,7 +16,11 @@ export async function submitDepositProof(
     throw new Error("A valid proof document is required.");
   }
 
-  return processDepositProofSubmission(file);
+  return processDepositProofSubmission(
+    file,
+    undefined,
+    formData.get("depositAmount")?.toString()
+  );
 }
 
 export async function refreshDepositSessionStatus(): Promise<SubmitProofResult | null> {

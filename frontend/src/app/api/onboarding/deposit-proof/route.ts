@@ -32,7 +32,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await processDepositProofSubmission(proof, session);
+    const result = await processDepositProofSubmission(
+      proof,
+      session,
+      formData.get("depositAmount")?.toString()
+    );
     return NextResponse.json(result);
   } catch (error) {
     const message =
