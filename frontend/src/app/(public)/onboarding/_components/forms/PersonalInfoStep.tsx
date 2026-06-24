@@ -71,7 +71,7 @@ export function PersonalInfoStep({
               <select
                 value={data.phoneCountryCode}
                 onChange={(e) => onChange("phoneCountryCode", e.target.value)}
-                className="flex h-11 items-center gap-2 rounded-l-xl border border-r-0 border-slate-200 bg-white px-3 text-sm font-semibold text-[#050B14] outline-none focus:border-[#e9c349] focus:ring-2 focus:ring-[#e9c349]/20"
+                className="flex h-12 items-center gap-2 rounded-l-xl border border-r-0 border-slate-200 bg-white px-3 text-sm font-semibold text-[#050B14] outline-none focus:border-[#e9c349] focus:ring-2 focus:ring-[#e9c349]/20"
               >
                 {PHONE_COUNTRY_CODES.map((c) => (
                   <option key={c.code} value={c.code}>
@@ -85,7 +85,7 @@ export function PersonalInfoStep({
               placeholder="Enter your phone number"
               value={data.phoneNumber}
               onChange={(e) => onChange("phoneNumber", e.target.value)}
-              className="h-11 w-full rounded-r-xl border border-slate-200 bg-white px-4 text-sm text-[#050B14] outline-none transition-all placeholder:text-sm placeholder:text-slate-400 focus:border-[#e9c349] focus:ring-2 focus:ring-[#e9c349]/20"
+              className="h-12 w-full rounded-r-xl border border-slate-200 bg-white px-4 text-sm text-[#050B14] outline-none transition-all placeholder:text-slate-400 focus:border-[#e9c349] focus:ring-2 focus:ring-[#e9c349]/20"
             />
           </div>
           {errors.phoneNumber && (

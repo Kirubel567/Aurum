@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Loader2, User } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 
 import { submitRegistration } from "@/src/features/onboarding/services/onboarding.service";
 import { useDepositStore } from "@/src/features/onboarding/store/deposit.store";
@@ -159,23 +159,22 @@ export function OnboardingWizard() {
       <main className="flex min-h-[calc(100vh-4rem)] w-full flex-col lg:flex-row">
         <BrandSidebar />
 
-        <section className="flex w-full flex-1 items-center justify-center bg-[#F8FAFC] p-5 sm:p-6 lg:w-[60%] lg:p-10">
+        <section className="flex w-full flex-1 items-start justify-center bg-[#F8FAFC] px-5 py-10 sm:px-8 lg:w-[60%] lg:items-center lg:px-12 lg:py-12">
           <div
             className={cn(
-              "w-full max-w-2xl rounded-[28px] border border-slate-200/90 bg-white",
-              "p-6 shadow-[0_24px_60px_-24px_rgba(15,23,42,0.18)] sm:p-8"
+              "w-full max-w-2xl rounded-2xl border border-slate-200 bg-white",
+              "p-7 shadow-[0_8px_40px_-12px_rgba(15,23,42,0.14)] sm:p-9"
             )}
           >
-            <div className="mb-8 flex items-center gap-4">
-              <div className="flex size-12 items-center justify-center rounded-full bg-[#dce3f0]">
-                <User className="size-5 text-[#151c26]" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight text-[#050B14] sm:text-3xl">
-                  {title}
-                </h2>
-                <p className="text-sm leading-6 text-slate-500">{subtitle}</p>
-              </div>
+            {/* Step header */}
+            <div className="mb-6 border-b border-slate-100 pb-6">
+              <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#C5A059]">
+                Step {step} of 3
+              </p>
+              <h2 className="text-[1.5rem] font-bold tracking-tight text-[#050B14] sm:text-[1.65rem]">
+                {title}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
             </div>
 
             <StepIndicator activeStep={step} />
@@ -209,12 +208,12 @@ export function OnboardingWizard() {
                 />
               )}
 
-              <div className="flex flex-col gap-3 pt-1 sm:flex-row">
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                 {step > 1 && (
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 text-sm font-semibold text-[#050B14] transition-all hover:bg-slate-50"
+                    className="flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 px-6 text-sm font-semibold text-[#050B14] transition-all hover:bg-slate-50 active:scale-[0.98]"
                   >
                     <ArrowLeft className="size-4" />
                     Back
@@ -224,7 +223,7 @@ export function OnboardingWizard() {
                   type="submit"
                   disabled={submitting}
                   className={cn(
-                    "flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#050B14] text-sm font-semibold text-white shadow-lg shadow-black/10 transition-all duration-300 hover:bg-[#0a1628] active:scale-[0.98] disabled:opacity-70",
+                    "flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#050B14] text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#0d1f3c] active:scale-[0.98] disabled:opacity-70",
                     step === 1 && "w-full"
                   )}
                 >
