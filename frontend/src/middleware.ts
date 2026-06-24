@@ -49,13 +49,11 @@ export function middleware(request: NextRequest) {
 
   if (
     session.user.role !== "admin" &&
-    session.depositStatus !== "approved"
+    pathname !== ROUTES.DASHBOARD
   ) {
     const gateUrl = request.nextUrl.clone();
     gateUrl.pathname = ROUTES.DASHBOARD;
-    if (pathname !== ROUTES.DASHBOARD) {
-      return NextResponse.redirect(gateUrl);
-    }
+    return NextResponse.redirect(gateUrl);
   }
 
   return NextResponse.next();

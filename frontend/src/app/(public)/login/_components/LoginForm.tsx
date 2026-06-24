@@ -19,9 +19,6 @@ export function LoginForm() {
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
   const setLoading = useAuthStore((s) => s.setLoading);
-  const setDepositStatus = useDepositStore((s) => s.setDepositStatus);
-  const setEmailVerified = useDepositStore((s) => s.setEmailVerified);
-  const setDepositHydrated = useDepositStore((s) => s.setHydrated);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,11 +37,9 @@ export function LoginForm() {
     setSubmitting(true);
     setLoading(true);
     try {
+      useDepositStore.getState().reset();
       const { session } = await loginViaApi({ email, password });
       setSession(session);
-      setDepositStatus(session.depositStatus);
-      setEmailVerified(session.emailVerified ?? false);
-      setDepositHydrated(true);
       router.push(
         session.user.role === "admin" ? ROUTES.ADMIN : ROUTES.DASHBOARD
       );

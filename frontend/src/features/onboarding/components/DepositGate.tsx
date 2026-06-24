@@ -12,10 +12,9 @@ import {
 } from "@/src/features/onboarding/store/deposit.store";
 import type { DepositStatus } from "@/src/features/onboarding/types/deposit.types";
 import { ROUTES } from "@/src/lib/constants/routes";
-import { InvestorNavbar } from "@/src/shared/layouts/InvestorNavbar";
-import { InvestorSidebar } from "@/src/shared/layouts/InvestorSidebar";
 import { useAuthStore } from "@/src/store/auth.store";
 
+import { ApprovedHoldingView } from "./ApprovedHoldingView";
 import { StatusLockOverlay } from "./StatusLockOverlay";
 
 interface DepositGateProps {
@@ -25,8 +24,6 @@ interface DepositGateProps {
 export function DepositGate({ children }: DepositGateProps) {
   const router = useRouter();
   const session = useAuthStore((state) => state.session);
-  const depositStatus = useDepositStore((state) => state.depositStatus);
-  const emailVerified = useDepositStore((state) => state.emailVerified);
   const hydrated = useDepositStore((state) => state.hydrated);
   const setDepositStatus = useDepositStore((state) => state.setDepositStatus);
   const setEmailVerified = useDepositStore((state) => state.setEmailVerified);
@@ -71,14 +68,12 @@ export function DepositGate({ children }: DepositGateProps) {
       }
     }
 
-    if (!hydrated) {
-      void hydrateDepositStatus();
-    }
+    void hydrateDepositStatus();
 
     return () => {
       cancelled = true;
     };
-  }, [applyRemoteSession, hydrated, router]);
+  }, [applyRemoteSession, router]);
 
   useDepositSessionSync({
     enabled: hydrated && !!session && session.user.role !== "admin",
@@ -88,18 +83,13 @@ export function DepositGate({ children }: DepositGateProps) {
   const handleStatusChange = useCallback(
     (status: DepositStatus) => {
       setDepositStatus(status);
+      if (session) {
+        setSession({ ...session, depositStatus: status });
+      }
       broadcastDepositStatusChange();
     },
-    [setDepositStatus]
+    [session, setDepositStatus, setSession]
   );
-
-  const handleEmailVerified = useCallback(() => {
-    setEmailVerified(true);
-    if (session) {
-      setSession({ ...session, emailVerified: true });
-    }
-    broadcastDepositStatusChange();
-  }, [setEmailVerified, session, setSession]);
 
   if (!hydrated || !session) {
     return (
@@ -113,26 +103,28 @@ export function DepositGate({ children }: DepositGateProps) {
     return <>{children}</>;
   }
 
+  const depositStatus = session.depositStatus;
+  const emailVerified = session.emailVerified ?? false;
+
+  if (depositStatus === "approved") {
+    return <ApprovedHoldingView investorName={session.user.name} />;
+  }
+
   if (isDepositLocked(depositStatus)) {
     return (
       <StatusLockOverlay
-        depositStatus={depositStatus ?? "none"}
+        depositStatus={depositStatus}
         emailVerified={emailVerified}
         investorName={session.user.name}
         investorEmail={session.user.email}
         onStatusChange={handleStatusChange}
-        onEmailVerified={handleEmailVerified}
       />
     );
   }
 
   return (
-    <div className="font-(family-name:--font-jakarta) flex min-h-screen bg-[#F8FAFC]">
-      <InvestorSidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <InvestorNavbar />
-        <main className="flex-1 overflow-y-auto">{children}</main>
-      </div>
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
+      Verifying account status...
     </div>
   );
 }

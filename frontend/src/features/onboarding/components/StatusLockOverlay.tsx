@@ -1,13 +1,13 @@
 "use client";
 
-import { Clock3, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { Clock3, Loader2, LogOut, ShieldAlert } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import { simulateAdminDepositAction } from "@/src/features/onboarding/actions/deposit.actions";
 import { broadcastDepositStatusChange } from "@/src/features/onboarding/lib/deposit-sync";
+import { signOutInvestor } from "@/src/features/onboarding/lib/investor-sign-out";
 import type { DepositStatus } from "@/src/features/onboarding/types/deposit.types";
-import { simulateAdminAction } from "@/src/features/onboarding/services/deposit.service";
-import { useNotificationStore } from "@/src/store/notification.store";
+import { ROUTES } from "@/src/lib/constants/routes";
 import { cn } from "@/lib/utils";
 
 import { DepositCoordinates } from "./DepositCoordinates";
@@ -20,7 +20,6 @@ interface StatusLockOverlayProps {
   investorName: string;
   investorEmail: string;
   onStatusChange: (status: DepositStatus) => void;
-  onEmailVerified: () => void;
 }
 
 type DepositStep = "email-verify" | "coordinates" | "upload";
@@ -40,52 +39,39 @@ export function StatusLockOverlay({
   investorName,
   investorEmail,
   onStatusChange,
-  onEmailVerified,
 }: StatusLockOverlayProps) {
+  const router = useRouter();
   const [step, setStep] = useState<DepositStep>(() =>
     resolveInitialStep(depositStatus, emailVerified)
   );
-  const [simulating, setSimulating] = useState<"approve" | "reject" | null>(
-    null
-  );
-  const addToast = useNotificationStore((s) => s.addToast);
+  const [signingOut, setSigningOut] = useState(false);
 
-  const handleAdminSimulation = async (action: "approve" | "reject") => {
-    setSimulating(action);
-    try {
-      const result = await simulateAdminAction(action);
-      onStatusChange(result.depositStatus);
-      broadcastDepositStatusChange();
-
-      if (action === "approve") {
-        addToast({
-          title: "Account approved",
-          description: "Portal access is now active.",
-          variant: "success",
-        });
-      } else {
-        addToast({
-          title: "Submission rejected",
-          description: "Please upload a valid payment document.",
-          variant: "warning",
-        });
-        setStep("upload");
-      }
-    } catch {
-      const result = await simulateAdminDepositAction(action);
-      onStatusChange(result.depositStatus);
-      broadcastDepositStatusChange();
-      if (action === "reject") {
-        setStep("upload");
-      }
-    } finally {
-      setSimulating(null);
+  useEffect(() => {
+    if (emailVerified && step === "email-verify") {
+      setStep(depositStatus === "rejected" ? "upload" : "coordinates");
     }
+  }, [depositStatus, emailVerified, step]);
+
+  useEffect(() => {
+    if (depositStatus === "rejected") {
+      setStep("upload");
+    }
+  }, [depositStatus]);
+
+  const handleProofSubmitted = (status: DepositStatus) => {
+    onStatusChange(status);
+    broadcastDepositStatusChange();
   };
 
-  const showDevControls =
-    process.env.NODE_ENV === "development" &&
-    (depositStatus === "pending" || depositStatus === "rejected");
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOutInvestor();
+      router.replace(ROUTES.LOGIN);
+    } catch {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 min-h-screen overflow-y-auto bg-slate-50 px-4 pt-8 pb-16 sm:px-6 sm:pt-12 sm:pb-16">
@@ -110,13 +96,7 @@ export function StatusLockOverlay({
 
         <div className="px-6 py-8 pb-12 sm:px-8 sm:pb-16">
           {!emailVerified && (
-            <EmailVerificationPanel
-              investorEmail={investorEmail}
-              onVerified={() => {
-                onEmailVerified();
-                setStep("coordinates");
-              }}
-            />
+            <EmailVerificationPanel investorEmail={investorEmail} />
           )}
 
           {emailVerified && depositStatus === "none" && step === "coordinates" && (
@@ -124,7 +104,7 @@ export function StatusLockOverlay({
           )}
 
           {emailVerified && depositStatus === "none" && step === "upload" && (
-            <ProofUploader onSubmitted={() => onStatusChange("pending")} />
+            <ProofUploader onSubmitted={() => handleProofSubmitted("pending")} />
           )}
 
           {depositStatus === "pending" && (
@@ -146,6 +126,19 @@ export function StatusLockOverlay({
                 This screen will unlock automatically once your account is
                 approved.
               </div>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={signingOut}
+                className="mt-6 flex w-full items-center justify-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 disabled:opacity-60"
+              >
+                {signingOut ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <LogOut className="size-4" />
+                )}
+                Sign out of account
+              </button>
             </div>
           )}
 
@@ -160,54 +153,17 @@ export function StatusLockOverlay({
                   <p className="mt-1 text-sm leading-6 text-slate-600">
                     We could not verify your submitted payment document. There
                     may be a discrepancy with your wire transfer details.
-                    Please upload a valid bank wire transfer receipt to
-                    continue.
+                    Please upload a valid bank transfer receipt to continue.
                   </p>
                 </div>
               </div>
               <ProofUploader
                 rejected
-                onSubmitted={() => onStatusChange("pending")}
+                onSubmitted={() => handleProofSubmitted("pending")}
               />
             </div>
           )}
-
         </div>
-
-        {showDevControls && (
-          <div className="border-t border-dashed border-[#C5A059]/25 bg-amber-50/50 px-6 py-5 sm:px-8">
-            <div className="mb-3 flex items-center gap-2 text-[#9A7B3C]">
-              <ShieldCheck className="size-4" />
-              <p className="text-xs font-semibold uppercase tracking-[0.14em]">
-                Development Admin Controls
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                disabled={!!simulating}
-                onClick={() => handleAdminSimulation("approve")}
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-emerald-300 bg-emerald-50 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-60"
-              >
-                {simulating === "approve" ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : null}
-                Simulate Admin Approval
-              </button>
-              <button
-                type="button"
-                disabled={!!simulating}
-                onClick={() => handleAdminSimulation("reject")}
-                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 text-sm font-medium text-red-700 hover:bg-red-100 disabled:opacity-60"
-              >
-                {simulating === "reject" ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : null}
-                Simulate Admin Rejection
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -26,37 +26,36 @@ export async function GET() {
   const user = await getDepositUserById(session.user.id);
 
   if (user) {
-    const needsRefresh =
+    const refreshed = {
+      ...session,
+      depositStatus: user.depositStatus,
+      emailVerified: user.emailVerified ?? false,
+    };
+
+    const needsCookieUpdate =
       user.depositStatus !== session.depositStatus ||
       (user.emailVerified ?? false) !== (session.emailVerified ?? false);
 
-    if (needsRefresh) {
-      const refreshed = {
-        ...session,
-        depositStatus: user.depositStatus,
-        emailVerified: user.emailVerified ?? false,
-      };
+    if (needsCookieUpdate) {
       await setDepositSessionCookie(refreshed);
-      return NextResponse.json(
-        { session: refreshed },
-        {
-          headers: {
-            "Cache-Control": "no-store, no-cache, must-revalidate",
-            Pragma: "no-cache",
-          },
-        }
-      );
     }
+
+    return NextResponse.json(
+      { session: refreshed },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          Pragma: "no-cache",
+        },
+      }
+    );
   }
 
   return NextResponse.json(
     {
       session: {
         ...session,
-        emailVerified:
-          session.emailVerified ??
-          user?.emailVerified ??
-          false,
+        emailVerified: session.emailVerified ?? false,
       },
     },
     {

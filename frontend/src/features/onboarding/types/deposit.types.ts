@@ -22,6 +22,8 @@ export interface StoredDepositUser {
   phoneNumber: string;
   country: string;
   emailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationTokenExpiresAt?: string;
   depositStatus: DepositStatus;
   proofFileName?: string;
   proofMimeType?: string;
@@ -46,13 +48,6 @@ export interface LoginApiResponse {
 
 export interface SubmitProofResult {
   depositStatus: DepositStatus;
-}
-
-export type AdminSimulationAction = "approve" | "reject";
-
-export interface AdminSimulationPayload {
-  action: AdminSimulationAction;
-  userId?: string;
 }
 
 export type RegistrationApiPayload = RegistrationPayload;

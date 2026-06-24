@@ -12,18 +12,40 @@ const FROM_EMAIL =
   process.env.RESEND_FROM_EMAIL ?? "onboarding@aurum.capital";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@aurum.capital";
 
-class EmailDispatchError extends Error {
+export class EmailDispatchError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "EmailDispatchError";
   }
 }
 
-async function dispatchEmail(options: SendEmailOptions): Promise<void> {
+export class EmailConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "EmailConfigurationError";
+  }
+}
+
+function assertResendConfigured(): string {
   const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {
-    console.info("[deposit-email:mock]", {
+    if (process.env.NODE_ENV === "production") {
+      throw new EmailConfigurationError(
+        "RESEND_API_KEY is required in production. Email dispatch cannot initialize."
+      );
+    }
+    return "";
+  }
+
+  return apiKey;
+}
+
+async function dispatchEmail(options: SendEmailOptions): Promise<void> {
+  const apiKey = assertResendConfigured();
+
+  if (!apiKey) {
+    console.info("[deposit-email:dev-fallback]", {
       to: options.to,
       subject: options.subject,
       attachmentCount: options.attachments?.length ?? 0,
@@ -50,18 +72,18 @@ async function dispatchEmail(options: SendEmailOptions): Promise<void> {
     const body = await response.text();
     console.error("[deposit-email:error]", body);
     throw new EmailDispatchError(
-      "Unable to dispatch verification email. Please contact support."
+      "Unable to dispatch email. Please contact support."
     );
   }
 }
 
 function brandedShell(title: string, body: string): string {
   return `
-    <div style="background:#0B1221;color:#e8edf5;font-family:Inter,Arial,sans-serif;padding:32px;">
-      <div style="max-width:560px;margin:0 auto;border:1px solid rgba(197,160,89,0.35);border-radius:16px;padding:28px;background:#111a2e;">
+    <div style="background:#f8fafc;color:#0f172a;font-family:Inter,Arial,sans-serif;padding:32px;">
+      <div style="max-width:560px;margin:0 auto;border:1px solid rgba(197,160,89,0.35);border-radius:16px;padding:28px;background:#ffffff;">
         <p style="margin:0 0 8px;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#C5A059;">Aurum Sovereign Capital</p>
-        <h1 style="margin:0 0 16px;font-size:22px;color:#ffffff;">${title}</h1>
-        <div style="font-size:15px;line-height:1.6;color:#c9d2e3;">${body}</div>
+        <h1 style="margin:0 0 16px;font-size:22px;color:#0f172a;">${title}</h1>
+        <div style="font-size:15px;line-height:1.6;color:#334155;">${body}</div>
       </div>
     </div>
   `;
@@ -69,7 +91,8 @@ function brandedShell(title: string, body: string): string {
 
 export async function sendEmailVerificationEmail(
   investorEmail: string,
-  investorName: string
+  investorName: string,
+  verificationUrl: string
 ): Promise<void> {
   await dispatchEmail({
     to: investorEmail,
@@ -78,7 +101,12 @@ export async function sendEmailVerificationEmail(
       "Verify Your Email",
       `<p>Dear ${investorName},</p>
       <p>Thank you for registering with Aurum Sovereign Capital. Please confirm your email address to proceed with your deposit verification.</p>
-      <p>A confirmation link has been sent to this address. Once verified, you will receive wire transfer instructions for your capital allocation.</p>
+      <p style="margin:24px 0;">
+        <a href="${verificationUrl}" style="display:inline-block;padding:12px 24px;background:#C5A059;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;">
+          Confirm Email Address
+        </a>
+      </p>
+      <p style="font-size:13px;color:#64748b;">This link expires in 24 hours. If you did not create an account, please disregard this message.</p>
       <p style="color:#C5A059;">Aurum Sovereign Capital — Early Access Programme</p>`
     ),
   });
@@ -94,7 +122,7 @@ export async function sendEmailConfirmedEmail(
     html: brandedShell(
       "Email Confirmed",
       `<p>Dear ${investorName},</p>
-      <p>Your email address has been successfully verified. You may now proceed to view your sovereign wire transfer instructions and submit your deposit proof.</p>
+      <p>Your email address has been successfully verified. Sign in to view your sovereign deposit instructions and submit your payment proof.</p>
       <p style="color:#C5A059;">Aurum Sovereign Capital — Early Access Programme</p>`
     ),
   });
@@ -154,12 +182,13 @@ export async function sendInvestorApprovalEmail(
 ): Promise<void> {
   await dispatchEmail({
     to: investorEmail,
-    subject: "Account activated — welcome to Aurum Sovereign Capital",
+    subject: "Deposit verified — allocation secured",
     html: brandedShell(
-      "Access Activated",
+      "Account Verified & Allocation Locked",
       `<p>Dear ${investorName},</p>
-      <p>Your deposit has been verified and your investor portal access is now active. You may sign in and proceed to your sovereign dashboard immediately.</p>
-      <p style="color:#C5A059;">Welcome to Aurum Sovereign Capital.</p>`
+      <p>Your bank wire deposit proof has been successfully audited and approved. Your early-stage capital allocation is officially secured.</p>
+      <p>The sovereign capital platform is currently undergoing final deployment configurations. You will receive an automated email notification the moment the terminal opens for live capital execution.</p>
+      <p style="color:#C5A059;">Aurum Sovereign Capital — Early Access Programme</p>`
     ),
   });
 }
@@ -174,7 +203,7 @@ export async function sendInvestorRejectionEmail(
     html: brandedShell(
       "Verification Unsuccessful",
       `<p>Dear ${investorName},</p>
-      <p>We were unable to verify your submitted payment document. Please sign in and upload a valid bank wire transfer receipt to continue.</p>`
+      <p>We were unable to verify your submitted payment document. Please sign in and upload a valid bank transfer receipt to continue.</p>`
     ),
   });
 }

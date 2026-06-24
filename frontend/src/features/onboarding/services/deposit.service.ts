@@ -71,21 +71,3 @@ export async function submitProofViaApi(
 
   return { depositStatus: payload.depositStatus ?? "pending" };
 }
-
-export async function simulateAdminAction(
-  action: "approve" | "reject"
-): Promise<{ depositStatus: DepositSession["depositStatus"] }> {
-  const response = await fetch("/api/auth/admin-simulation", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action }),
-  });
-  return parseJson<{ depositStatus: DepositSession["depositStatus"] }>(response);
-}
-
-export async function verifyEmailViaApi(): Promise<{ emailVerified: boolean }> {
-  const response = await fetch("/api/onboarding/verify-email", {
-    method: "POST",
-  });
-  return parseJson<{ emailVerified: boolean }>(response);
-}

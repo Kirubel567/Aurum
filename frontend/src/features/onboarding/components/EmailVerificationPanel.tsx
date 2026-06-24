@@ -1,45 +1,14 @@
 "use client";
 
-import { Loader2, MailCheck } from "lucide-react";
-import { useState } from "react";
-
-import { verifyEmailViaApi } from "@/src/features/onboarding/services/deposit.service";
-import { useNotificationStore } from "@/src/store/notification.store";
-import { cn } from "@/lib/utils";
+import { MailCheck } from "lucide-react";
 
 interface EmailVerificationPanelProps {
   investorEmail: string;
-  onVerified: () => void;
 }
 
 export function EmailVerificationPanel({
   investorEmail,
-  onVerified,
 }: EmailVerificationPanelProps) {
-  const [simulating, setSimulating] = useState(false);
-  const addToast = useNotificationStore((s) => s.addToast);
-
-  const handleSimulateClick = async () => {
-    setSimulating(true);
-    try {
-      await verifyEmailViaApi();
-      addToast({
-        title: "Email verified",
-        description: "Your email has been confirmed. Proceed to wire instructions.",
-        variant: "success",
-      });
-      onVerified();
-    } catch {
-      addToast({
-        title: "Verification failed",
-        description: "Unable to confirm your email. Please try again.",
-        variant: "error",
-      });
-    } finally {
-      setSimulating(false);
-    }
-  };
-
   return (
     <div className="space-y-6 text-center">
       <div className="mx-auto flex size-16 items-center justify-center rounded-full border border-[#C5A059]/30 bg-[#C5A059]/10">
@@ -61,25 +30,6 @@ export function EmailVerificationPanel({
         your deposit verification. Wire transfer instructions will be available
         once your email is confirmed.
       </div>
-
-      {process.env.NODE_ENV === "development" && (
-        <button
-          type="button"
-          disabled={simulating}
-          onClick={handleSimulateClick}
-          className={cn(
-            "flex h-11 w-full items-center justify-center gap-2 rounded-xl",
-            "border border-dashed border-[#C5A059]/50 bg-[#C5A059]/5",
-            "text-sm font-medium text-[#9A7B3C]",
-            "transition-colors hover:bg-[#C5A059]/10 disabled:opacity-60"
-          )}
-        >
-          {simulating ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : null}
-          Simulate Email Link Click
-        </button>
-      )}
     </div>
   );
 }

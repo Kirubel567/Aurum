@@ -49,8 +49,6 @@ async function ensureDataFile(): Promise<void> {
 }
 
 async function readStore(): Promise<StoredDepositUser[]> {
-  if (memoryStore) return memoryStore;
-
   try {
     await ensureDataFile();
     const raw = await fs.readFile(DATA_FILE, "utf-8");
@@ -98,6 +96,15 @@ export async function getDepositUserByEmail(
   return (
     users.find((user) => user.email.toLowerCase() === email.toLowerCase()) ??
     null
+  );
+}
+
+export async function getDepositUserByVerificationToken(
+  token: string
+): Promise<StoredDepositUser | null> {
+  const users = await readStore();
+  return (
+    users.find((user) => user.emailVerificationToken === token) ?? null
   );
 }
 

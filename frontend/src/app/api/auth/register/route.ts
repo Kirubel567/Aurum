@@ -4,7 +4,16 @@ import {
   buildDepositSession,
   setDepositSessionCookie,
 } from "@/src/features/onboarding/lib/deposit-cookies";
-import { sendEmailVerificationEmail } from "@/src/features/onboarding/lib/email";
+import {
+  EmailConfigurationError,
+  EmailDispatchError,
+  sendEmailVerificationEmail,
+} from "@/src/features/onboarding/lib/email";
+import {
+  generateEmailVerificationToken,
+  getEmailVerificationExpiry,
+  resolveAppBaseUrl,
+} from "@/src/features/onboarding/lib/email-verification-token";
 import {
   createDepositUser,
   getDepositUserByEmail,
@@ -33,6 +42,7 @@ export async function POST(request: Request) {
 
     const userId = `usr_${Date.now()}`;
     const hashedPassword = await hashPassword(payload.password);
+    const verificationToken = generateEmailVerificationToken();
     const user = await createDepositUser({
       id: userId,
       email: payload.email,
@@ -43,7 +53,16 @@ export async function POST(request: Request) {
       country: payload.country,
       depositStatus: "none",
       emailVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationTokenExpiresAt: getEmailVerificationExpiry(),
     });
+
+    const verificationUrl = `${resolveAppBaseUrl()}/api/onboarding/verify-email?token=${verificationToken}`;
+    await sendEmailVerificationEmail(
+      user.email,
+      user.fullName,
+      verificationUrl
+    );
 
     const session = buildDepositSession(
       {
@@ -58,17 +77,18 @@ export async function POST(request: Request) {
 
     await setDepositSessionCookie(session);
 
-    try {
-      await sendEmailVerificationEmail(user.email, user.fullName);
-    } catch (emailError) {
-      console.error("[register] Verification email dispatch failed:", emailError);
-    }
-
     return NextResponse.json({
       session,
       userId: user.id,
     });
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof EmailConfigurationError ||
+      error instanceof EmailDispatchError
+    ) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+
     return NextResponse.json(
       { error: "Registration failed. Please try again." },
       { status: 500 }

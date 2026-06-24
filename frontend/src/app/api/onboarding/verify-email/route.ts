@@ -1,56 +1,41 @@
 import { NextResponse } from "next/server";
 
-import {
-  getDepositSessionCookie,
-  setDepositSessionCookie,
-} from "@/src/features/onboarding/lib/deposit-cookies";
-import { sendEmailConfirmedEmail } from "@/src/features/onboarding/lib/email";
-import {
-  getDepositUserById,
-  updateDepositUser,
-} from "@/src/features/onboarding/lib/deposit-store";
+import { processEmailVerificationToken } from "@/src/features/onboarding/lib/process-email-verification";
+import { resolveAppBaseUrl } from "@/src/features/onboarding/lib/email-verification-token";
+import { ROUTES } from "@/src/lib/constants/routes";
 
-export async function POST() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const token = searchParams.get("token");
+  const baseUrl = resolveAppBaseUrl();
+
+  if (!token) {
+    return NextResponse.redirect(
+      `${baseUrl}${ROUTES.LOGIN}?error=missing_verification_token`
+    );
+  }
+
   try {
-    const session = await getDepositSessionCookie();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const result = await processEmailVerificationToken(token);
 
-    const user = await getDepositUserById(session.user.id);
-    if (!user) {
-      return NextResponse.json(
-        { error: "User record not found." },
-        { status: 404 }
+    if (result.status === "verified" || result.status === "already_verified") {
+      return NextResponse.redirect(
+        `${baseUrl}${ROUTES.DASHBOARD}?emailVerified=1`
       );
     }
 
-    if (user.emailVerified) {
-      return NextResponse.json({ emailVerified: true });
-    }
-
-    const updated = await updateDepositUser(user.id, { emailVerified: true });
-    if (!updated) {
-      return NextResponse.json(
-        { error: "Unable to verify email." },
-        { status: 500 }
+    if (result.status === "expired_token") {
+      return NextResponse.redirect(
+        `${baseUrl}${ROUTES.LOGIN}?error=verification_expired`
       );
     }
 
-    try {
-      await sendEmailConfirmedEmail(updated.email, updated.fullName);
-    } catch (emailError) {
-      console.error("[verify-email] Confirmation email failed:", emailError);
-    }
-
-    const nextSession = { ...session, emailVerified: true };
-    await setDepositSessionCookie(nextSession);
-
-    return NextResponse.json({ emailVerified: true });
+    return NextResponse.redirect(
+      `${baseUrl}${ROUTES.LOGIN}?error=invalid_verification_token`
+    );
   } catch {
-    return NextResponse.json(
-      { error: "Email verification failed." },
-      { status: 500 }
+    return NextResponse.redirect(
+      `${baseUrl}${ROUTES.LOGIN}?error=verification_failed`
     );
   }
 }

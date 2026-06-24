@@ -4,7 +4,7 @@ import {
   buildDepositSession,
   setDepositSessionCookie,
 } from "@/src/features/onboarding/lib/deposit-cookies";
-import { getDepositUserByEmail } from "@/src/features/onboarding/lib/deposit-store";
+import { getDepositUserByEmail, getDepositUserById } from "@/src/features/onboarding/lib/deposit-store";
 import { verifyPassword } from "@/src/features/onboarding/lib/password-hash";
 import type { LoginPayload } from "@/src/types/auth.types";
 
@@ -50,15 +50,23 @@ export async function POST(request: Request) {
       );
     }
 
+    const dbUser = await getDepositUserById(user.id);
+    if (!dbUser) {
+      return NextResponse.json(
+        { error: "Invalid credentials. Please try again." },
+        { status: 401 }
+      );
+    }
+
     const session = buildDepositSession(
       {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
+        id: dbUser.id,
+        email: dbUser.email,
+        fullName: dbUser.fullName,
         role: "investor",
       },
-      user.depositStatus,
-      user.emailVerified ?? false
+      dbUser.depositStatus,
+      dbUser.emailVerified ?? false
     );
 
     await setDepositSessionCookie(session);
