@@ -3,50 +3,40 @@ export interface EthiopianBankAccount {
   label: string;
   accountHolder: string;
   accountNumber: string;
+  badge?: string;
 }
 
 export const ETHIOPIAN_BANK_ACCOUNTS: EthiopianBankAccount[] = [
   {
     id: "cbe",
     label: "Commercial Bank of Ethiopia (CBE)",
-    accountHolder: "Aurum Sovereign Capital Ltd.",
-    accountNumber: "1000-8842-1093-7741",
+    accountHolder: "Nathaniel Elias Misgane",
+    accountNumber: "1000549712502",
+    badge: "Recommended",
+  },
+  {
+    id: "boa",
+    label: "Bank of Abyssinia (BOA)",
+    accountHolder: "Nathaniel Elias Misgane",
+    accountNumber: "162435388",
   },
   {
     id: "telebirr",
     label: "Telebirr",
-    accountHolder: "Aurum Sovereign Capital Ltd.",
-    accountNumber: "0911-22-33-44",
-  },
-  {
-    id: "cbe-birr",
-    label: "CBE Birr",
-    accountHolder: "Aurum Sovereign Capital Ltd.",
-    accountNumber: "0911-22-33-44",
-  },
-  {
-    id: "bank-of-abyssinia",
-    label: "Bank of Abyssinia",
-    accountHolder: "Aurum Sovereign Capital Ltd.",
-    accountNumber: "8842-1093-7741-99",
+    accountHolder: "Nathaniel Elias Misgane",
+    accountNumber: "0901090348",
   },
   {
     id: "awash",
-    label: "Awash International Bank",
-    accountHolder: "Aurum Sovereign Capital Ltd.",
-    accountNumber: "0132-0987-1234-00",
+    label: "Awash Bank",
+    accountHolder: "Nathaniel Elias Misgane",
+    accountNumber: "01320151831901",
   },
   {
-    id: "zemen",
-    label: "Zemen Bank",
-    accountHolder: "Aurum Sovereign Capital Ltd.",
-    accountNumber: "7741-1093-8842",
-  },
-  {
-    id: "dashen",
-    label: "Dashen Bank",
-    accountHolder: "Aurum Sovereign Capital Ltd.",
-    accountNumber: "5241-8842-1093-00",
+    id: "coop",
+    label: "Cooperative Bank of Oromia",
+    accountHolder: "Nathaniel Elias Misgane",
+    accountNumber: "1026100366733",
   },
 ];
 

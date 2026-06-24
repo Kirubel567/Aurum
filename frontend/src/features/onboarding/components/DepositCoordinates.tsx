@@ -135,12 +135,17 @@ export function DepositCoordinates({
           >
             {ETHIOPIAN_BANK_ACCOUNTS.map((bank) => (
               <option key={bank.id} value={bank.id}>
-                {bank.label}
+                {bank.badge ? `${bank.label} ★` : bank.label}
               </option>
             ))}
           </select>
           <ChevronDown className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-slate-400" />
         </div>
+        {selectedBank.badge && (
+          <p className="mt-1.5 text-xs font-medium text-[#C5A059]">
+            ★ {selectedBank.badge} — fastest processing time
+          </p>
+        )}
       </div>
 
       <div className="grid gap-3">

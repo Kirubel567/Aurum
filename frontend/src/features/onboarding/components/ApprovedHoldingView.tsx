@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck } from "lucide-react";
+import { Bell, ShieldCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -52,6 +52,16 @@ export function ApprovedHoldingView({ investorName }: ApprovedHoldingViewProps) 
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
             No further action is required at this time. Please retain your wire
             transfer confirmation for your records.
+          </div>
+
+          <div className="flex items-start gap-3 rounded-xl border border-[#C5A059]/25 bg-[#C5A059]/5 px-4 py-3 text-left">
+            <Bell className="mt-0.5 size-4 shrink-0 text-[#C5A059]" />
+            <p className="text-xs leading-5 text-slate-600">
+              <span className="font-semibold text-slate-800">Platform launch date:</span>{" "}
+              The official trading start date will be announced to all verified
+              investors via email before the platform goes live. Please ensure
+              your email address remains active.
+            </p>
           </div>
         </div>
       </div>

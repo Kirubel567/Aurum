@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock3, Loader2, LogOut, ShieldAlert } from "lucide-react";
+import { Bell, Clock3, Loader2, LogOut, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -134,6 +134,15 @@ export function StatusLockOverlay({
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-500">
                 This screen will unlock automatically once your account is
                 approved.
+              </div>
+              <div className="flex items-start gap-3 rounded-xl border border-[#C5A059]/25 bg-[#C5A059]/5 px-4 py-3 text-left">
+                <Bell className="mt-0.5 size-4 shrink-0 text-[#C5A059]" />
+                <p className="text-xs leading-5 text-slate-600">
+                  <span className="font-semibold text-slate-800">Platform launch date:</span>{" "}
+                  The official trading start date will be announced to all
+                  verified investors via email before the platform goes live.
+                  Please ensure your email address is active.
+                </p>
               </div>
               <button
                 type="button"
