@@ -48,3 +48,45 @@ export interface AumPoint {
   inflows: number;
   outflows: number;
 }
+
+// ── Live Performance types ────────────────────────────────────────────────────
+
+export interface ActiveExecution {
+  id: string;
+  time: string;
+  assetPair: string;
+  type: "LONG" | "SHORT";
+  leverage: string;
+  entry: string;
+  current: string;
+  pl: string;
+  plPositive: boolean;
+}
+
+export interface StrategyPool {
+  id: string;
+  name: string;
+  allocation: number;
+  pool: string;
+  tag: string;
+  tagColor: "gold" | "slate" | "dark";
+  barColor: string;
+}
+
+export interface LiveMetric {
+  label: string;
+  value: string;
+  icon: "trending" | "bolt" | "bank" | "warning";
+  iconBg: string;
+  iconColor: string;
+}
+
+export interface LivePerformanceData {
+  liveVolume: string;
+  totalLiquidity: string;
+  chartPoints: { x: number; y: number }[];
+  timeLabels: string[];
+  executions: ActiveExecution[];
+  strategyPools: StrategyPool[];
+  metrics: LiveMetric[];
+}

@@ -1,5 +1,49 @@
 import { simulateRequest } from "./client";
-import type { OrderFilter, Position, TradeOrder } from "@/src/types/trade.types";
+import type {
+  ActiveExecution,
+  LivePerformanceData,
+  OrderFilter,
+  Position,
+  StrategyPool,
+  TradeOrder,
+} from "@/src/types/trade.types";
+
+const MOCK_EXECUTIONS: ActiveExecution[] = [
+  { id: "ex1", time: "10:42:01", assetPair: "EUR / USD", type: "LONG", leverage: "1:100", entry: "1.0824", current: "1.0831", pl: "+$240.20", plPositive: true },
+  { id: "ex2", time: "10:38:55", assetPair: "BTC / USDT", type: "SHORT", leverage: "1:20", entry: "64,281.00", current: "64,310.20", pl: "-$12.45", plPositive: false },
+  { id: "ex3", time: "10:31:12", assetPair: "GOLD / USD", type: "LONG", leverage: "1:50", entry: "2,341.20", current: "2,345.50", pl: "+$580.00", plPositive: true },
+  { id: "ex4", time: "10:25:44", assetPair: "GBP / JPY", type: "LONG", leverage: "1:100", entry: "192.42", current: "192.45", pl: "+$42.10", plPositive: true },
+  { id: "ex5", time: "10:18:02", assetPair: "OIL / USD", type: "SHORT", leverage: "1:10", entry: "78.45", current: "78.52", pl: "-$18.22", plPositive: false },
+];
+
+const MOCK_POOLS: StrategyPool[] = [
+  { id: "p1", name: "Forex Majors", allocation: 40, pool: "Liquidity Pool 1", tag: "High Stability", tagColor: "gold", barColor: "#e9c349" },
+  { id: "p2", name: "Commodities", allocation: 30, pool: "Liquidity Pool 2", tag: "Precious Metals", tagColor: "slate", barColor: "#94a3b8" },
+  { id: "p3", name: "Global Indices", allocation: 30, pool: "Liquidity Pool 3", tag: "Diversified Growth", tagColor: "dark", barColor: "#0f172a" },
+];
+
+const MOCK_LIVE_PERFORMANCE: LivePerformanceData = {
+  liveVolume: "$12,840,290.00",
+  totalLiquidity: "$4.2B",
+  chartPoints: [
+    { x: 0, y: 150 }, { x: 100, y: 120 }, { x: 200, y: 140 },
+    { x: 400, y: 100 }, { x: 600, y: 130 }, { x: 800, y: 80 },
+    { x: 1000, y: 110 }, { x: 1200, y: 60 },
+  ],
+  timeLabels: ["10:00 AM", "10:15 AM", "10:30 AM", "10:45 AM", "11:00 AM", "Current"],
+  executions: MOCK_EXECUTIONS,
+  strategyPools: MOCK_POOLS,
+  metrics: [
+    { label: "Avg Daily ROI", value: "+1.24%", icon: "trending", iconBg: "bg-emerald-50", iconColor: "text-emerald-600" },
+    { label: "Latency", value: "12ms", icon: "bolt", iconBg: "bg-yellow-50", iconColor: "text-[#947600]" },
+    { label: "Total Fund Eq.", value: "$1.2M", icon: "bank", iconBg: "bg-blue-50", iconColor: "text-blue-600" },
+    { label: "Current Drawdown", value: "-1.8%", icon: "warning", iconBg: "bg-red-50", iconColor: "text-red-600" },
+  ],
+};
+
+export async function getLivePerformance(): Promise<LivePerformanceData> {
+  return simulateRequest({ ...MOCK_LIVE_PERFORMANCE }, 250);
+}
 
 const MOCK_ORDERS: TradeOrder[] = [
   {
