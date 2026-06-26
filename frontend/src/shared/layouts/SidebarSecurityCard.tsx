@@ -2,7 +2,7 @@ import { Lock } from "lucide-react";
 
 export function SidebarSecurityCard() {
   return (
-    <div className="rounded-xl border border-blue-900/30 bg-blue-900/20 p-5 text-center">
+    <div className="rounded-xl border border-gray-800 bg-[#101927] p-5 text-center">
       <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-[#C5A059]/20">
         <Lock className="size-5 text-[#C5A059]" />
       </div>
