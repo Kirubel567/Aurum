@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useNotificationStore } from "@/src/store/notification.store";
+import type { ToastItem } from "@/src/store/notification.store";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ const TYPE_BADGE: Record<DocType, { label: string; className: string }> = {
 
 // ── Simulated download ─────────────────────────────────────────────────────────
 
-function simulateDownload(doc: Document, addToast: ReturnType<typeof useNotificationStore>["addToast"]) {
+function simulateDownload(doc: Document, addToast: (toast: Omit<ToastItem, "id">) => void) {
   // Create a tiny placeholder blob so the browser prompts a real save dialog
   const content = `Aurum Sovereign Capital\n${doc.name}\nDate: ${doc.date}\n\n${doc.description}\n\n[This is a simulated document for demo purposes.]`;
   const blob = new Blob([content], { type: "application/pdf" });
