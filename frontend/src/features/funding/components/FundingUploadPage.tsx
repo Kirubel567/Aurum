@@ -93,7 +93,7 @@ function ProgressStepper({
   onNavigate: (href: string) => void;
 }) {
   return (
-    <div className="relative flex justify-between mb-12 max-w-5xl mx-auto">
+    <div className="relative flex justify-between mb-8 sm:mb-12 max-w-5xl mx-auto overflow-x-auto">
       {/* background line */}
       <div className="absolute top-5 left-0 right-0 h-0.5 bg-slate-200 z-0" />
       {/* filled line — 75% when on step 4, 100% when success */}
@@ -423,14 +423,14 @@ export function FundingUploadPage() {
   };
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-slate-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-start sm:justify-between mb-6 sm:mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Upload Bank Proof &amp; Register</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Upload Bank Proof &amp; Register</h2>
           <p className="text-slate-500 text-sm">Upload your payment proof to complete your registration process.</p>
         </div>
-        <button className="flex items-center gap-2 border border-blue-200 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50">
+        <button className="flex w-fit items-center gap-2 border border-blue-200 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
           </svg>
@@ -447,10 +447,10 @@ export function FundingUploadPage() {
       ) : (
         <>
           {/* Main grid */}
-          <div className="grid grid-cols-12 gap-8">
+          <div className="grid grid-cols-12 gap-5 sm:gap-8">
             {/* Left column */}
             <div className="col-span-12 lg:col-span-7 space-y-6">
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8">
                 <h3 className="text-lg font-bold text-slate-800 mb-1">Upload Bank Payment Proof</h3>
                 <p className="text-slate-500 text-sm mb-6">
                   Please upload a clear screenshot or photo of your bank payment receipt.
@@ -558,7 +558,7 @@ export function FundingUploadPage() {
             {/* Right column — Payment Summary */}
             <div className="col-span-12 lg:col-span-5">
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-fit">
-                <div className="p-8 border-b border-slate-100">
+                <div className="p-5 sm:p-8 border-b border-slate-100">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
                       <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -568,7 +568,7 @@ export function FundingUploadPage() {
                     <h3 className="text-lg font-bold text-slate-800">Payment Summary</h3>
                   </div>
                 </div>
-                <div className="p-8 space-y-6">
+                <div className="p-5 sm:p-8 space-y-6">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500">Payment Method</span>
                     <span className="text-blue-600 font-bold text-right max-w-[180px]">{methodName}</span>

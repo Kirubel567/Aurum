@@ -478,16 +478,16 @@ export function FundingPage() {
   ];
 
   return (
-    <div className="p-8 bg-[#F8FAFC] min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* Page title */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-start sm:justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 mb-1">Deposit Funds</h1>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-1">Deposit Funds</h1>
           <p className="text-slate-500 text-sm">
             Choose your preferred payment method and fund your trading account securely.
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-100 rounded-lg text-blue-600 text-sm font-semibold shadow-sm hover:shadow transition-shadow">
+        <button className="flex w-fit items-center gap-2 px-4 py-2 bg-white border border-blue-100 rounded-lg text-blue-600 text-sm font-semibold shadow-sm hover:shadow transition-shadow">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
           </svg>
@@ -496,7 +496,7 @@ export function FundingPage() {
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <div className="bg-white p-6 rounded-2xl border border-[#E2E8F0]" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
           <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Minimum Deposit</p>
           <h3 className="text-2xl font-bold text-slate-900 mb-1">$1,200</h3>
@@ -528,19 +528,19 @@ export function FundingPage() {
       </div>
 
       {/* Main grid */}
-      <div className="grid grid-cols-12 gap-8">
+      <div className="grid grid-cols-12 gap-5 sm:gap-8">
         {/* Left: Payment method */}
         <div className="col-span-12 lg:col-span-7 bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
-          <div className="p-8">
+          <div className="p-5 sm:p-8">
             <h2 className="text-lg font-bold text-slate-900 mb-6">1. Select Payment Method</h2>
 
             {/* Tabs */}
-            <div className="flex border-b border-[#E2E8F0] mb-6">
+            <div className="flex overflow-x-auto border-b border-[#E2E8F0] mb-6">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-6 py-3 text-sm flex items-center gap-2 transition-colors ${
+                  className={`shrink-0 px-4 sm:px-6 py-3 text-sm flex items-center gap-2 transition-colors ${
                     activeTab === tab.id
                       ? "font-semibold border-b-2 border-[#C5A059] text-slate-900"
                       : "font-medium text-slate-500 hover:text-slate-800"
@@ -591,8 +591,8 @@ export function FundingPage() {
         </div>
 
         {/* Right: Deposit details */}
-        <div className="col-span-12 lg:col-span-5 flex flex-col gap-8">
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-8 flex-1" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
+        <div className="col-span-12 lg:col-span-5 flex flex-col gap-5 sm:gap-8">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 sm:p-8 flex-1" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
             <h2 className="text-lg font-bold text-slate-900 mb-6">2. Deposit Details</h2>
 
             {/* Currency selector */}
@@ -703,7 +703,7 @@ export function FundingPage() {
       </div>
 
       {/* Footer trust indicators */}
-      <div className="mt-12 py-8 border-t border-[#E2E8F0] grid grid-cols-4 gap-8">
+      <div className="mt-8 sm:mt-12 py-8 border-t border-[#E2E8F0] grid grid-cols-2 sm:grid-cols-4 gap-5 sm:gap-8">
         {[
           {
             icon: <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />,
