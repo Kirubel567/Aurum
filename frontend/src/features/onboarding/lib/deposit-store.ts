@@ -16,6 +16,7 @@ function fromRow(row: any): StoredDepositUser {
     username: row.username ?? undefined,
     phoneNumber: row.phone_number ?? undefined,
     country: row.country ?? undefined,
+    role: (row.role as "investor" | "admin") ?? "investor",
     depositStatus: row.deposit_status as DepositStatus,
     emailVerified: row.email_verified,
     emailVerificationToken: row.email_verification_token ?? undefined,
@@ -39,6 +40,7 @@ function toInsertRow(user: StoredDepositUser): Record<string, unknown> {
     username: user.username ?? null,
     phone_number: user.phoneNumber ?? null,
     country: user.country ?? null,
+    role: user.role ?? "investor",
     deposit_status: user.depositStatus,
     email_verified: user.emailVerified,
     email_verification_token: user.emailVerificationToken ?? null,
@@ -61,6 +63,7 @@ function toPatchRow(patch: Partial<StoredDepositUser>): Record<string, unknown> 
   if (patch.username !== undefined) row.username = patch.username;
   if (patch.phoneNumber !== undefined) row.phone_number = patch.phoneNumber;
   if (patch.country !== undefined) row.country = patch.country;
+  if (patch.role !== undefined) row.role = patch.role;
   if (patch.depositStatus !== undefined) row.deposit_status = patch.depositStatus;
   if (patch.emailVerified !== undefined) row.email_verified = patch.emailVerified;
   if (patch.emailVerificationToken !== undefined)
