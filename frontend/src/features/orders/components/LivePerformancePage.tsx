@@ -46,8 +46,8 @@ function LiveChart({ liveVolume, totalLiquidity, timeLabels }: {
       }}
     >
       {/* Top-right stats */}
-      <div className="absolute top-0 right-0 p-8">
-        <div className="flex items-center space-x-6">
+      <div className="absolute top-0 right-0 p-4 sm:p-8">
+        <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-6 sm:space-x-0">
           <div className="text-right">
             <p className="text-xs text-slate-500">Live Volume</p>
             <p className="text-base font-bold text-[#947600]">{liveVolume}</p>
@@ -122,8 +122,8 @@ function ExecutionsTable({ rows }: { rows: ActiveExecution[] }) {
           Real-time Sync
         </span>
       </div>
-      <div className="flex-1 overflow-auto">
-        <table className="w-full text-left">
+      <div className="flex-1 overflow-x-auto">
+        <table className="w-full min-w-[600px] text-left">
           <thead className="sticky top-0 bg-gray-50 z-10">
             <tr>
               {["Time", "Asset Pair", "Type", "Leverage", "Entry", "Current", "P/L"].map((h, i) => (
@@ -278,16 +278,18 @@ export function LivePerformancePage() {
   }
 
   return (
-    <div className="p-8 min-h-screen bg-[#f8f9fa]">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#f8f9fa]">
       {/* Header */}
-      <div className="mb-10 flex justify-between items-end">
+      <div className="mb-6 sm:mb-10 flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Live Performance</h1>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">Live Performance</h1>
           <p className="text-sm text-slate-600 max-w-2xl mt-2">
             Monitor active algorithmic market executions, liquidity pools, and live trading metrics in real-time.
           </p>
         </div>
-        <TimeSelector active={timeframe} onChange={setTimeframe} />
+        <div className="shrink-0">
+          <TimeSelector active={timeframe} onChange={setTimeframe} />
+        </div>
       </div>
 
       {/* Hero chart */}

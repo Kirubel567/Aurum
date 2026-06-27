@@ -421,7 +421,7 @@ export function WithdrawPage() {
   const monthlyRemaining = balance.monthlyLimit - balance.withdrawnThisMonth;
 
   return (
-    <div className="p-8 bg-[#F8FAFC] min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       {/* Confirm modal */}
       {confirming && activeBank && (
         <ConfirmModal
@@ -439,12 +439,12 @@ export function WithdrawPage() {
       )}
 
       {/* Page header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-start sm:justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-[24px] font-bold text-[#050B14] mb-1">Withdraw Funds</h1>
+          <h1 className="text-xl sm:text-[24px] font-bold text-[#050B14] mb-1">Withdraw Funds</h1>
           <p className="text-sm text-[#64748B]">Transfer your available balance to a registered bank account.</p>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-xl">
+        <div className="flex w-fit items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-xl">
           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
           <span className="text-[12px] font-semibold text-green-700">Withdrawals Active</span>
         </div>
@@ -467,7 +467,7 @@ export function WithdrawPage() {
       <div className="grid grid-cols-12 gap-6 items-start">
         {/* ── Left: Form (8 cols) ── */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-9 h-9 bg-[#050B14] rounded-lg flex items-center justify-center">
                 <span className="material-symbols-outlined text-[#e9c349] text-[20px]">outbox</span>

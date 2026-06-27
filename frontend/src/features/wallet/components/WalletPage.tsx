@@ -7,7 +7,7 @@ import { useState } from "react";
 function BalanceCard() {
   return (
     <div
-      className="col-span-4 rounded-2xl p-6 text-white relative overflow-hidden flex flex-col justify-between"
+      className="col-span-12 lg:col-span-4 rounded-2xl p-6 text-white relative overflow-hidden flex flex-col justify-between"
       style={{ background: "#0a0e14", height: "14rem" }}
     >
       <div className="relative z-10">
@@ -161,14 +161,14 @@ function TransactionTable() {
   const [activeTab, setActiveTab] = useState(0);
 
   return (
-    <div className="col-span-8 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="col-span-12 lg:col-span-8 bg-white rounded-2xl border border-gray-100 overflow-hidden">
       {/* Tabs */}
-      <div className="flex border-b border-gray-100">
+      <div className="flex overflow-x-auto border-b border-gray-100">
         {TABS.map((tab, i) => (
           <button
             key={tab}
             onClick={() => setActiveTab(i)}
-            className={`px-8 py-4 text-sm transition-colors ${
+            className={`shrink-0 px-5 sm:px-8 py-4 text-sm transition-colors ${
               activeTab === i
                 ? "font-bold text-blue-600 border-b-2 border-blue-600"
                 : "font-medium text-gray-400 hover:text-gray-600"
@@ -181,7 +181,8 @@ function TransactionTable() {
 
       {activeTab === 0 && (
         <>
-          <table className="w-full text-left">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[500px] text-left">
             <thead className="bg-gray-50 text-[10px] uppercase font-bold text-gray-400">
               <tr>
                 <th className="px-6 py-4">Date</th>
@@ -227,6 +228,7 @@ function TransactionTable() {
               ))}
             </tbody>
           </table>
+          </div>
           <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-center">
             <p className="text-xs text-gray-400 font-medium">Showing 5 of 5 transactions</p>
           </div>
@@ -353,25 +355,25 @@ const TRUST_BADGES = [
 
 export function WalletPage() {
   return (
-    <div className="p-8 space-y-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-gray-50 min-h-screen">
       {/* Title row */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">My Wallet</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">My Wallet</h2>
           <p className="text-sm text-gray-500 mt-1">
             Manage your wallet balance, view transactions, and request withdrawals.
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 border border-blue-100 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors">
+        <button className="flex w-fit items-center gap-2 px-4 py-2 border border-blue-100 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors">
           <i className="fa-regular fa-circle-question" />
           How Wallet Works
         </button>
       </div>
 
       {/* Stat cards grid */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4 sm:gap-6">
         <BalanceCard />
-        <div className="col-span-8 grid grid-cols-3 gap-6">
+        <div className="col-span-12 lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
           <StatCard
             iconClass="fa-solid fa-arrow-down-long"
             iconBg="bg-blue-50"
@@ -400,8 +402,8 @@ export function WalletPage() {
       </div>
 
       {/* Info banner */}
-      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex items-start sm:items-center gap-4">
           <div className="w-8 h-8 rounded-full border-2 border-blue-400 flex items-center justify-center flex-shrink-0">
             <i className="fa-solid fa-info text-blue-600 text-xs" />
           </div>
@@ -416,16 +418,16 @@ export function WalletPage() {
         </div>
         <a
           href="#"
-          className="text-sm font-bold text-blue-700 hover:underline flex items-center gap-1 whitespace-nowrap ml-6"
+          className="text-sm font-bold text-blue-700 hover:underline flex items-center gap-1 whitespace-nowrap sm:ml-6"
         >
           Learn More <i className="fa-solid fa-chevron-right text-[10px]" />
         </a>
       </div>
 
       {/* Lower content grid */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-4 sm:gap-6">
         <TransactionTable />
-        <div className="col-span-4 space-y-6">
+        <div className="col-span-12 lg:col-span-4 space-y-6">
           <WalletInfoPanel />
           <WithdrawalSchedulePanel />
           <NeedHelpPanel />
@@ -433,7 +435,7 @@ export function WalletPage() {
       </div>
 
       {/* Trust badges */}
-      <div className="grid grid-cols-4 gap-6 pt-4 pb-12">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 pt-4 pb-12">
         {TRUST_BADGES.map((b) => (
           <div
             key={b.label}
