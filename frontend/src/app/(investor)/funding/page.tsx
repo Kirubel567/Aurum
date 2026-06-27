@@ -1,5 +1,5 @@
-import { RouteStub } from "@/src/shared/layouts/RouteStub";
+import { FundingPage } from "@/src/features/funding/components/FundingPage";
 
-export default function FundingPage() {
-  return <RouteStub title="Funding" />;
+export default function FundingRoute() {
+  return <FundingPage />;
 }
