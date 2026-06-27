@@ -403,3 +403,33 @@ export async function sendInvestorRejectionEmail(
     ),
   });
 }
+
+// ── Email 7: Admin Welcome (one-time credentials) ─────────────────────────────
+
+export async function sendAdminWelcomeEmail(
+  adminEmail: string,
+  adminName: string,
+  temporaryPassword: string,
+  loginUrl: string
+): Promise<void> {
+  await dispatchEmail({
+    to: adminEmail,
+    subject: "Your Aurum Admin Terminal access",
+    html: shell(
+      "Your administrator account has been created. Sign in to access the terminal.",
+      `
+      ${h1("Admin Terminal Access")}
+      ${p(`Your administrator account for the Aurum Sovereign Capital operator terminal has been created, <strong style="color:#0f172a;">${adminName}</strong>.`)}
+      ${p("Use the credentials below to sign in. You will be redirected to the Admin Terminal after authentication.")}
+      ${infoTable(
+        infoRow("Email", adminEmail) +
+        infoRow("Temporary Password", `<code style="font-family:monospace;font-size:15px;letter-spacing:0.05em;color:#0f172a;">${temporaryPassword}</code>`) +
+        infoRow("Login URL", `<a href="${loginUrl}" style="color:#C5A059;">${loginUrl}</a>`)
+      )}
+      ${ctaButton("Sign In to Admin Terminal", loginUrl, "#0c1017")}
+      ${notice("This is a one-time temporary password. After signing in, navigate to Profile Settings to set a permanent password.", "gold")}
+      ${notice("Do not share this email or your credentials. If you did not expect this, contact the platform operator immediately.", "red")}
+      `
+    ),
+  });
+}
