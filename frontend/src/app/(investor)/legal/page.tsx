@@ -1,5 +1,5 @@
-import { RouteStub } from "@/src/shared/layouts/RouteStub";
+import { LegalPage } from "@/src/features/legal/components/LegalPage";
 
-export default function LegalPage() {
-  return <RouteStub title="Contract Locker" />;
+export default function LegalRoute() {
+  return <LegalPage />;
 }
