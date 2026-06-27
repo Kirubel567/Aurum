@@ -2,6 +2,7 @@ import { simulateRequest } from "./client";
 import type {
   PerformancePoint,
   WalletLedger,
+  WalletPageData,
   WalletSummary,
   WithdrawalRequest,
   WithdrawalResult,
@@ -116,4 +117,57 @@ export async function requestWithdrawal(
     createdAt: new Date().toISOString(),
   };
   return simulateRequest(result, 400);
+}
+
+const MOCK_WALLET_PAGE: WalletPageData = {
+  totalBalance: "$100.00",
+  availableBalance: "$100.00",
+  currency: "USD",
+  totalDeposited: "$1,200",
+  totalWithdrawn: "$0",
+  pendingRequests: "$0",
+  infoBannerText:
+    "Your wallet is active. Withdrawals are processed within 3–5 business days and require a minimum balance of $1,000. For early withdrawal requests, please contact your account manager.",
+  walletInfo: {
+    status: "Active",
+    activatedOn: "January 15, 2025",
+    walletId: "AUR-WALL-00291",
+    currency: "USD — United States Dollar",
+  },
+  transactions: [
+    {
+      id: "t1",
+      date: "Jan 15, 2025",
+      type: "wallet_funding",
+      label: "Initial Wallet Funding",
+      description: "Initial deposit to activate Aurum wallet",
+      amount: "+$1,200.00",
+      amountPositive: true,
+      status: "completed",
+    },
+    {
+      id: "t2",
+      date: "Jan 15, 2025",
+      type: "deposit",
+      label: "Capital Deployed to Fund",
+      description: "Funds transferred to managed trading fund",
+      amount: "-$1,100.00",
+      amountPositive: false,
+      status: null,
+    },
+    {
+      id: "t3",
+      date: "Mar 1, 2025",
+      type: "adjustment",
+      label: "Profit Credit (Q1 2025)",
+      description: "Quarterly net profit allocated to wallet",
+      amount: "+$0.00",
+      amountPositive: true,
+      status: null,
+    },
+  ],
+};
+
+export async function getWalletPage(): Promise<WalletPageData> {
+  return simulateRequest({ ...MOCK_WALLET_PAGE }, 250);
 }

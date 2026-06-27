@@ -1,5 +1,5 @@
-import { RouteStub } from "@/src/shared/layouts/RouteStub";
+import { WalletPage } from "@/src/features/wallet/components/WalletPage";
 
-export default function WalletPage() {
-  return <RouteStub title="Wallet Vault" />;
+export default function WalletRoute() {
+  return <WalletPage />;
 }

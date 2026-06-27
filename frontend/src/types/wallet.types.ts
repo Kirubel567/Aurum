@@ -37,3 +37,40 @@ export interface PerformancePoint {
   date: string;
   value: number;
 }
+
+// ── Wallet page types ─────────────────────────────────────────────────────────
+
+export type TxType =
+  | "wallet_funding"
+  | "deposit"
+  | "pending_withdrawal"
+  | "withdrawal"
+  | "adjustment";
+
+export interface WalletTransaction {
+  id: string;
+  date: string;
+  type: TxType;
+  label: string;
+  description: string;
+  amount: string;
+  amountPositive: boolean;
+  status: "completed" | "pending" | null;
+}
+
+export interface WalletPageData {
+  totalBalance: string;
+  availableBalance: string;
+  currency: string;
+  totalDeposited: string;
+  totalWithdrawn: string;
+  pendingRequests: string;
+  infoBannerText: string;
+  walletInfo: {
+    status: string;
+    activatedOn: string;
+    walletId: string;
+    currency: string;
+  };
+  transactions: WalletTransaction[];
+}
