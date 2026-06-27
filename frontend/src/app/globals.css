@@ -129,6 +129,132 @@
 }
 
 @layer utilities {
+  /* ── Stitch typography scale (fontSize tokens → real CSS) ─────────────
+     These mirror the Stitch tailwind.config fontSize definitions exactly so
+     Stitch class names can be used verbatim in the converted pages.        */
+  .text-display-lg {
+    font-size: 48px;
+    line-height: 56px;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+
+  .text-headline-lg {
+    font-size: 32px;
+    line-height: 40px;
+    letter-spacing: -0.01em;
+    font-weight: 600;
+  }
+
+  .text-headline-md {
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 600;
+  }
+
+  .text-body-lg {
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 400;
+  }
+
+  .text-body-md {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 400;
+  }
+
+  .text-body-sm {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+  }
+
+  .text-label-caps {
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .text-data-mono {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+  }
+
+  /* ── glass-card-light: white card with gold top-border accent (Settings) */
+  .glass-card-light {
+    background: #ffffff;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-card-light::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
+  }
+
+  /* ── Client Messages chat bubbles ────────────────────────────────── */
+  .chat-bubble-manager {
+    background: #0d141d;
+    border: 1px solid rgba(242, 202, 80, 0.2);
+  }
+
+  .chat-bubble-client {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+
+  /* ── glass-card: white card with shadow (Stitch Asset Liquidity) ──── */
+  .glass-card {
+    background: rgba(255, 255, 255, 1);
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.05),
+      0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  }
+
+  /* ── glass-card-gold: white card with gold border accent ─────────── */
+  .glass-card-gold {
+    background: #ffffff;
+    border: 1px solid rgba(176, 141, 26, 0.2) !important;
+    box-shadow: 0 4px 15px -1px rgba(176, 141, 26, 0.05);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── custom-scrollbar: thin gold-tinted scrollbar ─────────────────── */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(176, 141, 26, 0.2);
+    border-radius: 2px;
+  }
+
   .investor-gradient-bg {
     background: linear-gradient(
       160deg,
@@ -190,5 +316,99 @@
   .transition-slow {
     transition-duration: var(--duration-slow);
     transition-timing-function: var(--ease-smooth);
+  }
+
+  /* ── Material Symbols baseline (used in admin pages) ─────────────────── */
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24;
+    -webkit-font-feature-settings: "liga";
+    font-feature-settings: "liga";
+  }
+
+  /* ── Admin typeface utilities (matching Stitch font-family config) ───── */
+  /* font-data-mono  → JetBrains Mono wght 500 (Stitch: "data-mono" token) */
+  /* font-label-caps / font-body-* / font-headline-* → Hanken Grotesk       */
+  .font-data-mono {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-weight: 500;
+  }
+
+  .font-label-caps,
+  .font-body-sm,
+  .font-body-md,
+  .font-body-lg,
+  .font-headline-md,
+  .font-headline-lg,
+  .font-display-lg {
+    font-family: "Hanken Grotesk", sans-serif;
+  }
+
+  /* ── Light card — white surface with gold hover accent ────────────────── */
+  .light-card {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.05),
+      0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition:
+      border 0.3s ease,
+      transform 0.2s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .light-card:hover {
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  }
+
+  /* ── Admin card (white surface with gold hover accent) ────────────────── */
+  .admin-card {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.045);
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.04),
+      0 1px 2px -1px rgba(0, 0, 0, 0.03);
+    border-radius: 0.75rem;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.15s ease;
+  }
+
+  .admin-card:hover {
+    border-color: rgba(212, 175, 55, 0.18);
+    box-shadow:
+      0 4px 12px -2px rgba(0, 0, 0, 0.07),
+      0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  }
+
+  /* ── Admin scrollbar ──────────────────────────────────────────────────── */
+  .theme-admin ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .theme-admin ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .theme-admin ::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+  }
+
+  .theme-admin ::-webkit-scrollbar-thumb:hover {
+    background: rgba(212, 175, 55, 0.55);
   }
 }
