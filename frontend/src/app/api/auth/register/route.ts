@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       username: payload.username,
       phoneNumber: payload.phoneNumber,
       country: payload.country,
+      role: "investor",
       depositStatus: "none",
       emailVerified: false,
       emailVerificationToken: verificationToken,

@@ -4,7 +4,7 @@ import {
   buildDepositSession,
   setDepositSessionCookie,
 } from "@/src/features/onboarding/lib/deposit-cookies";
-import { getDepositUserByEmail, getDepositUserById } from "@/src/features/onboarding/lib/deposit-store";
+import { getDepositUserByEmail } from "@/src/features/onboarding/lib/deposit-store";
 import { verifyPassword } from "@/src/features/onboarding/lib/password-hash";
 import type { LoginPayload } from "@/src/types/auth.types";
 
@@ -17,21 +17,6 @@ export async function POST(request: Request) {
         { error: "Email and password are required." },
         { status: 400 }
       );
-    }
-
-    if (payload.email.includes("admin")) {
-      const session = buildDepositSession(
-        {
-          id: "usr_adm_001",
-          email: payload.email,
-          fullName: "Elena Voss",
-          role: "admin",
-        },
-        "approved",
-        true
-      );
-      await setDepositSessionCookie(session);
-      return NextResponse.json({ session });
     }
 
     const user = await getDepositUserByEmail(payload.email);
@@ -50,23 +35,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const dbUser = await getDepositUserById(user.id);
-    if (!dbUser) {
-      return NextResponse.json(
-        { error: "Invalid credentials. Please try again." },
-        { status: 401 }
-      );
-    }
-
     const session = buildDepositSession(
       {
-        id: dbUser.id,
-        email: dbUser.email,
-        fullName: dbUser.fullName,
-        role: "investor",
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role ?? "investor",
       },
-      dbUser.depositStatus,
-      dbUser.emailVerified ?? false
+      user.role === "admin" ? "approved" : user.depositStatus,
+      user.role === "admin" ? true : (user.emailVerified ?? false)
     );
 
     await setDepositSessionCookie(session);
