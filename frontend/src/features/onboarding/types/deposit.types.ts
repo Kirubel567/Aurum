@@ -21,6 +21,7 @@ export interface StoredDepositUser {
   username: string;
   phoneNumber: string;
   country: string;
+  role: "investor" | "admin";
   emailVerified: boolean;
   emailVerificationToken?: string;
   emailVerificationTokenExpiresAt?: string;
