@@ -12,6 +12,7 @@ export const ROUTES = {
   SUPPORT: "/support",
   PROFILE: "/profile",
   ADMIN: "/admin",
+  ADMIN_DASHBOARD: "/admin/dashboard",
   ADMIN_USERS: "/admin/users",
   ADMIN_DEPOSITS: "/admin/deposits",
   ADMIN_LIQUIDITY: "/admin/liquidity",

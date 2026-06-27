@@ -6,11 +6,13 @@ import {
   Droplets,
   FileText,
   Home,
-  Inbox,
   LayoutDashboard,
   LogOut,
   MessageCircle,
+  MessageSquare,
   Settings,
+  Settings2,
+  ShieldCheck,
   Terminal,
   User,
   Users,
@@ -38,13 +40,23 @@ export const INVESTOR_NAV: NavItem[] = [
 ];
 
 export const ADMIN_NAV: AdminNavItem[] = [
-  { label: "Dashboard", href: ROUTES.ADMIN, icon: LayoutDashboard },
-  { label: "Users", href: ROUTES.ADMIN_USERS, icon: Users },
-  { label: "Deposits", href: ROUTES.ADMIN_DEPOSITS, icon: Inbox, badge: 5 },
-  { label: "Liquidity", href: ROUTES.ADMIN_LIQUIDITY, icon: Droplets },
-  { label: "Console", href: ROUTES.ADMIN_CONSOLE, icon: Terminal },
-  { label: "Inbox", href: ROUTES.ADMIN_INBOX, icon: MessageCircle, badge: 3 },
-  { label: "Settings", href: ROUTES.ADMIN_SETTINGS, icon: Settings },
+  { label: "Dashboard", href: ROUTES.ADMIN_DASHBOARD, icon: LayoutDashboard },
+  { label: "Trading Console", href: ROUTES.ADMIN_CONSOLE, icon: Terminal },
+  { label: "Asset Liquidity", href: ROUTES.ADMIN_LIQUIDITY, icon: Droplets },
+  {
+    label: "Deposit Verification",
+    href: ROUTES.ADMIN_DEPOSITS,
+    icon: ShieldCheck,
+    badge: 5,
+  },
+  { label: "User Management", href: ROUTES.ADMIN_USERS, icon: Users },
+  {
+    label: "Client Messages",
+    href: ROUTES.ADMIN_INBOX,
+    icon: MessageSquare,
+    badge: 3,
+  },
+  { label: "System Settings", href: ROUTES.ADMIN_SETTINGS, icon: Settings2 },
 ];
 
 export const PUBLIC_NAV: NavItem[] = [
