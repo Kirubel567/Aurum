@@ -189,22 +189,22 @@ export function ConciergePage() {
   const [showModal, setShowModal] = useState(false);
 
   return (
-    <div className="p-10 max-w-7xl mx-auto bg-[#f8f9fa] min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto bg-[#f8f9fa] min-h-screen">
       {showModal && <MessageModal onClose={() => setShowModal(false)} />}
 
       {/* Page Title */}
-      <div className="mb-10">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">My Account Manager</h1>
+      <div className="mb-6 sm:mb-10">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">My Account Manager</h1>
         <p className="text-[#64748b] text-sm">Your personal account manager is here to assist you.</p>
       </div>
 
       {/* Profile Card */}
       <div
-        className="bg-white rounded-2xl border border-slate-100 p-8 flex flex-col md:flex-row gap-12 items-start"
+        className="bg-white rounded-2xl border border-slate-100 p-5 sm:p-8 flex flex-col md:flex-row gap-8 sm:gap-12 items-center md:items-start"
         style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}
       >
         {/* Left: Manager Info */}
-        <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start flex-grow">
+        <div className="flex flex-col gap-6 items-center flex-grow md:flex-row md:items-start md:gap-8">
           {/* Profile picture */}
           <div className="relative flex flex-col items-center">
             <div className="w-44 h-44 rounded-full overflow-hidden bg-slate-100 border-4 border-white shadow-sm ring-1 ring-slate-200">
@@ -226,15 +226,15 @@ export function ConciergePage() {
           </div>
 
           {/* Contact details */}
-          <div className="flex-grow">
-            <h3 className="text-2xl font-bold text-slate-900 mb-1">Daniel Tesfaye</h3>
-            <p className="text-[#64748b] text-sm font-medium mb-8">Senior Account Manager</p>
+          <div className="flex-grow w-full">
+            <h3 className="text-2xl font-bold text-slate-900 mb-1 text-center md:text-left">Daniel Tesfaye</h3>
+            <p className="text-[#64748b] text-sm font-medium mb-8 text-center md:text-left">Senior Account Manager</p>
 
             <div className="space-y-4">
               {/* Phone */}
               <a
                 href="tel:+251912345678"
-                className="flex items-center gap-4 group"
+                className="flex items-center justify-center md:justify-start gap-4 group"
               >
                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-[#c29b40] transition-colors">
                   <PhoneIcon />
@@ -247,7 +247,7 @@ export function ConciergePage() {
               {/* Email */}
               <a
                 href="mailto:daniel.tesfaye@aurumsc.com"
-                className="flex items-center gap-4 group"
+                className="flex items-center justify-center md:justify-start gap-4 group"
               >
                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-[#c29b40] transition-colors">
                   <MailIcon />
@@ -262,7 +262,7 @@ export function ConciergePage() {
                 href="https://wa.me/251912345678"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-4 group"
+                className="flex items-center justify-center md:justify-start gap-4 group"
               >
                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:text-[#c29b40] transition-colors">
                   <MessageSquareIcon />
@@ -273,7 +273,7 @@ export function ConciergePage() {
               </a>
 
               {/* Working hours */}
-              <div className="flex items-center gap-4 group">
+              <div className="flex items-center justify-center md:justify-start gap-4 group">
                 <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
                   <ClockIcon />
                 </div>

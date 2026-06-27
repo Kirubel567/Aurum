@@ -225,11 +225,11 @@ export function SupportPage() {
   };
 
   return (
-    <div className="p-8 bg-[#F8FAFC] min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="mb-10">
-          <h2 className="text-[48px] font-extrabold text-[#050b14] leading-tight tracking-tight mb-2">
+        <div className="mb-6 sm:mb-10">
+          <h2 className="text-[28px] sm:text-[36px] lg:text-[48px] font-extrabold text-[#050b14] leading-tight tracking-tight mb-2">
             AI Financial Support
           </h2>
           <p className="text-base text-[#737a86] max-w-2xl leading-6">
@@ -238,9 +238,9 @@ export function SupportPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
+        <div className="grid grid-cols-12 gap-4 sm:gap-6">
           {/* ── Left: Chat (9 cols) ── */}
-          <div className="col-span-9 flex flex-col">
+          <div className="col-span-12 lg:col-span-9 flex flex-col">
             <div
               className="rounded-2xl flex flex-col"
               style={{
@@ -248,7 +248,8 @@ export function SupportPage() {
                 backdropFilter: "blur(10px)",
                 border: "1px solid #E2E8F0",
                 boxShadow: "0 4px 24px -2px rgba(5,11,20,0.04)",
-                height: "716px",
+                minHeight: "500px",
+                height: "clamp(500px, 70vh, 716px)",
               }}
             >
               {/* Chat Header */}
@@ -304,7 +305,7 @@ export function SupportPage() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-white/40">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 bg-white/40">
                 {messages.map((msg) => (
                   <ChatBubble key={msg.id} msg={msg} />
                 ))}
@@ -344,7 +345,7 @@ export function SupportPage() {
           </div>
 
           {/* ── Right: Quick Actions (3 cols) ── */}
-          <div className="col-span-3 space-y-6">
+          <div className="col-span-12 lg:col-span-3 space-y-6">
             <h4 className="text-sm font-semibold text-[#050b14] uppercase tracking-widest px-1">
               Quick Actions
             </h4>

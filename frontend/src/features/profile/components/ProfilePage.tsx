@@ -707,23 +707,23 @@ export function ProfilePage() {
   ];
 
   return (
-    <div className="p-6 bg-[#F8FAFC] min-h-screen">
+    <div className="p-4 sm:p-6 bg-[#F8FAFC] min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-[24px] font-bold text-[#050B14] mb-1">Profile Settings</h1>
-          <p className="text-base text-[#64748B]">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-[24px] font-bold text-[#050B14] mb-1">Profile Settings</h1>
+          <p className="text-sm sm:text-base text-[#64748B]">
             Manage your personal credentials, secure authentication states, and withdrawal bank configurations.
           </p>
         </div>
 
         {/* Tab Nav */}
-        <div className="flex gap-8 border-b border-slate-200 mb-8">
+        <div className="flex gap-4 sm:gap-8 overflow-x-auto border-b border-slate-200 mb-6 sm:mb-8">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`text-[14px] font-semibold py-3 relative transition-colors ${
+              className={`shrink-0 whitespace-nowrap text-[14px] font-semibold py-3 relative transition-colors ${
                 activeTab === tab.id
                   ? "text-[#050B14] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#e9c349]"
                   : "text-[#64748B] hover:text-[#050B14]"

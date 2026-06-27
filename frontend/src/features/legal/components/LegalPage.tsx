@@ -172,16 +172,16 @@ export function LegalPage() {
   };
 
   return (
-    <div className="p-8 bg-[#f8fafc] min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#f8fafc] min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 mb-1">My Contract</h1>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1">My Contract</h1>
           <p className="text-sm text-[#64748b]">View and download your agreements and important documents.</p>
         </div>
         <button
           onClick={handleDownloadAll}
-          className="flex items-center px-4 py-2 border border-[#d4af37] text-[#d4af37] rounded-lg text-sm font-semibold hover:bg-[#fdf6e3] transition-colors"
+          className="flex w-fit items-center px-4 py-2 border border-[#d4af37] text-[#d4af37] rounded-lg text-sm font-semibold hover:bg-[#fdf6e3] transition-colors"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
@@ -193,12 +193,12 @@ export function LegalPage() {
       {/* Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-[#e2e8f0] overflow-hidden">
         {/* Tabs */}
-        <div className="flex border-b border-[#e2e8f0] px-6 pt-4">
+        <div className="flex overflow-x-auto border-b border-[#e2e8f0] px-4 sm:px-6 pt-4">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 text-sm font-medium mr-4 transition-colors whitespace-nowrap ${
+              className={`shrink-0 px-3 sm:px-4 py-3 text-sm font-medium mr-2 sm:mr-4 transition-colors whitespace-nowrap ${
                 activeTab === tab.id
                   ? "border-b-2 border-[#d4af37] text-[#050b14] font-semibold -mb-px"
                   : "text-[#64748b] hover:text-slate-900"
