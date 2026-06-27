@@ -1,5 +1,5 @@
-import { RouteStub } from "@/src/shared/layouts/RouteStub";
+import { LivePerformancePage } from "@/src/features/orders/components/LivePerformancePage";
 
 export default function OrdersPage() {
-  return <RouteStub title="Orders" />;
+  return <LivePerformancePage />;
 }
