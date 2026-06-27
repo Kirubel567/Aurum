@@ -11,7 +11,12 @@ import { cn } from "@/lib/utils";
 
 import { SidebarSecurityCard } from "./SidebarSecurityCard";
 
-export function InvestorSidebar() {
+interface InvestorSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function InvestorSidebar({ isOpen = false, onClose }: InvestorSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
@@ -27,7 +32,31 @@ export function InvestorSidebar() {
   };
 
   return (
-    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col bg-[#0B1221] text-gray-400">
+    <aside
+      className={cn(
+        // Base — always fixed on mobile so it overlays content
+        "fixed inset-y-0 left-0 z-50 flex h-full w-64 shrink-0 flex-col overflow-x-hidden overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-[#0B1221] text-gray-400",
+        // Slide transition
+        "transition-transform duration-300 ease-in-out",
+        // Mobile: hidden by default, slide in when open
+        isOpen ? "translate-x-0" : "-translate-x-full",
+        // Desktop: sticky so it stays in view while page content scrolls
+        // overflow-y-auto with hidden scrollbar handles rare cases where sidebar content
+        // exceeds the viewport height (e.g. very short screens / high zoom levels)
+        "lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:overflow-y-auto lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden"
+      )}
+    >
+      {/* Close button — mobile only */}
+      <button
+        onClick={onClose}
+        className="absolute right-3 top-3 rounded-lg p-1.5 text-gray-400 hover:bg-white/10 hover:text-white lg:hidden"
+        aria-label="Close menu"
+      >
+        <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+        </svg>
+      </button>
+
       <div className="p-8">
         <BrandLockup
           href={ROUTES.DASHBOARD}
@@ -80,7 +109,7 @@ export function InvestorSidebar() {
         })}
       </nav>
 
-      <div className="p-6">
+      <div className="mt-6 p-6">
         <SidebarSecurityCard />
       </div>
     </aside>
