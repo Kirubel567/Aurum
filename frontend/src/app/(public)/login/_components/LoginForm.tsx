@@ -41,7 +41,7 @@ export function LoginForm() {
       const { session } = await loginViaApi({ email, password });
       setSession(session);
       router.push(
-        session.user.role === "admin" ? ROUTES.ADMIN : ROUTES.DASHBOARD
+        session.user.role === "admin" ? ROUTES.ADMIN_DASHBOARD : ROUTES.DASHBOARD
       );
     } catch {
       setError("Invalid credentials. Please try again.");
