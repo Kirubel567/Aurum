@@ -5,6 +5,7 @@ export const ROUTES = {
   FUNDING: "/funding",
   FUNDING_UPLOAD: "/funding/upload",
   WALLET: "/wallet",
+  WITHDRAW: "/withdraw",
   ORDERS: "/orders",
   LEGAL: "/legal",
   CONCIERGE: "/concierge",

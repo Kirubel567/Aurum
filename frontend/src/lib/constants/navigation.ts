@@ -24,7 +24,7 @@ export const INVESTOR_NAV: NavItem[] = [
   { label: "Live Performance", href: ROUTES.ORDERS, icon: BarChart3 },
   { label: "Wallet", href: ROUTES.WALLET, icon: CreditCard },
   { label: "Deposit", href: ROUTES.FUNDING, icon: ArrowDownToLine },
-  { label: "Withdraw", href: ROUTES.WALLET, icon: ArrowUpCircle },
+  { label: "Withdraw", href: ROUTES.WITHDRAW, icon: ArrowUpCircle },
   { label: "My Account Manager", href: ROUTES.CONCIERGE, icon: User },
   {
     label: "AI Support",

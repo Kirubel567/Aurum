@@ -1,5 +1,5 @@
-import { RouteStub } from "@/src/shared/layouts/RouteStub";
+import { ConciergePage } from "@/src/features/concierge/components/ConciergePage";
 
-export default function ConciergePage() {
-  return <RouteStub title="Concierge" />;
+export default function ConciergeRoute() {
+  return <ConciergePage />;
 }
