@@ -48,7 +48,7 @@ export function InvestorSidebar() {
               : item.label === "Wallet"
                 ? pathname === ROUTES.WALLET
                 : item.label === "Withdraw"
-                  ? false
+                  ? pathname === ROUTES.WITHDRAW
                   : pathname === item.href ||
                     (item.href !== ROUTES.DASHBOARD &&
                       pathname.startsWith(item.href)));

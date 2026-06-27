@@ -1,5 +1,5 @@
-import { RouteStub } from "@/src/shared/layouts/RouteStub";
+import { ProfilePage } from "@/src/features/profile/components/ProfilePage";
 
-export default function ProfilePage() {
-  return <RouteStub title="Profile" />;
+export default function ProfileRoute() {
+  return <ProfilePage />;
 }
