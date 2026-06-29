@@ -3,8 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Hanken_Grotesk } from "next/font/google";
 
-import { AdminNavbar } from "@/src/shared/layouts/AdminNavbar";
-import { AdminSidebar } from "@/src/shared/layouts/AdminSidebar";
+import { AdminShell } from "@/src/shared/layouts/AdminShell";
 import type { DepositSession } from "@/src/features/onboarding/types/deposit.types";
 import { SESSION_COOKIE } from "@/src/features/onboarding/lib/deposit-cookies";
 import { ROUTES } from "@/src/lib/constants/routes";
@@ -61,21 +60,8 @@ export default async function AdminLayout({
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
       />
 
-      <div
-        className={`
-          theme-admin
-          ${hanken.variable}
-          font-(family-name:--font-hanken)
-          flex h-screen overflow-hidden
-        `}
-      >
-        <AdminSidebar />
-        <div className="flex flex-1 flex-col overflow-hidden bg-[#f8f9fa]">
-          <AdminNavbar />
-          <main className="flex-1 min-h-0 overflow-hidden">
-            {children}
-          </main>
-        </div>
+      <div className={`theme-admin ${hanken.variable} font-(family-name:--font-hanken)`}>
+        <AdminShell>{children}</AdminShell>
       </div>
     </>
   );

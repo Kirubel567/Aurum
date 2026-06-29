@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, History, BarChart2, Search, Zap } from "lucide-react";
+import { Bell, History, BarChart2, Search, Zap, Menu } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/src/store/auth.store";
@@ -11,7 +11,11 @@ import { ROUTES } from "@/src/lib/constants/routes";
 
 // ── AdminNavbar ───────────────────────────────────────────────────────────────
 
-export function AdminNavbar() {
+interface AdminNavbarProps {
+  onMenuClick?: () => void;
+}
+
+export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
   const router  = useRouter();
   const user    = useAuthStore((s) => s.session?.user);
   const [query, setQuery] = useState("");
@@ -26,11 +30,20 @@ export function AdminNavbar() {
     : "A";
 
   return (
-    <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-[#e2e8f0] bg-white/85 px-6 backdrop-blur-xl">
+    <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-[#e2e8f0] bg-white/85 px-4 sm:px-6 backdrop-blur-xl">
+
+      {/* ── Hamburger (mobile only) ─────────────────────────────────────────── */}
+      <button
+        onClick={onMenuClick}
+        className="mr-3 flex size-8 items-center justify-center rounded-lg text-[#64748b] transition-all hover:bg-[#f1f5f9] hover:text-[#1a1c1e] lg:hidden"
+        aria-label="Open menu"
+      >
+        <Menu className="size-5" />
+      </button>
 
       {/* ── Search ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 items-center">
-        <div className="relative w-full max-w-xs">
+        <div className="relative w-full max-w-xs hidden sm:block">
           <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#94a3b8]" />
           <input
             type="text"
@@ -77,7 +90,7 @@ export function AdminNavbar() {
         {/* Execute Trade CTA */}
         <Link
           href={ROUTES.ADMIN_CONSOLE}
-          className="flex items-center gap-1.5 rounded-lg bg-[#d4af37] px-3.5 py-[7px] text-[12.5px] font-bold text-[#1a0e00] shadow-[0_2px_10px_rgba(212,175,55,0.32)] transition-all duration-150 hover:bg-[#c9a830] hover:shadow-[0_4px_16px_rgba(212,175,55,0.4)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4af37]/40"
+          className="hidden sm:flex items-center gap-1.5 rounded-lg bg-[#d4af37] px-3.5 py-[7px] text-[12.5px] font-bold text-[#1a0e00] shadow-[0_2px_10px_rgba(212,175,55,0.32)] transition-all duration-150 hover:bg-[#c9a830] hover:shadow-[0_4px_16px_rgba(212,175,55,0.4)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4af37]/40"
         >
           <Zap className="size-[13px] fill-current" />
           Execute Trade
@@ -85,7 +98,7 @@ export function AdminNavbar() {
 
         {/* User profile */}
         <div className="flex items-center gap-2.5">
-          <div className="text-right">
+          <div className="text-right hidden md:block">
             <p className="text-[13px] font-semibold leading-tight text-[#1a1c1e]">
               {user?.name ?? "Admin"}
             </p>
