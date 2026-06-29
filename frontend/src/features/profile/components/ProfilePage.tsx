@@ -1,7 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
+import {
+  User, Mail, Phone, MapPin, Globe, Lock, RefreshCw, Shield,
+  Smartphone, Monitor, CheckCircle2, Circle, Landmark, Plus, X,
+  Save, Camera, Eye, EyeOff, Info, Loader2, CheckCheck,
+} from "lucide-react";
 import { useNotificationStore } from "@/src/store/notification.store";
+import { cn } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -51,248 +57,194 @@ const INITIAL_BANKS: BankAccount[] = [
   },
 ];
 
-// ── Shared Input component ────────────────────────────────────────────────────
+// ── Shared field wrapper ───────────────────────────────────────────────────────
 
-function Field({
-  label,
-  icon,
-  children,
-}: {
-  label: string;
-  icon?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-[14px] font-semibold text-[#050B14] mb-2 tracking-[0.01em]">{label}</label>
+      <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
       <div className="relative">{children}</div>
     </div>
   );
 }
 
-function TextInput({
-  value,
-  onChange,
-  readOnly,
-  type = "text",
-  placeholder,
-  icon,
-  className = "",
-}: {
-  value: string;
-  onChange?: (v: string) => void;
-  readOnly?: boolean;
-  type?: string;
-  placeholder?: string;
-  icon?: string;
-  className?: string;
-}) {
+function inputCls(readOnly = false) {
+  return cn(
+    "w-full h-11 px-4 rounded-xl border text-[13px] text-slate-900 outline-none transition-all",
+    readOnly
+      ? "bg-slate-50 border-slate-100 text-slate-400 cursor-not-allowed"
+      : "bg-white border-slate-200 hover:border-slate-300 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/15"
+  );
+}
+
+// ── Section card ───────────────────────────────────────────────────────────────
+
+function SectionCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <>
-      <input
-        type={type}
-        value={value}
-        readOnly={readOnly}
-        placeholder={placeholder}
-        onChange={(e) => onChange?.(e.target.value)}
-        className={`w-full h-12 px-4 rounded-xl border border-slate-200 text-base text-[#050B14] outline-none transition-all focus:ring-2 focus:ring-[#e9c349] focus:border-transparent ${
-          readOnly ? "bg-slate-50 text-[#64748B] cursor-not-allowed" : "bg-white hover:border-slate-300"
-        } ${icon ? "pr-10" : ""} ${className}`}
-      />
-      {icon && (
-        <span className="material-symbols-outlined absolute right-3 top-3 text-slate-400 text-[18px] pointer-events-none">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-slate-100">
+        <div className="w-8 h-8 rounded-xl bg-[#0C1526] flex items-center justify-center shrink-0">
           {icon}
-        </span>
-      )}
-    </>
+        </div>
+        <h3 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider">{title}</h3>
+      </div>
+      <div className="p-6">{children}</div>
+    </div>
   );
 }
 
 // ── Tab: Personal Profile ─────────────────────────────────────────────────────
 
 function PersonalTab({
-  form,
-  setForm,
-  avatarUrl,
-  onAvatarChange,
-  dirty,
-  onSave,
-  onDiscard,
-  saving,
+  form, setForm, avatarUrl, onAvatarChange, dirty, onSave, onDiscard, saving,
 }: {
-  form: PersonalForm;
-  setForm: (f: PersonalForm) => void;
-  avatarUrl: string;
-  onAvatarChange: (url: string) => void;
-  dirty: boolean;
-  onSave: () => void;
-  onDiscard: () => void;
-  saving: boolean;
+  form: PersonalForm; setForm: (f: PersonalForm) => void;
+  avatarUrl: string; onAvatarChange: (url: string) => void;
+  dirty: boolean; onSave: () => void; onDiscard: () => void; saving: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    const url = URL.createObjectURL(f);
-    onAvatarChange(url);
+    onAvatarChange(URL.createObjectURL(f));
   };
 
-  const set = (key: keyof PersonalForm) => (val: string) =>
-    setForm({ ...form, [key]: val });
+  const set = (key: keyof PersonalForm) => (val: string) => setForm({ ...form, [key]: val });
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-10 gap-5 items-start">
         {/* Left: Personal Information */}
-        <div className="lg:col-span-6 space-y-6">
-          <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-            <h3 className="text-[14px] font-semibold text-[#050B14] mb-6 uppercase tracking-wider">
-              Personal Information
-            </h3>
+        <div className="lg:col-span-6">
+          <SectionCard icon={<User className="size-4 text-[#D4AF37]" />} title="Personal Information">
             <div className="space-y-5">
-              {/* Full Name + Email */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Field label="Full Name">
-                  <TextInput value={form.fullName} onChange={set("fullName")} icon="edit" />
+                  <input
+                    type="text"
+                    value={form.fullName}
+                    onChange={(e) => set("fullName")(e.target.value)}
+                    className={inputCls()}
+                  />
                 </Field>
                 <Field label="Email Address">
-                  <TextInput
+                  <input
+                    type="email"
                     value="abebe.k@institutional.com"
                     readOnly
-                    type="email"
-                    icon="lock"
+                    className={cn(inputCls(true), "pr-10")}
                   />
+                  <Lock className="absolute right-3 top-3 size-4 text-slate-300 pointer-events-none" />
                 </Field>
               </div>
 
-              {/* Phone + Country */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Field label="Phone Number">
-                  <div className="absolute left-3 flex items-center gap-2 border-r border-slate-200 pr-2 h-full top-0 z-10">
-                    <span className="text-xl">🇪🇹</span>
-                    <span className="text-sm font-medium text-[#050B14]">+251</span>
+                  <div className="absolute left-3 flex items-center gap-2 border-r border-slate-200 pr-3 h-full top-0 z-10">
+                    <span className="text-base">🇪🇹</span>
+                    <span className="text-[12px] font-semibold text-slate-700">+251</span>
                   </div>
                   <input
                     type="text"
                     value={form.phone}
                     onChange={(e) => set("phone")(e.target.value)}
-                    className="w-full h-12 pl-24 pr-10 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#e9c349] outline-none text-base text-[#050B14] hover:border-slate-300 transition-all"
+                    className={cn(inputCls(), "pl-24")}
                   />
-                  <span className="material-symbols-outlined absolute right-3 top-3 text-slate-400 text-[18px]">edit</span>
                 </Field>
                 <Field label="Country">
                   <select
                     value={form.country}
                     onChange={(e) => set("country")(e.target.value)}
-                    className="w-full h-12 px-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#e9c349] outline-none appearance-none text-base text-[#050B14] bg-white hover:border-slate-300 transition-all"
+                    className={cn(inputCls(), "appearance-none pr-10")}
                   >
-                    {COUNTRIES.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
+                    {COUNTRIES.map((c) => <option key={c}>{c}</option>)}
                   </select>
-                  <span className="material-symbols-outlined absolute right-3 top-3 text-slate-400 pointer-events-none text-[18px]">
-                    expand_more
-                  </span>
+                  <Globe className="absolute right-3 top-3 size-4 text-slate-400 pointer-events-none" />
                 </Field>
               </div>
 
-              {/* Address */}
               <Field label="Street Address">
-                <TextInput value={form.address} onChange={set("address")} icon="edit" />
+                <input
+                  type="text"
+                  value={form.address}
+                  onChange={(e) => set("address")(e.target.value)}
+                  className={inputCls()}
+                />
               </Field>
             </div>
-          </div>
+          </SectionCard>
         </div>
 
         {/* Right: Photo + Status */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-5">
           {/* Profile Photo */}
-          <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center text-center">
-            <div className="relative mb-6">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col items-center text-center">
+            <div className="relative mb-4">
               <img
                 src={avatarUrl}
                 alt="Profile"
-                className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
+                className="w-24 h-24 rounded-2xl border-2 border-white shadow-lg object-cover ring-1 ring-slate-200"
               />
               <button
                 onClick={() => fileRef.current?.click()}
-                className="absolute bottom-1 right-1 w-8 h-8 bg-[#e9c349] rounded-full flex items-center justify-center border-2 border-white shadow-md hover:opacity-90 transition-opacity"
+                className="absolute -bottom-1.5 -right-1.5 w-8 h-8 bg-[#D4AF37] rounded-xl flex items-center justify-center border-2 border-white shadow-md hover:bg-[#c9a030] transition-colors"
               >
-                <span className="material-symbols-outlined text-[#050B14] text-sm">photo_camera</span>
+                <Camera className="size-3.5 text-[#0C1526]" />
               </button>
               <input ref={fileRef} type="file" accept="image/*" className="sr-only" onChange={handleAvatarFile} />
             </div>
-            <h4 className="text-[14px] font-semibold text-[#050B14] mb-2">Profile Photo</h4>
-            <p className="text-[12px] text-[#64748B] mb-6 leading-relaxed">
-              Recommended size: 800x800px
-              <br />
-              JPG or PNG, max 2MB
-            </p>
+            <p className="text-[13px] font-bold text-slate-900 mb-0.5">Profile Photo</p>
+            <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">800×800px · JPG or PNG · max 2MB</p>
             <button
               onClick={() => fileRef.current?.click()}
-              className="w-full py-3 px-6 bg-[#e9c349] text-[#050B14] rounded-xl font-bold text-[14px] hover:opacity-90 transition-all active:scale-95"
+              className="w-full py-2.5 px-5 bg-[#0C1526] text-white text-[13px] font-bold rounded-xl hover:bg-[#111d35] transition-all active:scale-95"
             >
               Upload New Image
             </button>
           </div>
 
           {/* Account Status */}
-          <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-            <h3 className="text-[14px] font-semibold text-[#050B14] mb-6 uppercase tracking-wider">
-              Account Status
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                <span className="text-[14px] text-[#64748B]">Verification Tier</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-700 rounded-full font-bold text-[12px]">
-                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    verified
-                  </span>
-                  Fully Verified
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-3 border-b border-slate-100">
-                <span className="text-[14px] text-[#64748B]">Registration Date</span>
-                <span className="text-[14px] font-semibold text-[#050B14]">Jan 12, 2024</span>
-              </div>
-              <div className="flex justify-between items-center py-3">
-                <span className="text-[14px] text-[#64748B]">Tier Limits</span>
-                <span className="text-[14px] text-[#c0c7d4] font-bold">No Limit (Platinum)</span>
-              </div>
+          <SectionCard icon={<Shield className="size-4 text-[#D4AF37]" />} title="Account Status">
+            <div className="space-y-3">
+              {[
+                { label: "Verification Tier", value: null, badge: { text: "Fully Verified", color: "bg-emerald-50 text-emerald-700" } },
+                { label: "Registration Date", value: "Jan 12, 2024", badge: null },
+                { label: "Tier Limits", value: "No Limit (Platinum)", badge: null },
+              ].map((row) => (
+                <div key={row.label} className="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+                  <span className="text-[12px] text-slate-500">{row.label}</span>
+                  {row.badge ? (
+                    <span className={cn("flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold", row.badge.color)}>
+                      <CheckCircle2 className="size-3" />
+                      {row.badge.text}
+                    </span>
+                  ) : (
+                    <span className="text-[12px] font-semibold text-slate-700">{row.value}</span>
+                  )}
+                </div>
+              ))}
             </div>
-          </div>
+          </SectionCard>
         </div>
       </div>
 
       {/* Action Row */}
-      <div className="mt-12 flex items-center justify-end gap-6 pt-8 border-t border-slate-200">
+      <div className="mt-8 flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
         <button
           onClick={onDiscard}
           disabled={!dirty}
-          className="text-[14px] text-[#64748B] hover:text-[#050B14] transition-colors font-semibold disabled:opacity-40"
+          className="text-[13px] text-slate-500 hover:text-slate-900 font-semibold transition-colors disabled:opacity-40"
         >
           Discard Changes
         </button>
         <button
           onClick={onSave}
           disabled={!dirty || saving}
-          className="px-10 py-4 bg-[#050B14] text-white rounded-xl font-bold text-[14px] shadow-xl hover:shadow-2xl transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-2.5 bg-[#0C1526] text-white rounded-xl text-[13px] font-bold hover:bg-[#111d35] transition-all active:scale-95 disabled:opacity-50 shadow-md"
         >
-          {saving ? (
-            <>
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              Saving…
-            </>
-          ) : (
-            <>
-              Save Changes
-              <span className="material-symbols-outlined text-sm">check_circle</span>
-            </>
-          )}
+          {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+          {saving ? "Saving…" : "Save Changes"}
         </button>
       </div>
     </>
@@ -326,56 +278,44 @@ function SecurityTab() {
     }, 1200);
   };
 
+  const strength = pw.next.length === 0 ? null : pw.next.length < 8 ? "Weak" : pw.next.length < 12 ? "Good" : "Strong";
+  const strengthColor = strength === "Weak" ? "bg-red-400" : strength === "Good" ? "bg-amber-400" : "bg-emerald-500";
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-10 gap-6 items-start">
-      <div className="lg:col-span-6 space-y-6">
+    <div className="grid grid-cols-1 lg:grid-cols-10 gap-5 items-start">
+      <div className="lg:col-span-6 space-y-5">
         {/* Change Password */}
-        <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 bg-[#050B14] rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#e9c349] text-[18px]">lock_reset</span>
-            </div>
-            <h3 className="text-[14px] font-semibold text-[#050B14] uppercase tracking-wider">Change Password</h3>
-          </div>
+        <SectionCard icon={<RefreshCw className="size-4 text-[#D4AF37]" />} title="Change Password">
           <div className="space-y-4">
             {(["current", "next", "confirm"] as const).map((key) => {
-              const labels: Record<typeof key, string> = {
-                current: "Current Password",
-                next: "New Password",
-                confirm: "Confirm New Password",
-              };
+              const labels = { current: "Current Password", next: "New Password", confirm: "Confirm New Password" };
               return (
                 <div key={key}>
-                  <label className="block text-[14px] font-semibold text-[#050B14] mb-2">{labels[key]}</label>
+                  <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-2">{labels[key]}</label>
                   <div className="relative">
                     <input
                       type={showPw ? "text" : "password"}
                       value={pw[key]}
                       onChange={(e) => setPw({ ...pw, [key]: e.target.value })}
                       placeholder="••••••••"
-                      className="w-full h-12 px-4 pr-10 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#e9c349] outline-none text-base text-[#050B14] transition-all"
+                      className={cn(inputCls(), "pr-10")}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPw(!showPw)}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-[18px]">{showPw ? "visibility_off" : "visibility"}</span>
+                      {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                     </button>
                   </div>
-                  {key === "next" && pw.next.length > 0 && (
-                    <div className="mt-2 flex gap-1">
-                      {[8, 12, 16].map((n) => (
-                        <div
-                          key={n}
-                          className={`h-1 flex-1 rounded-full transition-colors ${
-                            pw.next.length >= n ? "bg-[#e9c349]" : "bg-slate-200"
-                          }`}
-                        />
-                      ))}
-                      <span className="text-[10px] text-[#64748B] ml-2 self-center">
-                        {pw.next.length < 8 ? "Weak" : pw.next.length < 12 ? "Good" : "Strong"}
-                      </span>
+                  {key === "next" && strength && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex-1 flex gap-1">
+                        {[8, 12, 16].map((n) => (
+                          <div key={n} className={cn("h-1 flex-1 rounded-full transition-colors", pw.next.length >= n ? strengthColor : "bg-slate-200")} />
+                        ))}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400">{strength}</span>
                     </div>
                   )}
                 </div>
@@ -384,49 +324,39 @@ function SecurityTab() {
             <button
               onClick={handleChangePw}
               disabled={savingPw}
-              className="w-full py-3 bg-[#050B14] text-white rounded-xl font-bold text-[14px] hover:bg-slate-800 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
+              className="w-full py-2.5 bg-[#0C1526] text-white rounded-xl text-[13px] font-bold hover:bg-[#111d35] transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60 mt-1"
             >
-              {savingPw ? (
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-              ) : (
-                <span className="material-symbols-outlined text-sm">lock_reset</span>
-              )}
+              {savingPw ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-3.5" />}
               {savingPw ? "Updating…" : "Update Password"}
             </button>
           </div>
-        </div>
+        </SectionCard>
 
         {/* Active Sessions */}
-        <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 bg-[#050B14] rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#e9c349] text-[18px]">devices</span>
-            </div>
-            <h3 className="text-[14px] font-semibold text-[#050B14] uppercase tracking-wider">Active Sessions</h3>
-          </div>
-          <div className="space-y-4">
+        <SectionCard icon={<Monitor className="size-4 text-[#D4AF37]" />} title="Active Sessions">
+          <div className="space-y-1">
             {sessions.map((s, i) => (
-              <div key={i} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
+              <div key={i} className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-500 text-[18px]">
-                      {s.device.includes("iPhone") ? "smartphone" : "computer"}
-                    </span>
+                  <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center">
+                    {s.device.includes("iPhone")
+                      ? <Smartphone className="size-4 text-slate-500" />
+                      : <Monitor className="size-4 text-slate-500" />}
                   </div>
                   <div>
-                    <p className="text-[14px] font-semibold text-[#050B14]">{s.device}</p>
-                    <p className="text-[12px] text-[#64748B]">{s.location} · {s.time}</p>
+                    <p className="text-[13px] font-semibold text-slate-900">{s.device}</p>
+                    <p className="text-[11px] text-slate-400">{s.location} · {s.time}</p>
                   </div>
                 </div>
                 {s.current ? (
-                  <span className="text-[12px] px-2.5 py-1 bg-green-100 text-green-700 rounded-full font-bold">Current</span>
+                  <span className="flex items-center gap-1 text-[11px] px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg font-bold">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                    Current
+                  </span>
                 ) : (
                   <button
                     onClick={() => addToast({ title: "Session revoked", description: `${s.device} has been signed out.`, variant: "success" })}
-                    className="text-[12px] text-red-500 hover:text-red-700 font-semibold transition-colors"
+                    className="text-[12px] text-red-400 hover:text-red-600 font-semibold transition-colors"
                   >
                     Revoke
                   </button>
@@ -434,25 +364,23 @@ function SecurityTab() {
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       </div>
 
-      {/* Right: 2FA */}
-      <div className="lg:col-span-4 space-y-6">
-        <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 bg-[#050B14] rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#e9c349] text-[18px]">security</span>
-            </div>
-            <h3 className="text-[14px] font-semibold text-[#050B14] uppercase tracking-wider">Two-Factor Auth</h3>
-          </div>
-          <p className="text-[14px] text-[#64748B] mb-6 leading-relaxed">
-            Add an extra layer of security to your account. When enabled, you'll be prompted for a verification code on each login.
+      {/* Right: 2FA + Security Score */}
+      <div className="lg:col-span-4 space-y-5">
+        {/* 2FA */}
+        <SectionCard icon={<Shield className="size-4 text-[#D4AF37]" />} title="Two-Factor Auth">
+          <p className="text-[12px] text-slate-500 mb-5 leading-relaxed">
+            Add an extra layer of security. When enabled, you'll be prompted for a verification code on each login.
           </p>
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200 mb-6">
+          <div className={cn(
+            "flex items-center justify-between p-4 rounded-xl border mb-4 transition-colors",
+            twoFA ? "border-[#D4AF37]/30 bg-[#D4AF37]/5" : "border-slate-100 bg-slate-50"
+          )}>
             <div>
-              <p className="text-[14px] font-semibold text-[#050B14]">Authenticator App</p>
-              <p className="text-[12px] text-[#64748B]">Google Authenticator or Authy</p>
+              <p className="text-[13px] font-semibold text-slate-900">Authenticator App</p>
+              <p className="text-[11px] text-slate-400">Google Authenticator or Authy</p>
             </div>
             <button
               onClick={() => {
@@ -463,49 +391,44 @@ function SecurityTab() {
                   variant: !twoFA ? "success" : "error",
                 });
               }}
-              className={`relative w-12 h-6 rounded-full transition-colors ${twoFA ? "bg-[#e9c349]" : "bg-slate-300"}`}
+              className={cn("relative w-11 h-6 rounded-full transition-colors", twoFA ? "bg-[#D4AF37]" : "bg-slate-300")}
             >
-              <span
-                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${twoFA ? "translate-x-6" : ""}`}
-              />
+              <span className={cn("absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform", twoFA ? "translate-x-5" : "")} />
             </button>
           </div>
           {twoFA && (
-            <div className="bg-[#e9c349]/10 border border-[#e9c349]/30 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="material-symbols-outlined text-[#e9c349] text-[18px]">check_circle</span>
-                <p className="text-[14px] font-bold text-[#050B14]">2FA Active</p>
-              </div>
-              <p className="text-[12px] text-[#64748B]">Your account is protected with two-factor authentication.</p>
+            <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-100 rounded-xl p-3.5">
+              <CheckCheck className="size-4 text-emerald-600 shrink-0" />
+              <p className="text-[12px] font-semibold text-emerald-700">2FA is active — your account is protected.</p>
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* Security Score */}
-        <div className="bg-[#050B14] p-8 rounded-xl border border-slate-800 shadow-sm">
-          <h3 className="text-[14px] font-semibold text-white mb-4 uppercase tracking-wider">Security Score</h3>
-          <div className="flex items-end gap-3 mb-4">
-            <span className="text-5xl font-extrabold text-[#e9c349]">{twoFA ? 92 : 74}</span>
-            <span className="text-[#64748B] text-sm mb-2">/ 100</span>
+        <div className="bg-[#0C1526] rounded-2xl border border-slate-800 p-6">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">Security Score</p>
+          <div className="flex items-end gap-2 mb-3">
+            <span className="text-4xl font-extrabold text-[#D4AF37]">{twoFA ? 92 : 74}</span>
+            <span className="text-slate-500 text-sm mb-1">/ 100</span>
           </div>
-          <div className="w-full bg-slate-800 rounded-full h-2 mb-4">
+          <div className="w-full bg-slate-800 rounded-full h-1.5 mb-5">
             <div
-              className="bg-[#e9c349] h-2 rounded-full transition-all duration-700"
+              className="bg-[#D4AF37] h-1.5 rounded-full transition-all duration-700"
               style={{ width: `${twoFA ? 92 : 74}%` }}
             />
           </div>
-          <ul className="space-y-2 text-[12px]">
+          <ul className="space-y-2.5">
             {[
               { label: "Strong password", done: true },
               { label: "Email verified", done: true },
               { label: "Two-factor authentication", done: twoFA },
               { label: "Recovery email set", done: false },
             ].map((item) => (
-              <li key={item.label} className="flex items-center gap-2">
-                <span className={`material-symbols-outlined text-[14px] ${item.done ? "text-[#e9c349]" : "text-slate-600"}`}>
-                  {item.done ? "check_circle" : "radio_button_unchecked"}
-                </span>
-                <span className={item.done ? "text-slate-300" : "text-slate-500"}>{item.label}</span>
+              <li key={item.label} className="flex items-center gap-2.5">
+                {item.done
+                  ? <CheckCircle2 className="size-3.5 text-[#D4AF37] shrink-0" />
+                  : <Circle className="size-3.5 text-slate-700 shrink-0" />}
+                <span className={cn("text-[12px]", item.done ? "text-slate-300" : "text-slate-600")}>{item.label}</span>
               </li>
             ))}
           </ul>
@@ -550,25 +473,25 @@ function BankAccountsTab() {
   };
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="flex items-center justify-between mb-2">
+    <div className="max-w-3xl space-y-5">
+      <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-[14px] font-semibold text-[#050B14] uppercase tracking-wider">Withdrawal Bank Accounts</h3>
-          <p className="text-[12px] text-[#64748B] mt-0.5">Bank accounts used to receive your withdrawal payouts.</p>
+          <h3 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider">Withdrawal Bank Accounts</h3>
+          <p className="text-[12px] text-slate-400 mt-0.5">Accounts used to receive your withdrawal payouts.</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#050B14] text-white rounded-xl text-[14px] font-bold hover:bg-slate-800 transition-all active:scale-95"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#0C1526] text-white rounded-xl text-[13px] font-bold hover:bg-[#111d35] transition-all active:scale-95"
         >
-          <span className="material-symbols-outlined text-[18px]">{showForm ? "close" : "add"}</span>
+          {showForm ? <X className="size-3.5" /> : <Plus className="size-3.5" />}
           {showForm ? "Cancel" : "Add Account"}
         </button>
       </div>
 
       {/* Add form */}
       {showForm && (
-        <div className="bg-white p-6 rounded-xl border border-[#e9c349]/40 shadow-sm space-y-4">
-          <h4 className="text-[14px] font-bold text-[#050B14]">New Bank Account</h4>
+        <div className="bg-white rounded-2xl border border-[#D4AF37]/30 shadow-sm p-6 space-y-4">
+          <p className="text-[13px] font-bold text-slate-900">New Bank Account</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { key: "bankName", label: "Bank Name", placeholder: "e.g. Commercial Bank of Ethiopia" },
@@ -577,13 +500,13 @@ function BankAccountsTab() {
               { key: "swiftCode", label: "SWIFT / BIC Code (optional)", placeholder: "e.g. CBETETAA" },
             ].map(({ key, label, placeholder }) => (
               <div key={key}>
-                <label className="block text-[12px] font-semibold text-[#050B14] mb-1.5">{label}</label>
+                <label className="block text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-2">{label}</label>
                 <input
                   type="text"
                   value={(newBank as Record<string, string>)[key]}
                   onChange={(e) => setNewBank({ ...newBank, [key]: e.target.value })}
                   placeholder={placeholder}
-                  className="w-full h-11 px-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#e9c349] outline-none text-sm text-[#050B14] transition-all"
+                  className={inputCls()}
                 />
               </div>
             ))}
@@ -591,60 +514,52 @@ function BankAccountsTab() {
           <button
             onClick={handleAdd}
             disabled={saving}
-            className="w-full py-3 bg-[#e9c349] text-[#050B14] rounded-xl font-bold text-[14px] hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60"
+            className="w-full py-2.5 bg-[#D4AF37] text-[#0C1526] rounded-xl text-[13px] font-bold hover:bg-[#c9a030] transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            {saving ? (
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-            ) : (
-              <span className="material-symbols-outlined text-sm">save</span>
-            )}
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-3.5" />}
             {saving ? "Saving…" : "Save Bank Account"}
           </button>
         </div>
       )}
 
       {/* Bank list */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {banks.length === 0 ? (
-          <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-[#64748B] text-sm">
+          <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center text-slate-400 text-sm">
             No bank accounts added yet.
           </div>
         ) : (
           banks.map((bank) => (
             <div
               key={bank.id}
-              className={`bg-white p-6 rounded-xl border shadow-sm flex items-start justify-between gap-4 ${
-                bank.isPrimary ? "border-[#e9c349]/60 ring-1 ring-[#e9c349]/30" : "border-slate-200"
-              }`}
+              className={cn(
+                "bg-white rounded-2xl border shadow-sm flex items-start justify-between gap-4 p-5",
+                bank.isPrimary ? "border-[#D4AF37]/40 ring-1 ring-[#D4AF37]/20" : "border-slate-200"
+              )}
             >
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-[#050B14] rounded-lg flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[#e9c349] text-[18px]">account_balance</span>
+                <div className="w-10 h-10 bg-[#0C1526] rounded-xl flex items-center justify-center shrink-0">
+                  <Landmark className="size-4 text-[#D4AF37]" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-[14px] font-bold text-[#050B14]">{bank.bankName}</p>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-[13px] font-bold text-slate-900">{bank.bankName}</p>
                     {bank.isPrimary && (
-                      <span className="text-[10px] bg-[#e9c349]/20 text-[#050B14] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                      <span className="text-[10px] bg-[#D4AF37]/15 text-[#9a7c3f] px-2 py-0.5 rounded-lg font-bold uppercase tracking-wide">
                         Primary
                       </span>
                     )}
                   </div>
-                  <p className="text-[12px] text-[#64748B]">{bank.accountHolder}</p>
-                  <p className="text-[14px] font-semibold text-[#050B14] mt-1">{bank.accountNumber}</p>
-                  {bank.swiftCode && (
-                    <p className="text-[12px] text-[#64748B]">SWIFT: {bank.swiftCode}</p>
-                  )}
+                  <p className="text-[11px] text-slate-400">{bank.accountHolder}</p>
+                  <p className="text-[13px] font-semibold text-slate-800 mt-1">{bank.accountNumber}</p>
+                  {bank.swiftCode && <p className="text-[11px] text-slate-400">SWIFT: {bank.swiftCode}</p>}
                 </div>
               </div>
-              <div className="flex flex-col gap-2 shrink-0">
+              <div className="flex flex-col gap-2 shrink-0 items-end">
                 {!bank.isPrimary && (
                   <button
                     onClick={() => handleSetPrimary(bank.id)}
-                    className="text-[12px] text-[#050B14] hover:text-[#e9c349] font-semibold transition-colors whitespace-nowrap"
+                    className="text-[12px] text-slate-500 hover:text-[#9a7c3f] font-semibold transition-colors whitespace-nowrap"
                   >
                     Set Primary
                   </button>
@@ -663,7 +578,7 @@ function BankAccountsTab() {
 
       {/* Notice */}
       <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
-        <span className="material-symbols-outlined text-blue-500 text-[18px] mt-0.5 shrink-0">info</span>
+        <Info className="size-4 text-blue-500 mt-0.5 shrink-0" />
         <p className="text-[12px] text-slate-700 leading-relaxed">
           Bank account changes are subject to a <strong>48-hour security hold</strong> before becoming active for withdrawals. Contact your account manager if you need expedited processing.
         </p>
@@ -676,6 +591,12 @@ function BankAccountsTab() {
 
 const PROFILE_AVATAR =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuB-Q0K9GPv_3i-CPnUwOXzgbjJf54-tRHNitcn28pyXGLEl6lhqRqZZm3nojVnMQ-pcutzZbx4m2kEPeDWSJpxliLT09MO9Mj1WgSXNgl2mFMvvorm8_SDGlq2UzdUwVWHyFPdUsBp7GmechptR8YXgTQX3mK3FhAQHc9dw4eav8DaCH9uYG9YQIU14o5QKUakPubRhWiRB4PbQn3lfrQX58uAvUcsJWAdtrinMtJ8wXwPNeaXTOQhCV-cnKMDnCTqhZHE9GhKusdY";
+
+const PAGE_TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  { id: "personal", label: "Personal Profile", icon: <User className="size-3.5" /> },
+  { id: "security", label: "Security & 2FA", icon: <Shield className="size-3.5" /> },
+  { id: "banks", label: "Bank Accounts", icon: <Landmark className="size-3.5" /> },
+];
 
 export function ProfilePage() {
   const addToast = useNotificationStore((s) => s.addToast);
@@ -696,39 +617,31 @@ export function ProfilePage() {
     }, 1000);
   };
 
-  const handleDiscard = () => {
-    setForm(saved);
-  };
-
-  const TABS: { id: Tab; label: string }[] = [
-    { id: "personal", label: "Personal Profile" },
-    { id: "security", label: "Security & 2FA" },
-    { id: "banks", label: "Bank Accounts" },
-  ];
-
   return (
-    <div className="p-4 sm:p-6 bg-[#F8FAFC] min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Page Header */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-[24px] font-bold text-[#050B14] mb-1">Profile Settings</h1>
-          <p className="text-sm sm:text-base text-[#64748B]">
-            Manage your personal credentials, secure authentication states, and withdrawal bank configurations.
+        <div className="mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Profile Settings</h1>
+          <p className="text-sm text-slate-500">
+            Manage your personal credentials, authentication, and withdrawal bank accounts.
           </p>
         </div>
 
         {/* Tab Nav */}
-        <div className="flex gap-4 sm:gap-8 overflow-x-auto border-b border-slate-200 mb-6 sm:mb-8">
-          {TABS.map((tab) => (
+        <div className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-slate-200 mb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {PAGE_TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 whitespace-nowrap text-[14px] font-semibold py-3 relative transition-colors ${
+              className={cn(
+                "flex items-center gap-2 shrink-0 whitespace-nowrap text-[13px] font-semibold px-4 py-3 border-b-2 transition-all",
                 activeTab === tab.id
-                  ? "text-[#050B14] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#e9c349]"
-                  : "text-[#64748B] hover:text-[#050B14]"
-              }`}
+                  ? "border-[#D4AF37] text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
+              )}
             >
+              {tab.icon}
               {tab.label}
             </button>
           ))}
@@ -743,7 +656,7 @@ export function ProfilePage() {
             onAvatarChange={setAvatarUrl}
             dirty={dirty}
             onSave={handleSave}
-            onDiscard={handleDiscard}
+            onDiscard={() => setForm(saved)}
             saving={saving}
           />
         )}
@@ -751,9 +664,9 @@ export function ProfilePage() {
         {activeTab === "banks" && <BankAccountsTab />}
 
         {/* Footer */}
-        <footer className="mt-12 py-8 text-center">
-          <p className="text-[12px] text-[#94A3B8]">
-            © 2024 Aurum Sovereign Capital. All data encrypted via 256-bit Institutional Security Protocols.
+        <footer className="mt-10 py-6 text-center border-t border-slate-100">
+          <p className="text-[11px] text-slate-400">
+            © 2024 Aurum Sovereign Capital · All data encrypted via 256-bit Institutional Security Protocols.
           </p>
         </footer>
       </div>
