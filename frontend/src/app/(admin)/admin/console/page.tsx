@@ -9,6 +9,7 @@
 //   error-container (dark red SHORT badge) → bg-red-800
 
 import { useState, useEffect } from "react";
+import { ChevronDown } from "lucide-react";
 
 // ── Live server clock ──────────────────────────────────────────────────────────
 
@@ -60,6 +61,7 @@ const INITIAL_LOGS = [
 
 export default function TradingConsolePage() {
   const [direction, setDirection] = useState<"LONG" | "SHORT">("LONG");
+  const [logOpen, setLogOpen] = useState(true);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -475,15 +477,30 @@ export default function TradingConsolePage() {
       </div>
 
       {/* ── System log feed footer ────────────────────────────────────────── */}
-      <div className="shrink-0 h-28 bg-white border-t border-slate-200 px-4 sm:px-8 py-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+      <div
+        className="shrink-0 bg-white border-t border-slate-200 px-4 sm:px-8 py-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] transition-all duration-300 ease-in-out overflow-hidden"
+        style={{ height: logOpen ? "7rem" : "2.5rem" }}
+      >
         <div className="flex items-center justify-between mb-1">
           <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-[#00a572] rounded-full animate-pulse" />
             Recent Broadcast Terminal Logs
           </h4>
-          <span className="text-[10px] font-data-mono text-slate-400">
-            Terminal Session ID: TRX-992-KLA
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-data-mono text-slate-400">
+              Terminal Session ID: TRX-992-KLA
+            </span>
+            <button
+              onClick={() => setLogOpen((o) => !o)}
+              aria-label={logOpen ? "Collapse log" : "Expand log"}
+              className="flex items-center justify-center size-6 rounded-full bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all duration-200"
+            >
+              <ChevronDown
+                className="size-3.5 transition-transform duration-300"
+                style={{ transform: logOpen ? "rotate(0deg)" : "rotate(180deg)" }}
+              />
+            </button>
+          </div>
         </div>
         <div className="bg-slate-50 rounded p-2 h-16 overflow-y-auto border border-slate-100">
           <div className="space-y-1 font-data-mono text-[11px] text-slate-700">
