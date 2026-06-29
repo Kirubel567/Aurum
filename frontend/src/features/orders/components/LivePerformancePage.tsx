@@ -403,7 +403,7 @@ export function LivePerformancePage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#f8f9fa]">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#f8f9fa]">
       {/* Header */}
       <div className="mb-6 sm:mb-10 flex flex-col sm:flex-row gap-3 sm:items-end sm:justify-between">
         <div>

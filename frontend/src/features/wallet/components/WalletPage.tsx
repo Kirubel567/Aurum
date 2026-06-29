@@ -269,10 +269,7 @@ function TransactionTable() {
                 {TX_ROWS.map((row, i) => (
                   <tr
                     key={i}
-                    className={cn(
-                      "border-b border-gray-50 hover:bg-gray-50/50 transition-colors",
-                      row.placeholder ? "opacity-40" : ""
-                    )}
+                    className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors"
                   >
                     <td className="px-6 py-5 text-gray-500 font-medium text-xs">{row.date}</td>
                     <td className="px-6 py-5">
@@ -632,7 +629,7 @@ export function WalletPage() {
   const [modal, setModal] = useState<ModalType>(null);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-gray-50">
 
       {/* ── Modal ──────────────────────────────────────────────────────────── */}
       <Modal

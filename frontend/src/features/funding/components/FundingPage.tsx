@@ -1,60 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { X, ChevronDown } from "lucide-react";
 
 import { ROUTES } from "@/src/lib/constants/routes";
+import { cn } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type PaymentTab = "bank" | "ewallet" | "crypto" | "other";
 
-interface BankOption {
-  id: string;
-  name: string;
-  description: string;
-  accountHolder: string;
-  accountNumber: string;
-  logoText: string;
-  logoColor: string;
-  logoBg: string;
-  recommended?: boolean;
-}
+// ── Currency data ─────────────────────────────────────────────────────────────
 
-interface EWalletOption {
-  id: string;
-  name: string;
-  description: string;
-  accountHolder: string;
-  accountNumber: string;
-  logoText: string;
-  logoColor: string;
-}
+const CURRENCIES = [
+  { code: "USD", symbol: "$",    name: "US Dollar",        flag: "🇺🇸" },
+  { code: "ETB", symbol: "Br",   name: "Ethiopian Birr",   flag: "🇪🇹" },
+  { code: "EUR", symbol: "€",    name: "Euro",             flag: "🇪🇺" },
+  { code: "GBP", symbol: "£",    name: "British Pound",    flag: "🇬🇧" },
+  { code: "AED", symbol: "د.إ",  name: "UAE Dirham",       flag: "🇦🇪" },
+  { code: "SAR", symbol: "﷼",    name: "Saudi Riyal",      flag: "🇸🇦" },
+  { code: "CAD", symbol: "CA$",  name: "Canadian Dollar",  flag: "🇨🇦" },
+  { code: "AUD", symbol: "A$",   name: "Australian Dollar", flag: "🇦🇺" },
+];
 
-interface CryptoOption {
-  id: string;
-  name: string;
-  description: string;
-  address: string;
-  network: string;
-  logoText: string;
-  logoColor: string;
-  logoBg: string;
-}
+// ── Payment option data ───────────────────────────────────────────────────────
 
-interface OtherOption {
-  id: string;
-  name: string;
-  description: string;
-  note: string;
-  logoText: string;
-  logoColor: string;
-  logoBg: string;
-}
-
-// ── Data ──────────────────────────────────────────────────────────────────────
-
-const BANKS: BankOption[] = [
+const BANKS = [
   {
     id: "cbe",
     name: "Commercial Bank of Ethiopia",
@@ -63,7 +35,6 @@ const BANKS: BankOption[] = [
     accountNumber: "1000549712502",
     logoText: "CBE",
     logoColor: "text-[#C5A059]",
-    logoBg: "bg-white",
     recommended: true,
   },
   {
@@ -74,7 +45,6 @@ const BANKS: BankOption[] = [
     accountNumber: "162435388",
     logoText: "BOA",
     logoColor: "text-blue-900",
-    logoBg: "bg-white",
   },
   {
     id: "awash",
@@ -84,7 +54,6 @@ const BANKS: BankOption[] = [
     accountNumber: "01320151831901",
     logoText: "AB",
     logoColor: "text-orange-600",
-    logoBg: "bg-white",
   },
   {
     id: "coop",
@@ -94,11 +63,10 @@ const BANKS: BankOption[] = [
     accountNumber: "1026100366733",
     logoText: "CBO",
     logoColor: "text-green-700",
-    logoBg: "bg-white",
   },
 ];
 
-const EWALLETS: EWalletOption[] = [
+const EWALLETS = [
   {
     id: "telebirr",
     name: "TeleBirr",
@@ -119,7 +87,7 @@ const EWALLETS: EWalletOption[] = [
   },
 ];
 
-const CRYPTOS: CryptoOption[] = [
+const CRYPTOS = [
   {
     id: "usdt",
     name: "USDT (TRC-20)",
@@ -152,7 +120,7 @@ const CRYPTOS: CryptoOption[] = [
   },
 ];
 
-const OTHERS: OtherOption[] = [
+const OTHERS = [
   {
     id: "wire",
     name: "International Wire Transfer",
@@ -182,9 +150,9 @@ const OTHERS: OtherOption[] = [
   },
 ];
 
-// ── Chevron SVG ───────────────────────────────────────────────────────────────
+// ── Small icon components ─────────────────────────────────────────────────────
 
-function ChevronRight() {
+function ChevRight() {
   return (
     <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
@@ -200,203 +168,178 @@ function CheckIcon() {
   );
 }
 
-// ── Bank tab ──────────────────────────────────────────────────────────────────
+// ── "How Deposits Work" modal ─────────────────────────────────────────────────
 
-function BankTab({
-  selected,
-  onSelect,
-}: {
-  selected: string;
-  onSelect: (id: string) => void;
-}) {
+function HowDepositsModal({ onClose }: { onClose: () => void }) {
+  const steps = [
+    {
+      num: "01",
+      title: "Choose Payment Method",
+      body: "Select your preferred payment method from Bank Transfer, E-Wallet, Cryptocurrency, or Other Methods. Choose the specific bank or provider you wish to use.",
+    },
+    {
+      num: "02",
+      title: "Enter Deposit Amount",
+      body: "Enter the amount you wish to deposit. The minimum deposit is $1,200 USD or the equivalent in your local currency. You will see a live calculation with zero processing fees.",
+    },
+    {
+      num: "03",
+      title: "Transfer the Funds",
+      body: "After clicking 'Continue to Payment', you will be shown the exact account details to send your money to. Transfer the funds from your bank or wallet to the provided account.",
+    },
+    {
+      num: "04",
+      title: "Upload Your Proof",
+      body: "Once you have made the transfer, upload a clear screenshot or photo of the payment receipt. This is required for our compliance team to verify your deposit.",
+    },
+    {
+      num: "05",
+      title: "Verification & Activation",
+      body: "Our team will review your proof within 1–3 hours. Once approved, your trading account will be activated and you will receive a confirmation email.",
+    },
+  ];
+
   return (
-    <div className="space-y-3">
-      {BANKS.map((bank) => {
-        const isSelected = selected === bank.id;
-        return (
-          <div
-            key={bank.id}
-            onClick={() => onSelect(bank.id)}
-            className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors ${
-              isSelected
-                ? "border border-[#C5A059] bg-amber-50/20"
-                : "border border-[#E2E8F0] hover:border-slate-300"
-            }`}
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white rounded-lg border border-[#E2E8F0] flex items-center justify-center p-2">
-                <span className={`font-bold italic text-sm ${bank.logoColor}`}>{bank.logoText}</span>
-              </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <h3 className="text-base font-bold text-gray-900">How Deposits Work</h3>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 transition-colors">
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
+          {steps.map((s) => (
+            <div key={s.num} className="flex gap-4">
+              <span className="text-[11px] font-black text-[#C5A059] bg-amber-50 rounded-lg px-2 py-1 h-fit shrink-0 border border-amber-100">
+                {s.num}
+              </span>
               <div>
-                <h4 className="text-sm font-bold text-slate-900">{bank.name}</h4>
-                <p className="text-[11px] text-slate-500">{bank.description}</p>
+                <p className="text-sm font-bold text-gray-800 mb-0.5">{s.title}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{s.body}</p>
               </div>
             </div>
-            {isSelected ? (
-              <div className="flex items-center gap-3">
-                {bank.recommended && (
-                  <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">
-                    Recommended
-                  </span>
-                )}
-                <div className="w-5 h-5 bg-[#C5A059] text-white rounded-full flex items-center justify-center">
-                  <CheckIcon />
-                </div>
-              </div>
-            ) : (
-              <ChevronRight />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── E-Wallet tab ──────────────────────────────────────────────────────────────
-
-function EWalletTab({
-  selected,
-  onSelect,
-}: {
-  selected: string;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      {EWALLETS.map((wallet) => {
-        const isSelected = selected === wallet.id;
-        return (
-          <div
-            key={wallet.id}
-            onClick={() => onSelect(wallet.id)}
-            className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors ${
-              isSelected
-                ? "border border-[#C5A059] bg-amber-50/20"
-                : "border border-[#E2E8F0] hover:border-slate-300"
-            }`}
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white rounded-lg border border-[#E2E8F0] flex items-center justify-center p-2">
-                <span className={`font-bold text-[10px] ${wallet.logoColor}`}>{wallet.logoText}</span>
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-slate-900">{wallet.name}</h4>
-                <p className="text-[11px] text-slate-500">{wallet.description}</p>
-              </div>
-            </div>
-            {isSelected ? (
-              <div className="w-5 h-5 bg-[#C5A059] text-white rounded-full flex items-center justify-center">
-                <CheckIcon />
-              </div>
-            ) : (
-              <ChevronRight />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Crypto tab ────────────────────────────────────────────────────────────────
-
-function CryptoTab({
-  selected,
-  onSelect,
-}: {
-  selected: string;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3 mb-4">
-        <svg className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-        </svg>
-        <p className="text-[11px] text-amber-800">
-          <span className="font-bold">Important:</span> Only send the exact cryptocurrency to its matching address. Sending to the wrong network will result in permanent loss of funds.
-        </p>
+          ))}
+        </div>
       </div>
-      {CRYPTOS.map((crypto) => {
-        const isSelected = selected === crypto.id;
-        return (
-          <div
-            key={crypto.id}
-            onClick={() => onSelect(crypto.id)}
-            className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors ${
-              isSelected
-                ? "border border-[#C5A059] bg-amber-50/20"
-                : "border border-[#E2E8F0] hover:border-slate-300"
-            }`}
-          >
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 ${crypto.logoBg} rounded-lg border border-[#E2E8F0] flex items-center justify-center`}>
-                <span className={`text-xl font-bold ${crypto.logoColor}`}>{crypto.logoText}</span>
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-slate-900">{crypto.name}</h4>
-                <p className="text-[11px] text-slate-500">{crypto.description}</p>
-                <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate max-w-[220px]">{crypto.address}</p>
-              </div>
-            </div>
-            {isSelected ? (
-              <div className="w-5 h-5 bg-[#C5A059] text-white rounded-full flex items-center justify-center shrink-0">
-                <CheckIcon />
-              </div>
-            ) : (
-              <div className="shrink-0"><ChevronRight /></div>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 }
 
-// ── Other methods tab ─────────────────────────────────────────────────────────
+// ── Currency selector ─────────────────────────────────────────────────────────
 
-function OtherTab({
+function CurrencySelector({
   selected,
   onSelect,
 }: {
-  selected: string;
-  onSelect: (id: string) => void;
+  selected: (typeof CURRENCIES)[0];
+  onSelect: (c: (typeof CURRENCIES)[0]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full border border-[#E2E8F0] rounded-xl px-4 py-3 flex items-center justify-between hover:border-slate-300 transition-colors bg-white"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-lg leading-none">{selected.flag}</span>
+          <span className="text-sm font-semibold text-slate-800">
+            {selected.code} — {selected.name}
+          </span>
+        </div>
+        <ChevronDown className={cn("size-4 text-slate-400 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute z-30 top-full left-0 right-0 mt-1.5 bg-white border border-[#E2E8F0] rounded-xl shadow-xl overflow-hidden">
+          {CURRENCIES.map((c) => (
+            <button
+              key={c.code}
+              type="button"
+              onClick={() => { onSelect(c); setOpen(false); }}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50 transition-colors",
+                c.code === selected.code ? "bg-amber-50/50 font-bold" : "font-medium"
+              )}
+            >
+              <span className="text-base leading-none">{c.flag}</span>
+              <span className="text-slate-800">{c.code}</span>
+              <span className="text-slate-400 text-xs">{c.name}</span>
+              {c.code === selected.code && (
+                <span className="ml-auto w-4 h-4 bg-[#C5A059] text-white rounded-full flex items-center justify-center">
+                  <CheckIcon />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Payment method tab contents ───────────────────────────────────────────────
+
+function OptionRow({
+  logoText,
+  logoColor,
+  logoBg,
+  name,
+  description,
+  extra,
+  selected,
+  recommended,
+  onClick,
+}: {
+  logoText: string;
+  logoColor: string;
+  logoBg?: string;
+  name: string;
+  description: string;
+  extra?: string;
+  selected: boolean;
+  recommended?: boolean;
+  onClick: () => void;
 }) {
   return (
-    <div className="space-y-3">
-      {OTHERS.map((method) => {
-        const isSelected = selected === method.id;
-        return (
-          <div
-            key={method.id}
-            onClick={() => onSelect(method.id)}
-            className={`flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors ${
-              isSelected
-                ? "border border-[#C5A059] bg-amber-50/20"
-                : "border border-[#E2E8F0] hover:border-slate-300"
-            }`}
-          >
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 ${method.logoBg} rounded-lg border border-[#E2E8F0] flex items-center justify-center`}>
-                <span className={`font-bold text-xs ${method.logoColor}`}>{method.logoText}</span>
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-slate-900">{method.name}</h4>
-                <p className="text-[11px] text-slate-500">{method.description}</p>
-                <p className="text-[10px] text-amber-600 font-medium mt-0.5">{method.note}</p>
-              </div>
-            </div>
-            {isSelected ? (
-              <div className="w-5 h-5 bg-[#C5A059] text-white rounded-full flex items-center justify-center shrink-0">
-                <CheckIcon />
-              </div>
-            ) : (
-              <div className="shrink-0"><ChevronRight /></div>
-            )}
+    <div
+      onClick={onClick}
+      className={cn(
+        "flex items-center justify-between p-4 rounded-xl cursor-pointer transition-colors",
+        selected
+          ? "border border-[#C5A059] bg-amber-50/20"
+          : "border border-[#E2E8F0] hover:border-slate-300"
+      )}
+    >
+      <div className="flex items-center gap-4 min-w-0">
+        <div className={cn("w-11 h-11 rounded-xl border border-[#E2E8F0] flex items-center justify-center p-2 shrink-0", logoBg ?? "bg-white")}>
+          <span className={cn("font-bold text-sm", logoColor)}>{logoText}</span>
+        </div>
+        <div className="min-w-0">
+          <h4 className="text-sm font-bold text-slate-900">{name}</h4>
+          <p className="text-[11px] text-slate-500">{description}</p>
+          {extra && <p className="text-[10px] text-amber-600 font-medium mt-0.5">{extra}</p>}
+        </div>
+      </div>
+      {selected ? (
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          {recommended && (
+            <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase hidden sm:inline-flex">
+              Recommended
+            </span>
+          )}
+          <div className="w-5 h-5 bg-[#C5A059] text-white rounded-full flex items-center justify-center">
+            <CheckIcon />
           </div>
-        );
-      })}
+        </div>
+      ) : (
+        <div className="shrink-0 ml-2"><ChevRight /></div>
+      )}
     </div>
   );
 }
@@ -408,6 +351,7 @@ const PRESET_AMOUNTS = ["$1,200", "$2,500", "$5,000", "$10,000"];
 export function FundingPage() {
   const router = useRouter();
 
+  const [showHowModal, setShowHowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<PaymentTab>("bank");
   const [selectedBank, setSelectedBank] = useState("cbe");
   const [selectedEWallet, setSelectedEWallet] = useState("telebirr");
@@ -415,9 +359,13 @@ export function FundingPage() {
   const [selectedOther, setSelectedOther] = useState("wire");
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState("");
+  const [currency, setCurrency] = useState(CURRENCIES[0]);
 
   const numericAmount = parseFloat(amount.replace(/[^0-9.]/g, "")) || 0;
-  const displayTotal = numericAmount > 0 ? `$${numericAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}` : "$0.00";
+  const displayTotal =
+    numericAmount > 0
+      ? `${currency.symbol}${numericAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+      : `${currency.symbol}0.00`;
 
   const handlePreset = (preset: string) => {
     setAmount(preset.replace("$", "").replace(",", ""));
@@ -426,11 +374,14 @@ export function FundingPage() {
 
   const handleContinue = () => {
     if (numericAmount < 1200) {
-      setAmountError("Minimum deposit is $1,200. Please enter a valid amount.");
+      setAmountError(
+        currency.code === "USD"
+          ? "Minimum deposit is $1,200. Please enter a valid amount."
+          : "Minimum deposit equivalent is $1,200 USD. Please enter a valid amount."
+      );
       return;
     }
-    // Build query params for the upload page
-    const params = new URLSearchParams({ amount: String(numericAmount), method: activeTab });
+    const params = new URLSearchParams({ amount: String(numericAmount), method: activeTab, currency: currency.code });
     if (activeTab === "bank") params.set("bankId", selectedBank);
     if (activeTab === "ewallet") params.set("walletId", selectedEWallet);
     if (activeTab === "crypto") params.set("cryptoId", selectedCrypto);
@@ -478,7 +429,9 @@ export function FundingPage() {
   ];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC]">
+      {showHowModal && <HowDepositsModal onClose={() => setShowHowModal(false)} />}
+
       {/* Page title */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-start sm:justify-between mb-6 sm:mb-8">
         <div>
@@ -487,7 +440,10 @@ export function FundingPage() {
             Choose your preferred payment method and fund your trading account securely.
           </p>
         </div>
-        <button className="flex w-fit items-center gap-2 px-4 py-2 bg-white border border-blue-100 rounded-lg text-blue-600 text-sm font-semibold shadow-sm hover:shadow transition-shadow">
+        <button
+          onClick={() => setShowHowModal(true)}
+          className="flex w-fit items-center gap-2 px-4 py-2 bg-white border border-blue-100 rounded-lg text-blue-600 text-sm font-semibold shadow-sm hover:shadow transition-shadow"
+        >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
           </svg>
@@ -497,24 +453,28 @@ export function FundingPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <div className="bg-white p-6 rounded-2xl border border-[#E2E8F0]" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
+        {/* Card 1 */}
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0]" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
           <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Minimum Deposit</p>
           <h3 className="text-2xl font-bold text-slate-900 mb-1">$1,200</h3>
           <p className="text-xs text-slate-400">Equivalent in your local currency</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-[#E2E8F0]" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
+        {/* Card 2 */}
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0]" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
           <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Processing Time</p>
-          <h3 className="text-2xl font-bold text-slate-900 mb-1">Instant – 1 Hour</h3>
+          <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Instant – 1 Hour</h3>
           <p className="text-xs text-slate-400">After payment confirmation</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-[#E2E8F0]" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
+        {/* Card 3 */}
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0]" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
           <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Deposit Fee</p>
           <h3 className="text-2xl font-bold text-slate-900 mb-1">0%</h3>
           <p className="text-xs text-slate-400">No hidden charges</p>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-[#E2E8F0] flex items-center gap-4" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
-          <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-            <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+        {/* Card 4 — fixed layout for mobile */}
+        <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
+          <div className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-5 h-5 sm:w-8 sm:h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
             </svg>
           </div>
@@ -530,21 +490,22 @@ export function FundingPage() {
       {/* Main grid */}
       <div className="grid grid-cols-12 gap-5 sm:gap-8">
         {/* Left: Payment method */}
-        <div className="col-span-12 lg:col-span-7 bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
+        <div className="col-span-12 lg:col-span-7 bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
           <div className="p-5 sm:p-8">
             <h2 className="text-lg font-bold text-slate-900 mb-6">1. Select Payment Method</h2>
 
-            {/* Tabs */}
-            <div className="flex overflow-x-auto border-b border-[#E2E8F0] mb-6">
+            {/* Tabs — hidden native scrollbar */}
+            <div className="flex overflow-x-auto border-b border-[#E2E8F0] mb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`shrink-0 px-4 sm:px-6 py-3 text-sm flex items-center gap-2 transition-colors ${
+                  className={cn(
+                    "shrink-0 px-4 sm:px-6 py-3 text-sm flex items-center gap-2 transition-colors",
                     activeTab === tab.id
                       ? "font-semibold border-b-2 border-[#C5A059] text-slate-900"
                       : "font-medium text-slate-500 hover:text-slate-800"
-                  }`}
+                  )}
                 >
                   {tab.icon}
                   {tab.label}
@@ -554,18 +515,40 @@ export function FundingPage() {
 
             <p className="text-xs text-slate-400 font-medium mb-4">Choose your preferred payment option</p>
 
-            {activeTab === "bank" && (
-              <BankTab selected={selectedBank} onSelect={setSelectedBank} />
-            )}
-            {activeTab === "ewallet" && (
-              <EWalletTab selected={selectedEWallet} onSelect={setSelectedEWallet} />
-            )}
+            {/* Crypto warning */}
             {activeTab === "crypto" && (
-              <CryptoTab selected={selectedCrypto} onSelect={setSelectedCrypto} />
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3 mb-4">
+                <svg className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                </svg>
+                <p className="text-[11px] text-amber-800">
+                  <span className="font-bold">Important:</span> Only send the exact cryptocurrency to its matching address. Sending to the wrong network will result in permanent loss of funds.
+                </p>
+              </div>
             )}
-            {activeTab === "other" && (
-              <OtherTab selected={selectedOther} onSelect={setSelectedOther} />
-            )}
+
+            <div className="space-y-3">
+              {activeTab === "bank" && BANKS.map((b) => (
+                <OptionRow key={b.id} logoText={b.logoText} logoColor={b.logoColor} logoBg="bg-white"
+                  name={b.name} description={b.description} selected={selectedBank === b.id}
+                  recommended={b.recommended} onClick={() => setSelectedBank(b.id)} />
+              ))}
+              {activeTab === "ewallet" && EWALLETS.map((w) => (
+                <OptionRow key={w.id} logoText={w.logoText} logoColor={w.logoColor} logoBg="bg-white"
+                  name={w.name} description={w.description} selected={selectedEWallet === w.id}
+                  onClick={() => setSelectedEWallet(w.id)} />
+              ))}
+              {activeTab === "crypto" && CRYPTOS.map((c) => (
+                <OptionRow key={c.id} logoText={c.logoText} logoColor={c.logoColor} logoBg={c.logoBg}
+                  name={c.name} description={c.description} extra={c.address.slice(0, 20) + "..."}
+                  selected={selectedCrypto === c.id} onClick={() => setSelectedCrypto(c.id)} />
+              ))}
+              {activeTab === "other" && OTHERS.map((o) => (
+                <OptionRow key={o.id} logoText={o.logoText} logoColor={o.logoColor} logoBg={o.logoBg}
+                  name={o.name} description={o.description} extra={o.note}
+                  selected={selectedOther === o.id} onClick={() => setSelectedOther(o.id)} />
+              ))}
+            </div>
 
             {/* Contact support banner */}
             <div className="mt-8 bg-blue-50 rounded-xl p-4 flex items-center justify-between border border-blue-100">
@@ -580,10 +563,10 @@ export function FundingPage() {
                   <p className="text-[10px] text-blue-700">Contact our support team for assistance.</p>
                 </div>
               </div>
-              <button className="px-4 py-2 border border-blue-200 bg-white text-blue-700 text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-blue-50 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                </svg>
+              <button
+                onClick={() => router.push(ROUTES.SUPPORT)}
+                className="px-4 py-2 border border-blue-200 bg-white text-blue-700 text-xs font-bold rounded-lg flex items-center gap-2 hover:bg-blue-50 transition-colors shrink-0"
+              >
                 Contact Support
               </button>
             </div>
@@ -591,57 +574,45 @@ export function FundingPage() {
         </div>
 
         {/* Right: Deposit details */}
-        <div className="col-span-12 lg:col-span-5 flex flex-col gap-5 sm:gap-8">
-          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 sm:p-8 flex-1" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -1px rgba(0,0,0,0.03)" }}>
+        <div className="col-span-12 lg:col-span-5">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-5 sm:p-8" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
             <h2 className="text-lg font-bold text-slate-900 mb-6">2. Deposit Details</h2>
 
             {/* Currency selector */}
             <div className="mb-6">
               <label className="block text-xs font-bold text-slate-700 mb-2">Deposit Currency</label>
-              <div className="w-full border border-[#E2E8F0] rounded-xl px-4 py-3 flex items-center justify-between cursor-pointer hover:border-slate-300 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-4 bg-slate-200 overflow-hidden flex items-center gap-[1px]">
-                    <div className="w-1/3 h-full bg-blue-800" />
-                    <div className="w-2/3 h-full flex flex-col">
-                      <div className="h-1/2 bg-white" />
-                      <div className="h-1/2 bg-red-600" />
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold">USD – US Dollar</span>
-                </div>
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-                </svg>
-              </div>
+              <CurrencySelector selected={currency} onSelect={setCurrency} />
+              {currency.code !== "USD" && (
+                <p className="mt-1.5 text-[10px] text-amber-700 font-medium">
+                  Deposits are processed in USD. Your amount will be converted at the current market rate.
+                </p>
+              )}
             </div>
 
             {/* Amount input */}
             <div className="mb-6">
               <label className="block text-xs font-bold text-slate-700 mb-2">
                 Deposit Amount{" "}
-                <span className="text-slate-400 font-normal">(Min. $1,200)</span>
+                <span className="text-slate-400 font-normal">
+                  {currency.code === "USD" ? "(Min. $1,200)" : "(Min. $1,200 USD equivalent)"}
+                </span>
               </label>
               <div className="flex">
-                <div className="bg-slate-50 border border-r-0 border-[#E2E8F0] rounded-l-xl px-4 py-3 flex items-center text-slate-400">
-                  <span className="text-lg">$</span>
+                <div className="bg-slate-50 border border-r-0 border-[#E2E8F0] rounded-l-xl px-4 py-3 flex items-center text-slate-500 text-sm font-medium">
+                  {currency.symbol}
                 </div>
                 <input
                   type="text"
                   value={amount}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    setAmountError("");
-                  }}
+                  onChange={(e) => { setAmount(e.target.value); setAmountError(""); }}
                   placeholder="Enter amount"
                   className="flex-1 border border-[#E2E8F0] focus:outline-none focus:border-[#C5A059] px-4 py-3 text-sm font-medium"
                 />
-                <div className="bg-slate-50 border border-l-0 border-[#E2E8F0] rounded-r-xl px-4 py-3 flex items-center text-slate-900 font-bold text-xs uppercase tracking-wider">
-                  USD
+                <div className="bg-slate-50 border border-l-0 border-[#E2E8F0] rounded-r-xl px-3 py-3 flex items-center text-slate-900 font-bold text-xs uppercase tracking-wider">
+                  {currency.code}
                 </div>
               </div>
-              {amountError && (
-                <p className="mt-1.5 text-xs text-red-600">{amountError}</p>
-              )}
+              {amountError && <p className="mt-1.5 text-xs text-red-600">{amountError}</p>}
             </div>
 
             {/* Preset amounts */}
@@ -666,7 +637,7 @@ export function FundingPage() {
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-500 font-medium">Processing Fee</span>
-                <span className="text-slate-900 font-bold">$0.00</span>
+                <span className="text-slate-900 font-bold">{currency.symbol}0.00</span>
               </div>
               <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
                 <span className="text-sm font-bold text-slate-900">Total</span>

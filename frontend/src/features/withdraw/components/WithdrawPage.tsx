@@ -1,6 +1,25 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Wallet,
+  Banknote,
+  Clock,
+  ArrowUpRight,
+  History,
+  Landmark,
+  Gauge,
+  CalendarClock,
+  AlertTriangle,
+  Info,
+  HeadphonesIcon,
+  CheckCircle2,
+  X,
+  AlertCircle,
+  Send,
+} from "lucide-react";
+
 import { useNotificationStore } from "@/src/store/notification.store";
 import {
   submitWithdrawal,
@@ -9,6 +28,7 @@ import {
   PROCESSING_DAYS,
 } from "@/src/services/api/withdraw.api";
 import { useWithdraw } from "../hooks/useWithdraw";
+import { ROUTES } from "@/src/lib/constants/routes";
 import type {
   WithdrawFormState,
   WithdrawHistoryItem,
@@ -25,81 +45,52 @@ const STATUS_CONFIG: Record<WithdrawStatus, { label: string; classes: string }> 
   pending:    { label: "Pending",    classes: "bg-amber-50 text-amber-700 border border-amber-200" },
   processing: { label: "Processing", classes: "bg-blue-50 text-blue-700 border border-blue-200" },
   approved:   { label: "Approved",   classes: "bg-indigo-50 text-indigo-700 border border-indigo-200" },
-  completed:  { label: "Completed",  classes: "bg-green-50 text-green-700 border border-green-200" },
+  completed:  { label: "Completed",  classes: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
   rejected:   { label: "Rejected",   classes: "bg-red-50 text-red-700 border border-red-200" },
 };
 
 const PRESETS = [500, 1000, 2500, 5000];
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Stat Cards ─────────────────────────────────────────────────────────────────
 
 function StatCard({
-  icon,
+  icon: Icon,
   label,
   value,
   sub,
   highlight,
 }: {
-  icon: string;
+  icon: React.ElementType;
   label: string;
   value: string;
   sub?: string;
   highlight?: boolean;
 }) {
   return (
-    <div
-      className={`rounded-2xl p-6 border shadow-sm flex flex-col gap-2 ${
-        highlight
-          ? "bg-[#050B14] border-[#1e2d42]"
-          : "bg-white border-slate-200"
-      }`}
-    >
-      <div
-        className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1 ${
-          highlight ? "bg-[#e9c349]/15" : "bg-slate-100"
-        }`}
-      >
-        <span
-          className={`material-symbols-outlined text-[20px] ${
-            highlight ? "text-[#e9c349]" : "text-[#050B14]"
-          }`}
-        >
-          {icon}
-        </span>
+    <div className={`rounded-2xl p-5 sm:p-6 border shadow-sm flex flex-col gap-2 ${
+      highlight ? "bg-[#0C1526] border-[#D4AF37]/25" : "bg-white border-slate-200"
+    }`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-1 ${
+        highlight ? "bg-[#D4AF37]/15" : "bg-slate-100"
+      }`}>
+        <Icon className={`size-5 ${highlight ? "text-[#D4AF37]" : "text-slate-600"}`} />
       </div>
-      <p className={`text-[12px] font-semibold uppercase tracking-wider ${highlight ? "text-slate-400" : "text-[#64748B]"}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-wider ${highlight ? "text-slate-400" : "text-slate-500"}`}>
         {label}
       </p>
-      <p className={`text-2xl font-extrabold ${highlight ? "text-[#e9c349]" : "text-[#050B14]"}`}>{value}</p>
-      {sub && <p className={`text-[11px] ${highlight ? "text-slate-500" : "text-[#64748B]"}`}>{sub}</p>}
+      <p className={`text-2xl font-extrabold ${highlight ? "text-[#D4AF37]" : "text-slate-900"}`}>{value}</p>
+      {sub && <p className={`text-[11px] ${highlight ? "text-slate-500" : "text-slate-400"}`}>{sub}</p>}
     </div>
   );
 }
 
-// ── Confirmation Modal ─────────────────────────────────────────────────────────
+// ── Confirm Modal ──────────────────────────────────────────────────────────────
 
 function ConfirmModal({
-  amount,
-  fee,
-  net,
-  bankName,
-  accountNumber,
-  method,
-  note,
-  onConfirm,
-  onCancel,
-  submitting,
+  amount, fee, net, bankName, accountNumber, method, note, onConfirm, onCancel, submitting,
 }: {
-  amount: number;
-  fee: number;
-  net: number;
-  bankName: string;
-  accountNumber: string;
-  method: WithdrawMethod;
-  note: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  submitting: boolean;
+  amount: number; fee: number; net: number; bankName: string; accountNumber: string;
+  method: WithdrawMethod; note: string; onConfirm: () => void; onCancel: () => void; submitting: boolean;
 }) {
   return (
     <div
@@ -107,69 +98,64 @@ function ConfirmModal({
       onClick={(e) => { if (e.target === e.currentTarget && !submitting) onCancel(); }}
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-[#050B14] p-6 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#e9c349]/15 rounded-xl flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#e9c349]">outbox</span>
+        <div className="bg-[#0C1526] p-6 flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center">
+            <Send className="size-5 text-white" />
           </div>
           <div>
             <h3 className="text-white font-bold text-base">Confirm Withdrawal</h3>
-            <p className="text-slate-400 text-[12px]">Please review before submitting</p>
+            <p className="text-blue-100 text-[12px]">Please review before submitting</p>
           </div>
         </div>
 
-        {/* Summary */}
         <div className="p-6 space-y-3">
           {[
             { label: "Withdrawal Amount", value: fmt(amount), bold: true },
             { label: "Processing Fee", value: `-${fmt(fee)}`, note: `(${method === "express" ? "1%" : "0.5%"})` },
             { label: "Destination Bank", value: bankName },
-            { label: "Account Number", value: accountNumber },
-            { label: "Processing Time", value: PROCESSING_DAYS[method] },
-          ].map(({ label, value, bold, note }) => (
+            { label: "Account Number",   value: accountNumber },
+            { label: "Processing Time",  value: PROCESSING_DAYS[method] },
+          ].map(({ label, value, bold, note: n }) => (
             <div key={label} className="flex justify-between items-start py-2 border-b border-slate-100 last:border-0">
-              <span className="text-[13px] text-[#64748B]">{label}</span>
-              <span className={`text-[13px] text-right ${bold ? "font-bold text-[#050B14]" : "text-[#050B14]"}`}>
+              <span className="text-[13px] text-slate-500">{label}</span>
+              <span className={`text-[13px] text-right ${bold ? "font-bold text-slate-900" : "text-slate-800"}`}>
                 {value}
-                {note && <span className="text-[#64748B] ml-1 text-[11px]">{note}</span>}
+                {n && <span className="text-slate-400 ml-1 text-[11px]">{n}</span>}
               </span>
             </div>
           ))}
 
-          {/* Net line */}
-          <div className="flex justify-between items-center pt-3 mt-1 border-t-2 border-[#050B14]">
-            <span className="text-[14px] font-bold text-[#050B14]">You Will Receive</span>
-            <span className="text-xl font-extrabold text-green-600">{fmt(net)}</span>
+          <div className="flex justify-between items-center pt-3 mt-1 border-t-2 border-slate-900">
+            <span className="text-[14px] font-bold text-slate-900">You Will Receive</span>
+            <span className="text-xl font-extrabold text-emerald-600">{fmt(net)}</span>
           </div>
 
           {note && (
-            <div className="bg-slate-50 rounded-xl p-3 text-[12px] text-[#64748B] border border-slate-200">
-              <span className="font-semibold text-[#050B14]">Note: </span>{note}
+            <div className="bg-[#D4AF37]/8 rounded-xl p-3 text-[12px] text-slate-600 border border-[#D4AF37]/20">
+              <span className="font-semibold text-slate-800">Note: </span>{note}
             </div>
           )}
 
-          {/* Warning */}
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-start gap-2">
-            <span className="material-symbols-outlined text-amber-500 text-[18px] mt-0.5 shrink-0">warning</span>
+            <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
             <p className="text-[11px] text-amber-800">
               Withdrawal requests cannot be cancelled once submitted. Funds will be transferred to your registered bank account.
             </p>
           </div>
         </div>
 
-        {/* Actions */}
         <div className="px-6 pb-6 flex gap-3">
           <button
             onClick={onCancel}
             disabled={submitting}
-            className="flex-1 py-3 border border-slate-200 rounded-xl text-[14px] font-semibold text-[#64748B] hover:bg-slate-50 transition-colors disabled:opacity-50"
+            className="flex-1 py-3 border border-slate-200 rounded-xl text-[14px] font-semibold text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={submitting}
-            className="flex-1 py-3 bg-[#050B14] text-white rounded-xl text-[14px] font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-60 shadow-lg"
+            className="flex-1 py-3 bg-[#D4AF37] text-[#0C1526] rounded-xl text-[14px] font-bold flex items-center justify-center gap-2 hover:bg-[#c9a030] transition-all active:scale-95 disabled:opacity-60 shadow-lg shadow-[#D4AF37]/20"
           >
             {submitting ? (
               <>
@@ -180,10 +166,7 @@ function ConfirmModal({
                 Processing…
               </>
             ) : (
-              <>
-                <span className="material-symbols-outlined text-[18px]">send_money</span>
-                Confirm Withdrawal
-              </>
+              <><Send className="size-4" /> Confirm Withdrawal</>
             )}
           </button>
         </div>
@@ -196,20 +179,20 @@ function ConfirmModal({
 
 function SuccessBanner({ reference, onDismiss }: { reference: string; onDismiss: () => void }) {
   return (
-    <div className="bg-green-50 border border-green-200 rounded-2xl p-6 flex items-start justify-between gap-4 mb-6">
+    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start justify-between gap-4 mb-6">
       <div className="flex items-start gap-4">
-        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center shrink-0">
-          <span className="material-symbols-outlined text-green-600">check_circle</span>
+        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+          <CheckCircle2 className="size-5 text-emerald-600" />
         </div>
         <div>
-          <p className="font-bold text-green-800">Withdrawal Request Submitted</p>
-          <p className="text-[13px] text-green-700 mt-0.5">
+          <p className="font-bold text-emerald-800">Withdrawal Request Submitted</p>
+          <p className="text-[13px] text-emerald-700 mt-0.5">
             Reference: <span className="font-semibold">{reference}</span> · Our team will process your request within 1–3 business days.
           </p>
         </div>
       </div>
-      <button onClick={onDismiss} className="text-green-500 hover:text-green-700 shrink-0">
-        <span className="material-symbols-outlined text-[20px]">close</span>
+      <button onClick={onDismiss} className="text-emerald-400 hover:text-emerald-600 shrink-0">
+        <X className="size-5" />
       </button>
     </div>
   );
@@ -223,28 +206,33 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
   if (items.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-16 text-center">
-        <span className="material-symbols-outlined text-5xl text-slate-300 block mb-3">outbox</span>
-        <p className="text-[#64748B] text-sm">No withdrawal history yet.</p>
+        <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <ArrowUpRight className="size-7 text-slate-400" />
+        </div>
+        <p className="text-slate-500 text-sm font-medium">No withdrawal history yet.</p>
+        <p className="text-slate-400 text-xs mt-1">Your completed withdrawals will appear here.</p>
       </div>
     );
   }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+      <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-[#050B14] rounded-lg flex items-center justify-center">
-            <span className="material-symbols-outlined text-[#e9c349] text-[18px]">history</span>
+          <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+            <History className="size-4 text-white" />
           </div>
-          <h3 className="text-[15px] font-bold text-[#050B14]">Withdrawal History</h3>
+          <h3 className="text-[15px] font-bold text-slate-900">Withdrawal History</h3>
         </div>
-        <span className="text-[12px] text-[#64748B]">{items.length} transaction{items.length !== 1 ? "s" : ""}</span>
+        <span className="text-[12px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full font-medium">
+          {items.length} transaction{items.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-[#64748B] border-b border-slate-100">
+            <tr className="text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100 bg-slate-50/50">
               <th className="px-6 py-4 font-semibold">Reference</th>
               <th className="px-6 py-4 font-semibold">Date</th>
               <th className="px-6 py-4 font-semibold">Amount</th>
@@ -264,15 +252,15 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
                     onClick={() => setExpanded(open ? null : item.id)}
                     className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors cursor-pointer"
                   >
-                    <td className="px-6 py-4 text-[13px] font-semibold text-[#050B14]">{item.id}</td>
-                    <td className="px-6 py-4 text-[13px] text-[#64748B]">{item.date}</td>
-                    <td className="px-6 py-4 text-[13px] font-bold text-[#050B14]">{fmt(item.amount)}</td>
-                    <td className="px-6 py-4 text-[13px] text-[#64748B] max-w-[160px] truncate">{item.bankName}</td>
+                    <td className="px-6 py-4 text-[13px] font-semibold text-slate-800">{item.id}</td>
+                    <td className="px-6 py-4 text-[13px] text-slate-500">{item.date}</td>
+                    <td className="px-6 py-4 text-[13px] font-bold text-slate-900">{fmt(item.amount)}</td>
+                    <td className="px-6 py-4 text-[13px] text-slate-500 max-w-[160px] truncate">{item.bankName}</td>
                     <td className="px-6 py-4">
                       <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${
                         item.method === "express"
-                          ? "bg-[#e9c349]/15 text-[#050B14]"
-                          : "bg-slate-100 text-[#64748B]"
+                          ? "bg-[#D4AF37]/10 text-[#b8941a] border border-[#D4AF37]/20"
+                          : "bg-slate-100 text-slate-500"
                       }`}>
                         {item.method}
                       </span>
@@ -282,7 +270,7 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
                         {cfg.label}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right text-[13px] font-bold text-green-600">{fmt(item.netAmount)}</td>
+                    <td className="px-6 py-4 text-right text-[13px] font-bold text-emerald-600">{fmt(item.netAmount)}</td>
                   </tr>
                   {open && (
                     <tr key={`${item.id}-detail`} className="bg-slate-50/50">
@@ -290,13 +278,13 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[12px]">
                           {[
                             { label: "Account Number", value: item.destination },
-                            { label: "Processing Fee", value: fmt(item.fee) },
-                            { label: "Est. Arrival", value: item.estimatedArrival },
-                            { label: "Reference", value: item.reference },
+                            { label: "Processing Fee",  value: fmt(item.fee) },
+                            { label: "Est. Arrival",    value: item.estimatedArrival },
+                            { label: "Reference",       value: item.reference },
                           ].map(({ label, value }) => (
                             <div key={label}>
-                              <p className="text-[#64748B] mb-1">{label}</p>
-                              <p className="font-semibold text-[#050B14]">{value}</p>
+                              <p className="text-slate-400 mb-1">{label}</p>
+                              <p className="font-semibold text-slate-800">{value}</p>
                             </div>
                           ))}
                         </div>
@@ -316,6 +304,7 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export function WithdrawPage() {
+  const router = useRouter();
   const addToast = useNotificationStore((s) => s.addToast);
   const { data, loading, addToHistory } = useWithdraw();
 
@@ -325,16 +314,15 @@ export function WithdrawPage() {
     method: "standard",
     note: "",
   });
-  const [confirming, setConfirming] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [successRef, setSuccessRef] = useState<string | null>(null);
+  const [confirming, setConfirming]   = useState(false);
+  const [submitting, setSubmitting]   = useState(false);
+  const [successRef, setSuccessRef]   = useState<string | null>(null);
   const [amountError, setAmountError] = useState("");
 
-  // Derived
   const parsedAmount = parseFloat(form.amount) || 0;
-  const feeRate = FEE_RATE[form.method];
-  const fee = parsedAmount * feeRate;
-  const net = parsedAmount - fee;
+  const feeRate  = FEE_RATE[form.method];
+  const fee      = parsedAmount * feeRate;
+  const net      = parsedAmount - fee;
   const selectedBank = data?.banks.find((b) => b.id === form.bankId) ?? data?.banks[0] ?? null;
 
   const validate = (): boolean => {
@@ -403,13 +391,13 @@ export function WithdrawPage() {
 
   if (loading || !data) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#F8FAFC]">
+      <div className="flex items-center justify-center bg-[#F8FAFC]">
         <div className="flex flex-col items-center gap-3">
-          <svg className="w-8 h-8 animate-spin text-[#e9c349]" fill="none" viewBox="0 0 24 24">
+          <svg className="w-8 h-8 animate-spin text-[#D4AF37]" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
           </svg>
-          <p className="text-[#64748B] text-sm">Loading withdrawal portal…</p>
+          <p className="text-slate-500 text-sm">Loading withdrawal portal…</p>
         </div>
       </div>
     );
@@ -417,21 +405,14 @@ export function WithdrawPage() {
 
   const { balance, banks, history } = data;
   const activeBank = form.bankId ? banks.find((b) => b.id === form.bankId) ?? selectedBank : selectedBank;
-  const dailyRemaining = balance.dailyLimit - balance.dailyUsed;
-  const monthlyRemaining = balance.monthlyLimit - balance.withdrawnThisMonth;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] min-h-screen">
-      {/* Confirm modal */}
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC]">
       {confirming && activeBank && (
         <ConfirmModal
-          amount={parsedAmount}
-          fee={fee}
-          net={net}
-          bankName={activeBank.bankName}
-          accountNumber={activeBank.accountNumber}
-          method={form.method}
-          note={form.note}
+          amount={parsedAmount} fee={fee} net={net}
+          bankName={activeBank.bankName} accountNumber={activeBank.accountNumber}
+          method={form.method} note={form.note}
           onConfirm={handleConfirm}
           onCancel={() => !submitting && setConfirming(false)}
           submitting={submitting}
@@ -441,51 +422,49 @@ export function WithdrawPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-start sm:justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-xl sm:text-[24px] font-bold text-[#050B14] mb-1">Withdraw Funds</h1>
-          <p className="text-sm text-[#64748B]">Transfer your available balance to a registered bank account.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Withdraw Funds</h1>
+          <p className="text-sm text-slate-500">Transfer your available balance to a registered bank account.</p>
         </div>
-        <div className="flex w-fit items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-xl">
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-[12px] font-semibold text-green-700">Withdrawals Active</span>
+        <div className="flex w-fit items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl">
+          <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <span className="text-[12px] font-semibold text-emerald-700">Withdrawals Active</span>
         </div>
       </div>
 
-      {/* Success banner */}
-      {successRef && (
-        <SuccessBanner reference={successRef} onDismiss={() => setSuccessRef(null)} />
-      )}
+      {successRef && <SuccessBanner reference={successRef} onDismiss={() => setSuccessRef(null)} />}
 
-      {/* Balance stat cards */}
+      {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon="account_balance_wallet" label="Total Balance" value={fmt(balance.totalBalance)} highlight />
-        <StatCard icon="payments" label="Available to Withdraw" value={fmt(balance.availableToWithdraw)} sub="After lock-up" />
-        <StatCard icon="pending" label="Pending Withdrawals" value={fmt(balance.pendingWithdrawals)} sub={balance.pendingWithdrawals > 0 ? "Processing" : "None active"} />
-        <StatCard icon="outbox" label="Total Withdrawn" value={fmt(balance.totalWithdrawn)} sub="All time" />
+        <StatCard icon={Wallet}       label="Total Balance"         value={fmt(balance.totalBalance)}         highlight />
+        <StatCard icon={Banknote}     label="Available to Withdraw" value={fmt(balance.availableToWithdraw)} sub="After lock-up" />
+        <StatCard icon={Clock}        label="Pending Withdrawals"   value={fmt(balance.pendingWithdrawals)}  sub={balance.pendingWithdrawals > 0 ? "Processing" : "None active"} />
+        <StatCard icon={ArrowUpRight} label="Total Withdrawn"       value={fmt(balance.totalWithdrawn)}      sub="All time" />
       </div>
 
       {/* Main grid */}
       <div className="grid grid-cols-12 gap-6 items-start">
-        {/* ── Left: Form (8 cols) ── */}
+
+        {/* ── Left: Form ── */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-9 h-9 bg-[#050B14] rounded-lg flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#e9c349] text-[20px]">outbox</span>
+              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+                <Send className="size-4 text-white" />
               </div>
-              <h2 className="text-[16px] font-bold text-[#050B14]">Withdrawal Request</h2>
+              <h2 className="text-[16px] font-bold text-slate-900">Withdrawal Request</h2>
             </div>
 
             <div className="space-y-6">
               {/* Amount */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-[13px] font-semibold text-[#050B14]">Withdrawal Amount</label>
-                  <span className="text-[12px] text-[#64748B]">
-                    Available: <span className="font-bold text-[#050B14]">{fmt(balance.availableToWithdraw)}</span>
+                  <label className="text-[13px] font-semibold text-slate-800">Withdrawal Amount</label>
+                  <span className="text-[12px] text-slate-400">
+                    Available: <span className="font-bold text-slate-700">{fmt(balance.availableToWithdraw)}</span>
                   </span>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#64748B] font-bold text-lg">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">$</span>
                   <input
                     type="number"
                     min={MIN_WITHDRAW}
@@ -493,24 +472,23 @@ export function WithdrawPage() {
                     value={form.amount}
                     onChange={(e) => { setForm({ ...form, amount: e.target.value }); setAmountError(""); }}
                     placeholder="0.00"
-                    className={`w-full h-14 pl-9 pr-4 rounded-xl border text-xl font-bold text-[#050B14] outline-none transition-all focus:ring-2 focus:ring-[#e9c349] ${
+                    className={`w-full h-14 pl-9 pr-16 rounded-xl border text-xl font-bold text-slate-900 outline-none transition-all focus:ring-2 focus:ring-[#D4AF37]/40 ${
                       amountError ? "border-red-400 bg-red-50/30" : "border-slate-200"
                     }`}
                   />
                   <button
                     onClick={() => setForm({ ...form, amount: String(balance.availableToWithdraw) })}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#e9c349] hover:text-[#c8a832] transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#D4AF37] hover:text-[#b8941a] transition-colors"
                   >
                     MAX
                   </button>
                 </div>
                 {amountError && (
                   <p className="mt-1.5 text-[12px] text-red-600 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px]">error</span>
+                    <AlertCircle className="size-3.5" />
                     {amountError}
                   </p>
                 )}
-                {/* Quick presets */}
                 <div className="flex gap-2 mt-3">
                   {PRESETS.map((p) => (
                     <button
@@ -519,8 +497,8 @@ export function WithdrawPage() {
                       disabled={p > balance.availableToWithdraw}
                       className={`flex-1 py-2 rounded-lg text-[12px] font-bold border transition-all disabled:opacity-40 ${
                         parsedAmount === p
-                          ? "bg-[#050B14] text-white border-[#050B14]"
-                          : "bg-slate-50 text-[#050B14] border-slate-200 hover:border-[#050B14]"
+                          ? "bg-[#D4AF37] text-[#0C1526] border-[#D4AF37]"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:border-[#D4AF37]/50 hover:text-[#D4AF37]"
                       }`}
                     >
                       ${p.toLocaleString()}
@@ -531,11 +509,13 @@ export function WithdrawPage() {
 
               {/* Destination Bank */}
               <div>
-                <label className="block text-[13px] font-semibold text-[#050B14] mb-2">Destination Bank Account</label>
+                <label className="block text-[13px] font-semibold text-slate-800 mb-2">Destination Bank Account</label>
                 {banks.length === 0 ? (
-                  <div className="border border-dashed border-slate-300 rounded-xl p-5 text-center text-[13px] text-[#64748B]">
+                  <div className="border border-dashed border-slate-300 rounded-xl p-5 text-center text-[13px] text-slate-500">
                     No bank accounts saved.{" "}
-                    <a href="/profile" className="text-[#050B14] font-bold underline">Add one in Profile Settings</a>.
+                    <button onClick={() => router.push(ROUTES.PROFILE)} className="text-[#D4AF37] font-bold hover:underline">
+                      Add one in Profile Settings
+                    </button>.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -546,34 +526,29 @@ export function WithdrawPage() {
                           key={bank.id}
                           className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
                             selected
-                              ? "border-[#e9c349] bg-[#e9c349]/5 ring-1 ring-[#e9c349]/30"
+                              ? "border-[#D4AF37] bg-[#D4AF37]/5 ring-1 ring-[#D4AF37]/30"
                               : "border-slate-200 hover:border-slate-300"
                           }`}
                         >
                           <input
-                            type="radio"
-                            name="bank"
-                            value={bank.id}
-                            checked={selected}
+                            type="radio" name="bank" value={bank.id} checked={selected}
                             onChange={() => setForm({ ...form, bankId: bank.id })}
                             className="sr-only"
                           />
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                              selected ? "border-[#e9c349]" : "border-slate-300"
-                            }`}
-                          >
-                            {selected && <div className="w-2.5 h-2.5 bg-[#e9c349] rounded-full" />}
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            selected ? "border-[#D4AF37]" : "border-slate-300"
+                          }`}>
+                            {selected && <div className="w-2.5 h-2.5 bg-[#D4AF37] rounded-full" />}
                           </div>
-                          <div className="w-9 h-9 bg-[#050B14] rounded-lg flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined text-[#e9c349] text-[18px]">account_balance</span>
+                          <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
+                            <Landmark className="size-4 text-slate-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-bold text-[#050B14] truncate">{bank.bankName}</p>
-                            <p className="text-[12px] text-[#64748B]">{bank.accountHolder} · {bank.accountNumber}</p>
+                            <p className="text-[13px] font-bold text-slate-900 truncate">{bank.bankName}</p>
+                            <p className="text-[12px] text-slate-400">{bank.accountHolder} · {bank.accountNumber}</p>
                           </div>
                           {bank.isPrimary && (
-                            <span className="text-[10px] bg-[#050B14] text-[#e9c349] px-2 py-0.5 rounded-full font-bold shrink-0">
+                            <span className="text-[10px] bg-slate-900 text-white px-2.5 py-0.5 rounded-full font-bold shrink-0">
                               Primary
                             </span>
                           )}
@@ -586,7 +561,7 @@ export function WithdrawPage() {
 
               {/* Processing Speed */}
               <div>
-                <label className="block text-[13px] font-semibold text-[#050B14] mb-2">Processing Speed</label>
+                <label className="block text-[13px] font-semibold text-slate-800 mb-2">Processing Speed</label>
                 <div className="grid grid-cols-2 gap-3">
                   {(["standard", "express"] as WithdrawMethod[]).map((m) => {
                     const selected = form.method === m;
@@ -596,21 +571,21 @@ export function WithdrawPage() {
                         onClick={() => setForm({ ...form, method: m })}
                         className={`p-4 rounded-xl border text-left transition-all ${
                           selected
-                            ? "border-[#050B14] bg-[#050B14]"
-                            : "border-slate-200 hover:border-slate-300"
+                            ? "border-[#D4AF37] bg-[#D4AF37]/10"
+                            : "border-slate-200 hover:border-[#D4AF37]/40"
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className={`text-[13px] font-bold capitalize ${selected ? "text-white" : "text-[#050B14]"}`}>
+                          <span className={`text-[13px] font-bold capitalize ${selected ? "text-[#0C1526]" : "text-slate-800"}`}>
                             {m}
                           </span>
                           <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                            selected ? "bg-[#e9c349]/20 text-[#e9c349]" : "bg-slate-100 text-[#64748B]"
+                            selected ? "bg-[#D4AF37]/20 text-[#b8941a]" : "bg-slate-100 text-slate-500"
                           }`}>
                             {m === "standard" ? "0.5% fee" : "1.0% fee"}
                           </span>
                         </div>
-                        <p className={`text-[11px] ${selected ? "text-slate-300" : "text-[#64748B]"}`}>
+                        <p className={`text-[11px] ${selected ? "text-[#b8941a]" : "text-slate-400"}`}>
                           {PROCESSING_DAYS[m]}
                         </p>
                       </button>
@@ -621,34 +596,34 @@ export function WithdrawPage() {
 
               {/* Note */}
               <div>
-                <label className="block text-[13px] font-semibold text-[#050B14] mb-2">
-                  Reference Note <span className="text-[#64748B] font-normal">(optional)</span>
+                <label className="block text-[13px] font-semibold text-slate-800 mb-2">
+                  Reference Note <span className="text-slate-400 font-normal">(optional)</span>
                 </label>
                 <textarea
                   rows={2}
                   value={form.note}
                   onChange={(e) => setForm({ ...form, note: e.target.value })}
                   placeholder="Add a note for your records…"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#e9c349] outline-none text-[13px] text-[#050B14] resize-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#D4AF37]/40 outline-none text-[13px] text-slate-800 resize-none transition-all"
                 />
               </div>
 
               {/* Fee Breakdown */}
               {parsedAmount > 0 && (
                 <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-3">
-                  <h4 className="text-[12px] font-bold text-[#050B14] uppercase tracking-wider mb-3">Fee Breakdown</h4>
+                  <h4 className="text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-3">Fee Breakdown</h4>
                   {[
                     { label: "Withdrawal Amount", value: fmt(parsedAmount) },
                     { label: `Processing Fee (${form.method === "express" ? "1%" : "0.5%"})`, value: `-${fmt(fee)}`, muted: true },
                   ].map(({ label, value, muted }) => (
                     <div key={label} className="flex justify-between text-[13px]">
-                      <span className={muted ? "text-[#64748B]" : "text-[#050B14]"}>{label}</span>
-                      <span className={muted ? "text-[#64748B]" : "font-semibold text-[#050B14]"}>{value}</span>
+                      <span className={muted ? "text-slate-400" : "text-slate-700"}>{label}</span>
+                      <span className={muted ? "text-slate-400" : "font-semibold text-slate-700"}>{value}</span>
                     </div>
                   ))}
-                  <div className="border-t border-slate-300 pt-3 flex justify-between">
-                    <span className="text-[14px] font-bold text-[#050B14]">You Will Receive</span>
-                    <span className="text-[16px] font-extrabold text-green-600">{fmt(net)}</span>
+                  <div className="border-t border-slate-200 pt-3 flex justify-between">
+                    <span className="text-[14px] font-bold text-slate-800">You Will Receive</span>
+                    <span className="text-[16px] font-extrabold text-emerald-600">{fmt(net)}</span>
                   </div>
                 </div>
               )}
@@ -656,44 +631,42 @@ export function WithdrawPage() {
               {/* Submit */}
               <button
                 onClick={handleRequestWithdraw}
-                className="w-full py-4 bg-[#050B14] text-white rounded-xl font-bold text-[14px] flex items-center justify-center gap-3 hover:bg-slate-800 transition-all active:scale-[0.99] shadow-xl shadow-slate-900/10"
+                className="w-full py-4 bg-[#D4AF37] text-[#0C1526] rounded-xl font-bold text-[14px] flex items-center justify-center gap-3 hover:bg-[#c9a030] transition-all active:scale-[0.99] shadow-lg shadow-[#D4AF37]/20"
               >
-                <span className="material-symbols-outlined text-[#e9c349]">send_money</span>
+                <Send className="size-4" />
                 Request Withdrawal
               </button>
             </div>
           </div>
         </div>
 
-        {/* ── Right: Info (4 cols) ── */}
+        {/* ── Right: Info Panel ── */}
         <div className="col-span-12 lg:col-span-4 space-y-5">
+
           {/* Withdrawal Limits */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 bg-[#050B14] rounded-lg flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#e9c349] text-[18px]">speed</span>
+              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+                <Gauge className="size-4 text-white" />
               </div>
-              <h3 className="text-[14px] font-bold text-[#050B14]">Withdrawal Limits</h3>
+              <h3 className="text-[14px] font-bold text-slate-900">Withdrawal Limits</h3>
             </div>
             <div className="space-y-4">
               {[
-                { label: "Daily Limit", used: balance.dailyUsed, total: balance.dailyLimit },
+                { label: "Daily Limit",   used: balance.dailyUsed,          total: balance.dailyLimit },
                 { label: "Monthly Limit", used: balance.withdrawnThisMonth, total: balance.monthlyLimit },
               ].map(({ label, used, total }) => {
                 const pct = Math.min((used / total) * 100, 100);
                 return (
                   <div key={label}>
                     <div className="flex justify-between text-[12px] mb-1.5">
-                      <span className="text-[#64748B]">{label}</span>
-                      <span className="font-semibold text-[#050B14]">{fmt(total - used)} remaining</span>
+                      <span className="text-slate-500">{label}</span>
+                      <span className="font-semibold text-slate-700">{fmt(total - used)} remaining</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-1.5">
-                      <div
-                        className="bg-[#e9c349] h-1.5 rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
+                      <div className="bg-slate-700 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="text-[10px] text-[#64748B] mt-1">{fmt(used)} used of {fmt(total)}</p>
+                    <p className="text-[10px] text-slate-400 mt-1">{fmt(used)} used of {fmt(total)}</p>
                   </div>
                 );
               })}
@@ -703,24 +676,24 @@ export function WithdrawPage() {
           {/* Processing Schedule */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 bg-[#050B14] rounded-lg flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#e9c349] text-[18px]">schedule</span>
+              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+                <CalendarClock className="size-4 text-white" />
               </div>
-              <h3 className="text-[14px] font-bold text-[#050B14]">Processing Schedule</h3>
+              <h3 className="text-[14px] font-bold text-slate-900">Processing Schedule</h3>
             </div>
-            <div className="space-y-3 text-[13px]">
+            <div className="space-y-1 text-[13px]">
               {[
                 { day: "Mon – Fri", time: "9:00 AM – 5:00 PM EAT", active: true },
                 { day: "Saturday",  time: "10:00 AM – 2:00 PM EAT", active: true },
                 { day: "Sunday",    time: "Closed", active: false },
               ].map(({ day, time, active }) => (
-                <div key={day} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-                  <span className="text-[#64748B]">{day}</span>
-                  <span className={`font-semibold ${active ? "text-[#050B14]" : "text-slate-300"}`}>{time}</span>
+                <div key={day} className="flex justify-between items-center py-2.5 border-b border-slate-50 last:border-0">
+                  <span className="text-slate-500">{day}</span>
+                  <span className={`font-semibold text-[12px] ${active ? "text-slate-800" : "text-slate-300"}`}>{time}</span>
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-[#64748B] mt-4 leading-relaxed">
+            <p className="text-[11px] text-slate-400 mt-4 leading-relaxed">
               Requests submitted outside business hours are queued and processed the next business day.
             </p>
           </div>
@@ -728,7 +701,7 @@ export function WithdrawPage() {
           {/* Important Notices */}
           <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
-              <span className="material-symbols-outlined text-amber-500 text-[20px]">info</span>
+              <Info className="size-5 text-amber-500" />
               <h3 className="text-[14px] font-bold text-amber-900">Important Notices</h3>
             </div>
             <ul className="space-y-2.5">
@@ -740,7 +713,7 @@ export function WithdrawPage() {
                 "Large withdrawals (>$10,000) may require additional verification.",
               ].map((notice) => (
                 <li key={notice} className="flex items-start gap-2 text-[12px] text-amber-800">
-                  <span className="material-symbols-outlined text-amber-500 text-[14px] mt-0.5 shrink-0">warning</span>
+                  <AlertTriangle className="size-3.5 text-amber-500 mt-0.5 shrink-0" />
                   {notice}
                 </li>
               ))}
@@ -749,22 +722,27 @@ export function WithdrawPage() {
 
           {/* Need Help */}
           <div className="bg-[#050B14] rounded-2xl p-6">
-            <h3 className="text-white font-bold text-[14px] mb-2">Need Assistance?</h3>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 bg-[#D4AF37]/15 rounded-xl flex items-center justify-center">
+                <HeadphonesIcon className="size-4 text-[#D4AF37]" />
+              </div>
+              <h3 className="text-white font-bold text-[14px]">Need Assistance?</h3>
+            </div>
             <p className="text-slate-400 text-[12px] mb-4 leading-relaxed">
               Your account manager can expedite withdrawals and assist with large transfers.
             </p>
-            <a
-              href="/concierge"
-              className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#e9c349] text-[#050B14] rounded-xl font-bold text-[13px] hover:opacity-90 transition-opacity"
+            <button
+              onClick={() => router.push(ROUTES.CONCIERGE)}
+              className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#D4AF37] text-[#0C1526] rounded-xl font-bold text-[13px] hover:bg-[#c9a030] transition-colors"
             >
-              <span className="material-symbols-outlined text-[18px]">support_agent</span>
+              <HeadphonesIcon className="size-4" />
               Contact Account Manager
-            </a>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Withdrawal History */}
+      {/* History */}
       <div className="mt-8">
         <HistoryTable items={history} />
       </div>
