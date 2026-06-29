@@ -29,7 +29,9 @@ export function InvestorShell({ children }: { children: React.ReactNode }) {
       <InvestorSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <InvestorNavbar onMenuClick={() => setSidebarOpen(true)} />
+        <div className="sticky top-0 z-30">
+          <InvestorNavbar onMenuClick={() => setSidebarOpen(true)} />
+        </div>
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>

@@ -25,7 +25,7 @@ export function InvestorNavbar({ onMenuClick }: InvestorNavbarProps) {
   const displayName = profile?.name ?? session?.user.name ?? "Investor";
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-white px-4 sm:h-20 sm:px-8">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-white/85 backdrop-blur-xl px-4 sm:px-6">
       <div className="flex items-center gap-3">
         {/* Hamburger — visible only on mobile */}
         <button
@@ -38,8 +38,8 @@ export function InvestorNavbar({ onMenuClick }: InvestorNavbarProps) {
         </button>
 
         <div>
-          <p className="text-xs font-medium text-slate-500">Welcome back,</p>
-          <h2 className="text-sm font-bold text-slate-800 sm:text-lg">{displayName}</h2>
+          <p className="text-[10px] font-medium text-slate-500">Welcome back,</p>
+          <h2 className="text-[13px] font-bold text-slate-800">{displayName}</h2>
         </div>
       </div>
 

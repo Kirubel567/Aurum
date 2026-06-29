@@ -57,16 +57,16 @@ export function InvestorSidebar({ isOpen = false, onClose }: InvestorSidebarProp
         </svg>
       </button>
 
-      <div className="p-8">
+      <div className="px-6 pt-7 pb-1">
         <BrandLockup
           href={ROUTES.DASHBOARD}
           tone="gold"
-          iconClassName="h-10 w-10"
-          wordmarkClassName="h-9 w-[190px]"
+          iconClassName="h-8 w-8"
+          wordmarkClassName="h-7 w-[155px]"
         />
       </div>
 
-      <nav className="flex-1 space-y-1 px-4">
+      <nav className="flex-1 space-y-[2px] px-4 py-4">
         {INVESTOR_NAV.map((item) => {
           const Icon = item.icon;
 
@@ -88,7 +88,7 @@ export function InvestorSidebar({ isOpen = false, onClose }: InvestorSidebarProp
               href={item.href}
               onClick={(e) => handleNavClick(e, item.action)}
               className={cn(
-                "sidebar-item group flex items-center gap-3 rounded-md px-4 py-3 transition-all duration-200",
+                "sidebar-item group flex items-center gap-3 rounded-md px-4 py-3 text-[13px] font-medium transition-all duration-200",
                 item.badge ? "justify-between" : "",
                 active
                   ? "border-l-[3px] border-[#C5A059] bg-linear-to-r from-[#C5A059]/15 to-transparent text-[#C5A059]"
@@ -97,7 +97,7 @@ export function InvestorSidebar({ isOpen = false, onClose }: InvestorSidebarProp
             >
               <div className="flex items-center gap-3">
                 <Icon className="size-5 shrink-0" />
-                <span className="text-sm font-medium">{item.label}</span>
+                <span>{item.label}</span>
               </div>
               {item.badge && (
                 <span className="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-[10px] text-green-500">
@@ -109,7 +109,7 @@ export function InvestorSidebar({ isOpen = false, onClose }: InvestorSidebarProp
         })}
       </nav>
 
-      <div className="mt-6 p-6">
+      <div className="mt-4 p-5">
         <SidebarSecurityCard />
       </div>
     </aside>
