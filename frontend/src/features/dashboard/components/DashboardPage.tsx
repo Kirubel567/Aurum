@@ -42,7 +42,7 @@ export function DashboardPage() {
         />
       </div>
 
-      <MetricsRow metrics={data} />
+      <MetricsRow metrics={data} period={period} />
       <FundEquitySection metrics={data} />
       <DashboardTables metrics={data} />
       <DashboardFooterBadges badges={data.footerBadges} />

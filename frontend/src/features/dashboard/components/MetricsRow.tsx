@@ -1,16 +1,85 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { ExternalLink, Sparkles } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 import { formatUSD } from "@/src/lib/formatters/currency";
 import { ROUTES } from "@/src/lib/constants/routes";
 import type { DashboardMetrics } from "@/src/types/dashboard.types";
 import { cn } from "@/lib/utils";
 
+// ── Per-period mock overrides ─────────────────────────────────────────────────
+// These delta values make the period selector feel live without a real API.
+const PERIOD_DATA: Record<
+  string,
+  {
+    label: string;
+    ytdPercent: number;
+    totalProfit: number;
+    netReturn: number;
+    gainLossLabel: string;
+    gainLoss: number;
+    positive: boolean;
+    sparkline: { value: number }[];
+  }
+> = {
+  day: {
+    label: "Today",
+    ytdPercent: 23.5,
+    totalProfit: 2840,
+    netReturn: 2240,
+    gainLossLabel: "Daily Gain/Loss",
+    gainLoss: 45.2,
+    positive: true,
+    sparkline: [
+      { value: 60 }, { value: 55 }, { value: 40 },
+      { value: 30 }, { value: 45 }, { value: 20 }, { value: 10 },
+    ],
+  },
+  week: {
+    label: "This Week",
+    ytdPercent: 5.8,
+    totalProfit: 680,
+    netReturn: 520,
+    gainLossLabel: "Weekly Gain/Loss",
+    gainLoss: 218.4,
+    positive: true,
+    sparkline: [
+      { value: 20 }, { value: 35 }, { value: 30 },
+      { value: 50 }, { value: 45 }, { value: 60 }, { value: 55 },
+    ],
+  },
+  month: {
+    label: "This Month",
+    ytdPercent: 11.2,
+    totalProfit: 1340,
+    netReturn: 1090,
+    gainLossLabel: "Monthly Gain/Loss",
+    gainLoss: 892.0,
+    positive: true,
+    sparkline: [
+      { value: 10 }, { value: 25 }, { value: 45 },
+      { value: 35 }, { value: 60 }, { value: 55 }, { value: 70 },
+    ],
+  },
+  year: {
+    label: "This Year",
+    ytdPercent: 23.5,
+    totalProfit: 2840,
+    netReturn: 2240,
+    gainLossLabel: "Annual Gain/Loss",
+    gainLoss: 2240,
+    positive: true,
+    sparkline: [
+      { value: 5 }, { value: 20 }, { value: 15 },
+      { value: 40 }, { value: 55 }, { value: 45 }, { value: 65 },
+    ],
+  },
+};
+
 interface MetricsRowProps {
   metrics: DashboardMetrics;
+  period: string;
 }
 
 function Sparkline({ points }: { points: { value: number }[] }) {
@@ -54,14 +123,7 @@ function DonutChart({
   return (
     <div className="relative flex size-24 items-center justify-center">
       <svg className="size-full -rotate-90" viewBox="0 0 96 96">
-        <circle
-          cx="48"
-          cy="48"
-          r={radius}
-          fill="none"
-          stroke="#e2e8f0"
-          strokeWidth="12"
-        />
+        <circle cx="48" cy="48" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="12" />
         {segments.map((segment) => {
           const dash = (segment.percent / 100) * circumference;
           const circle = (
@@ -85,49 +147,54 @@ function DonutChart({
   );
 }
 
-export function MetricsRow({ metrics }: MetricsRowProps) {
-  const { fundPerformance, accountOverview, strategyAllocation, traderInsights } =
-    metrics;
+export function MetricsRow({ metrics, period }: MetricsRowProps) {
+  const { accountOverview, strategyAllocation } = metrics;
+  const pd = PERIOD_DATA[period] ?? PERIOD_DATA.day;
 
   return (
-    <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-4">
+    <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+
+      {/* ── Card 1: Fund Performance ───────────────────────────────────────── */}
       <div className="relative overflow-hidden rounded-2xl bg-[#050b14] p-6 text-white">
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h3 className="mb-1 flex items-center gap-1 text-sm font-medium text-gray-400">
+            <Link
+              href={ROUTES.ORDERS}
+              className="mb-1 flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+            >
               Fund Performance
-              <ExternalLink className="size-3" />
-            </h3>
+              <ExternalLink className="size-3 flex-shrink-0" />
+            </Link>
             <div className="text-2xl font-bold text-[#10b981]">
-              +{fundPerformance.ytdPercent}%{" "}
-              <span className="text-xs font-medium opacity-70">YTD</span>
+              +{pd.ytdPercent}%{" "}
+              <span className="text-xs font-medium opacity-70">{pd.label}</span>
             </div>
           </div>
-          <span className="rounded border border-[#10b981]/30 bg-[#10b981]/20 px-2 py-1 text-[10px] font-bold text-[#10b981]">
+          <Link
+            href={ROUTES.ORDERS}
+            className="rounded border border-[#10b981]/30 bg-[#10b981]/20 px-2 py-1 text-[10px] font-bold text-[#10b981] hover:bg-[#10b981]/30 transition-colors"
+          >
             Live Performance
-          </span>
+          </Link>
         </div>
-        <Sparkline points={fundPerformance.sparkline} />
+        <Sparkline points={pd.sparkline} />
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="mb-1 text-[10px] font-bold text-gray-500 uppercase">
               Total Profit
             </div>
-            <div className="text-xl font-extrabold">
-              {formatUSD(fundPerformance.totalProfit)}
-            </div>
+            <div className="text-xl font-extrabold">{formatUSD(pd.totalProfit)}</div>
           </div>
           <div>
             <div className="mb-1 text-[10px] font-bold text-gray-500 uppercase">
               Net Return
             </div>
-            <div className="text-xl font-extrabold">
-              {formatUSD(fundPerformance.netReturn)}
-            </div>
+            <div className="text-xl font-extrabold">{formatUSD(pd.netReturn)}</div>
           </div>
         </div>
       </div>
 
+      {/* ── Card 2: Account Overview ───────────────────────────────────────── */}
       <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
         <h3 className="mb-6 text-sm font-bold text-gray-900">Account Overview</h3>
         <div className="mb-4">
@@ -148,67 +215,33 @@ export function MetricsRow({ metrics }: MetricsRowProps) {
         </div>
         <div>
           <div className="mb-1 text-[10px] font-bold text-gray-400 uppercase">
-            Daily Gain/Loss
+            {pd.gainLossLabel}
           </div>
-          <div className="text-xl font-bold text-[#10b981]">
-            +{formatUSD(accountOverview.dailyGainLoss)}
+          <div className={cn("text-xl font-bold", pd.positive ? "text-[#10b981]" : "text-red-500")}>
+            {pd.positive ? "+" : ""}{formatUSD(pd.gainLoss)}
           </div>
         </div>
       </div>
 
+      {/* ── Card 3: Active Investments ─────────────────────────────────────── */}
       <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <h3 className="mb-4 text-sm font-bold text-gray-900">Active Investments</h3>
-        <div className="flex items-center gap-6">
+        <h3 className="mb-6 text-sm font-bold text-gray-900">Active Investments</h3>
+        <div className="flex flex-col items-center gap-6">
           <DonutChart segments={strategyAllocation} />
-          <div className="flex-1 space-y-2">
-            <div className="text-[10px] font-bold text-gray-400 uppercase">
+          <div className="w-full space-y-3">
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
               Strategy Allocation
             </div>
             {strategyAllocation.map((item) => (
-              <div
-                key={item.name}
-                className="flex items-center justify-between text-xs"
-              >
+              <div key={item.name} className="flex items-center justify-between text-xs">
                 <span className="flex items-center gap-2 font-semibold text-gray-600">
-                  <span
-                    className="size-2 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  />
+                  <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} />
                   {item.name}
                 </span>
-                <span className="font-bold">{item.percent}%</span>
+                <span className="font-bold text-gray-900">{item.percent}%</span>
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <h3 className="mb-4 text-sm font-bold text-gray-900">Trader Insights</h3>
-        <div className="space-y-4">
-          {traderInsights.map((trader) => (
-            <div key={trader.id} className="flex items-start gap-3">
-              <Image
-                src={trader.avatarUrl}
-                alt={trader.name}
-                width={40}
-                height={40}
-                className="size-10 rounded-lg object-cover"
-              />
-              <div>
-                <div className="text-sm leading-tight font-bold text-gray-900">
-                  {trader.name}
-                </div>
-                <div className="line-clamp-2 text-[10px] leading-tight text-gray-500">
-                  {trader.bio}
-                </div>
-                <div className="mt-1 flex items-center gap-1 text-[10px] font-bold text-[#10b981]">
-                  <Sparkles className="size-3" />
-                  Performance: {trader.performanceLabel}
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>
@@ -222,8 +255,8 @@ export function DashboardInfoBanner({
 }) {
   return (
     <div className="mb-6 flex flex-col items-start justify-between gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center">
-      <div className="flex items-center gap-3">
-        <div className="flex size-6 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+      <div className="flex items-start gap-3 sm:items-center">
+        <div className="flex size-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
           i
         </div>
         <p className="text-sm text-blue-900">
@@ -234,7 +267,7 @@ export function DashboardInfoBanner({
       </div>
       <Link
         href={ROUTES.WALLET}
-        className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+        className="shrink-0 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
       >
         View Wallet
       </Link>
@@ -252,7 +285,7 @@ export function PeriodSelector({
   const periods = ["Day", "Week", "Month", "Year"];
 
   return (
-    <div className="mb-6 flex items-center gap-4 text-sm">
+    <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
       <span className="font-medium text-gray-500">Performance Period:</span>
       <div className="flex gap-1 rounded-lg border border-gray-100 bg-white p-1">
         {periods.map((period) => (
