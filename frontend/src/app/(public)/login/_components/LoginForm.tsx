@@ -112,7 +112,7 @@ export function LoginForm() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#050B14] text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#0d1f3c] active:scale-[0.98] disabled:opacity-70"
+                className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#050B14] text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#0d1f3c] active:scale-[0.98] disabled:opacity-70 sm:h-12"
               >
                 {submitting ? (
                   <>

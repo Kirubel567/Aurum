@@ -213,7 +213,7 @@ export function OnboardingWizard() {
                   <button
                     type="button"
                     onClick={handleBack}
-                    className="flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 px-6 text-sm font-semibold text-[#050B14] transition-all hover:bg-slate-50 active:scale-[0.98]"
+                    className="order-last flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 px-6 text-sm font-semibold text-[#050B14] transition-all hover:bg-slate-50 active:scale-[0.98] sm:order-first sm:h-12"
                   >
                     <ArrowLeft className="size-4" />
                     Back
@@ -222,10 +222,7 @@ export function OnboardingWizard() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={cn(
-                    "flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#050B14] text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#0d1f3c] active:scale-[0.98] disabled:opacity-70",
-                    step === 1 && "w-full"
-                  )}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#050B14] py-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#0d1f3c] active:scale-[0.98] disabled:opacity-70 sm:flex-1 sm:py-0 sm:h-12"
                 >
                   {submitting ? (
                     <>
