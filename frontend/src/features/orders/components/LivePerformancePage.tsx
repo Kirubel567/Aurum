@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import { useLivePerformance } from "@/src/features/orders/hooks/useLivePerformance";
 import type { ActiveExecution, StrategyPool } from "@/src/types/trade.types";
 import { cn } from "@/lib/utils";
@@ -29,74 +27,202 @@ function TimeSelector({ active, onChange }: { active: string; onChange: (v: stri
   );
 }
 
-// ── Hero chart ────────────────────────────────────────────────────────────────
+// ── Session equity/balance data (current trading session, no time intervals) ──
+// Balance = realised value — steps up each time a trade closes in profit.
+// Equity  = balance + floating P&L — fluctuates as open positions move.
+// Y-axis range: $1,160 – $1,320 (covers both lines with breathing room).
 
-function LiveChart({ liveVolume, totalLiquidity, timeLabels }: {
-  liveVolume: string;
-  totalLiquidity: string;
-  timeLabels: string[];
-}) {
+const Y_MIN = 1160;
+const Y_MAX = 1320;
+const CHART_H = 200; // SVG viewBox height
+
+// Map a dollar amount to an SVG Y coordinate (top = high value)
+function toY(value: number) {
+  return CHART_H - ((value - Y_MIN) / (Y_MAX - Y_MIN)) * CHART_H;
+}
+
+// Y-axis tick labels (5 levels, evenly spaced)
+const Y_TICKS = [1320, 1280, 1240, 1200, 1160];
+
+const SESSION = {
+  balance: "$1,245.20",
+  equity: "$1,291.80",
+  floatingPL: "+$46.60",
+  floatingPositive: true,
+  drawdown: "—",
+  // Time labels across the session
+  labels: ["Open", "10:00", "12:00", "14:00", "16:00", "18:00", "Now"],
+  // Balance steps up as trades close (realised gains)
+  balancePath: [
+    `M0,${toY(1200)}`,
+    `L300,${toY(1200)}`,
+    `L300,${toY(1218)}`,
+    `L700,${toY(1218)}`,
+    `L700,${toY(1232)}`,
+    `L1000,${toY(1232)}`,
+    `L1000,${toY(1245)}`,
+    `L1200,${toY(1245)}`,
+  ].join(" "),
+  // Equity floats above balance, reflecting open trade gains
+  equityPath: [
+    `M0,${toY(1200)}`,
+    `Q150,${toY(1212)} 300,${toY(1225)}`,
+    `T550,${toY(1248)}`,
+    `T700,${toY(1255)}`,
+    `T850,${toY(1270)}`,
+    `T1000,${toY(1278)}`,
+    `T1150,${toY(1287)}`,
+    `T1200,${toY(1292)}`,
+  ].join(" "),
+  equityAreaPath: [
+    `M0,${toY(1200)}`,
+    `Q150,${toY(1212)} 300,${toY(1225)}`,
+    `T550,${toY(1248)}`,
+    `T700,${toY(1255)}`,
+    `T850,${toY(1270)}`,
+    `T1000,${toY(1278)}`,
+    `T1150,${toY(1287)}`,
+    `T1200,${toY(1292)}`,
+    // Close back along the balance line
+    `L1200,${toY(1245)}`,
+    `L1000,${toY(1245)}`,
+    `L1000,${toY(1232)}`,
+    `L700,${toY(1232)}`,
+    `L700,${toY(1218)}`,
+    `L300,${toY(1218)}`,
+    `L300,${toY(1200)}`,
+    `L0,${toY(1200)} Z`,
+  ].join(" "),
+};
+
+// ── Equity / Balance chart ────────────────────────────────────────────────────
+
+function LiveChart() {
+  const s = SESSION;
+
   return (
     <section
-      className="rounded-2xl p-8 mb-8 relative overflow-hidden"
+      className="rounded-2xl p-6 sm:p-8 mb-8 overflow-hidden"
       style={{
         background: "#ffffff",
         border: "1px solid #e5e7eb",
         boxShadow: "0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px 0 rgba(0,0,0,0.06)",
       }}
     >
-      {/* Top-right stats */}
-      <div className="absolute top-0 right-0 p-4 sm:p-8">
-        <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-6 sm:space-x-0">
-          <div className="text-right">
-            <p className="text-xs text-slate-500">Live Volume</p>
-            <p className="text-base font-bold text-[#947600]">{liveVolume}</p>
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4 mb-5">
+        <div>
+          <h3 className="text-xs font-bold uppercase tracking-widest text-[#947600] flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#947600] animate-pulse" />
+            Live Equity &amp; Balance — Current Session
+          </h3>
+          <p className="mt-0.5 text-[11px] text-slate-400">Floating exposure vs realised balance on open trades</p>
+        </div>
+
+        {/* Stats strip */}
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Balance</p>
+            <p className="text-base font-bold text-slate-900">{s.balance}</p>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-slate-500">Total Liquidity</p>
-            <p className="text-base font-bold text-slate-900">{totalLiquidity}</p>
+          <div className="hidden sm:block w-px h-8 bg-gray-200" />
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Equity</p>
+            <p className="text-base font-bold text-[#947600]">{s.equity}</p>
+          </div>
+          <div className="hidden sm:block w-px h-8 bg-gray-200" />
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Floating P&amp;L</p>
+            <p className={`text-base font-bold ${s.floatingPositive ? "text-emerald-600" : "text-red-500"}`}>
+              {s.floatingPL}
+            </p>
+          </div>
+          <div className="hidden sm:block w-px h-8 bg-gray-200" />
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Drawdown</p>
+            <p className="text-base font-bold text-slate-900">{s.drawdown}</p>
           </div>
         </div>
       </div>
 
-      {/* Label */}
-      <div className="mb-6">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-[#947600] flex items-center">
-          <span className="w-2 h-2 rounded-full bg-[#947600] mr-2 animate-pulse" />
-          Live Asset Yields &amp; Trading Volume
-        </h3>
+      {/* ── Legend ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-5 mb-4">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+          <span className="inline-block h-0.5 w-5 bg-emerald-500 rounded-full" />
+          Equity
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
+          <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-slate-400" />
+          Balance
+        </span>
       </div>
 
-      {/* SVG chart */}
-      <div className="h-64 w-full relative">
-        <svg
-          className="absolute inset-0 w-full h-full"
-          preserveAspectRatio="none"
-          viewBox="0 0 1200 200"
-        >
-          <defs>
-            <linearGradient id="yield-grad" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#e9c349" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#e9c349" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M0,150 Q100,120 200,140 T400,100 T600,130 T800,80 T1000,110 T1200,60 L1200,200 L0,200 Z"
-            fill="url(#yield-grad)"
-          />
-          <path
-            d="M0,150 Q100,120 200,140 T400,100 T600,130 T800,80 T1000,110 T1200,60"
-            fill="none"
-            stroke="#e9c349"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-        </svg>
-        {/* Time labels */}
-        <div className="absolute -bottom-6 left-0 right-0 flex justify-between text-[10px] text-slate-400 uppercase tracking-widest">
-          {timeLabels.map((t) => (
-            <span key={t}>{t}</span>
+      {/* ── Chart: Y-axis + SVG ────────────────────────────────────────────── */}
+      <div className="flex gap-3">
+
+        {/* Y-axis labels */}
+        <div className="flex flex-col justify-between text-right shrink-0 pb-5" style={{ height: "180px" }}>
+          {Y_TICKS.map((v) => (
+            <span key={v} className="text-[9px] font-bold text-slate-400 leading-none">
+              ${v.toLocaleString()}
+            </span>
           ))}
+        </div>
+
+        {/* Chart area */}
+        <div className="flex-1 relative" style={{ height: "180px" }}>
+          <svg
+            className="absolute inset-0 w-full h-full"
+            preserveAspectRatio="none"
+            viewBox="0 0 1200 200"
+          >
+            <defs>
+              <linearGradient id="equity-grad" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.14" />
+                <stop offset="100%" stopColor="#10b981" stopOpacity="0.01" />
+              </linearGradient>
+            </defs>
+
+            {/* Horizontal gridlines */}
+            {Y_TICKS.map((v) => (
+              <line
+                key={v}
+                x1="0" y1={toY(v)}
+                x2="1200" y2={toY(v)}
+                stroke="#e2e8f0"
+                strokeWidth="1"
+              />
+            ))}
+
+            {/* Equity fill */}
+            <path d={s.equityAreaPath} fill="url(#equity-grad)" />
+
+            {/* Balance — dashed slate */}
+            <path
+              d={s.balancePath}
+              fill="none"
+              stroke="#94a3b8"
+              strokeWidth="2"
+              strokeDasharray="8 5"
+            />
+
+            {/* Equity — solid green */}
+            <path
+              d={s.equityPath}
+              fill="none"
+              stroke="#10b981"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+
+          {/* X-axis time labels */}
+          <div className="absolute -bottom-5 left-0 right-0 flex justify-between text-[10px] text-slate-400 tracking-wide">
+            {s.labels.map((t) => (
+              <span key={t}>{t}</span>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -260,7 +386,6 @@ const METRIC_ICON_STYLES: Record<MetricIconType, { bg: string; color: string; sy
 
 export function LivePerformancePage() {
   const { data, loading, error } = useLivePerformance();
-  const [timeframe, setTimeframe] = useState("1H");
 
   if (loading) {
     return (
@@ -287,17 +412,10 @@ export function LivePerformancePage() {
             Monitor active algorithmic market executions, liquidity pools, and live trading metrics in real-time.
           </p>
         </div>
-        <div className="shrink-0">
-          <TimeSelector active={timeframe} onChange={setTimeframe} />
-        </div>
       </div>
 
       {/* Hero chart */}
-      <LiveChart
-        liveVolume={data.liveVolume}
-        totalLiquidity={data.totalLiquidity}
-        timeLabels={data.timeLabels}
-      />
+      <LiveChart />
 
       {/* Split grid */}
       <div className="grid grid-cols-12 gap-8">
