@@ -1,312 +1,380 @@
 "use client";
 
-// Direct Stitch → Next.js conversion of Client Messages / Ticket Router.
-// Sidebar + Navbar in (admin)/layout.tsx. This page fills the remaining
-// height with a three-panel flex layout: thread list (25%) | chat (50%) | overview (25%).
-// On mobile: tab-driven single-panel view (Inbox / Chat / Overview).
-// Custom CSS (.chat-bubble-manager, .chat-bubble-client) defined in globals.css.
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Send, Loader2, CheckCheck, Check, MessageSquare, ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-import { useState } from "react";
+type MobilePanel = "inbox" | "chat";
 
-type MobilePanel = "inbox" | "chat" | "overview";
+interface Message {
+  id: string;
+  sender_role: "investor" | "admin";
+  body: string;
+  created_at: string;
+  investor_id: string;
+  investor_name: string;
+}
 
-export default function ClientMessagesPage() {
+interface Thread {
+  investor_id: string;
+  investor_name: string;
+  last_message: string;
+  last_at: string;
+  unread: number;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+function fmtDate(iso: string) {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function groupByDate(messages: Message[]) {
+  const groups: { label: string; messages: Message[] }[] = [];
+  for (const msg of messages) {
+    const label = fmtDate(msg.created_at);
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) last.messages.push(msg);
+    else groups.push({ label, messages: [msg] });
+  }
+  return groups;
+}
+
+function initials(name: string) {
+  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "?";
+}
+
+// ── Date divider ───────────────────────────────────────────────────────────────
+
+function DateDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 my-3">
+      <div className="flex-1 h-px bg-slate-100" />
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
+      <div className="flex-1 h-px bg-slate-100" />
+    </div>
+  );
+}
+
+// ── Message bubble ─────────────────────────────────────────────────────────────
+
+function Bubble({ msg }: { msg: Message }) {
+  const isAdmin = msg.sender_role === "admin";
+
+  if (!isAdmin) {
+    return (
+      <div className="flex items-end gap-2.5 max-w-[72%]">
+        <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center shrink-0 mb-1">
+          <span className="text-[9px] font-bold text-slate-600">{initials(msg.investor_name)}</span>
+        </div>
+        <div className="flex flex-col gap-1">
+          <div className="bg-white border border-slate-100 shadow-sm rounded-2xl rounded-tl-sm px-4 py-3">
+            <p className="text-[13px] text-slate-800 leading-relaxed">{msg.body}</p>
+          </div>
+          <span className="text-[10px] text-slate-400 ml-1">{fmtTime(msg.created_at)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-end gap-2 max-w-[72%] ml-auto flex-row-reverse">
+      <div className="w-7 h-7 rounded-full bg-[#0C1526] border border-[#D4AF37]/30 flex items-center justify-center shrink-0 mb-1">
+        <span className="text-[9px] font-bold text-[#D4AF37]">D</span>
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        <div className="bg-[#0C1526] rounded-2xl rounded-tr-sm px-4 py-3 shadow-md">
+          <p className="text-[13px] text-white/90 leading-relaxed">{msg.body}</p>
+        </div>
+        <div className="flex items-center gap-1 mr-0.5">
+          <span className="text-[10px] text-slate-400">{fmtTime(msg.created_at)}</span>
+          <CheckCheck className="size-3 text-[#D4AF37]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
+export default function AdminInboxPage() {
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [loadingThreads, setLoadingThreads] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("inbox");
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchThreads = useCallback(async () => {
+    try {
+      const res = await fetch("/api/messages");
+      if (!res.ok) return;
+      const json = await res.json();
+      setThreads(json.threads ?? []);
+    } finally {
+      setLoadingThreads(false);
+    }
+  }, []);
+
+  const fetchMessages = useCallback(async (id: string, silent = false) => {
+    if (!silent) setLoadingMessages(true);
+    try {
+      const res = await fetch(`/api/messages?investor_id=${id}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      setMessages(json.messages ?? []);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchThreads();
+  }, [fetchThreads]);
+
+  useEffect(() => {
+    if (!activeId) return;
+    fetchMessages(activeId);
+    pollRef.current = setInterval(() => {
+      fetchMessages(activeId, true);
+      fetchThreads();
+    }, 4000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [activeId, fetchMessages, fetchThreads]);
+
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  const selectThread = (id: string) => {
+    setActiveId(id);
+    setMobilePanel("chat");
+    // Mark as read locally
+    setThreads((prev) => prev.map((t) => t.investor_id === id ? { ...t, unread: 0 } : t));
+  };
+
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!text || sending || !activeId) return;
+    setInput("");
+    setSending(true);
+    try {
+      await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: text, investor_id: activeId }),
+      });
+      await fetchMessages(activeId, true);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const activeThread = threads.find((t) => t.investor_id === activeId);
+  const groups = groupByDate(messages);
+  const totalUnread = threads.reduce((acc, t) => acc + t.unread, 0);
 
   return (
     <div className="flex flex-col h-full bg-[#F8F9FA] text-slate-900 overflow-hidden">
 
-      {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-0 pb-0">
-        <h2 className="font-headline-md text-headline-md font-bold text-slate-900 text-lg sm:text-2xl">
-          Client Communications &amp; Ticket Router
-        </h2>
-        <p className="font-body-md text-body-md text-slate-500 max-w-3xl hidden sm:block">
-          Live multi-tenant investor messaging queue. Securely route tickets, handle direct client
-          inquiries, and manage active support chats.
-        </p>
+      {/* Page header */}
+      <div className="shrink-0 px-5 sm:px-7 pt-5 pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900">Client Communications</h2>
+            <p className="text-sm text-slate-500 mt-0.5 hidden sm:block">Direct messaging with investors</p>
+          </div>
+          {totalUnread > 0 && (
+            <div className="flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/20 px-3 py-1.5 rounded-xl">
+              <span className="w-2 h-2 bg-[#D4AF37] rounded-full animate-pulse" />
+              <span className="text-xs font-bold text-[#9a7c3f]">{totalUnread} unread</span>
+            </div>
+          )}
+        </div>
 
-        {/* Mobile tab switcher */}
+        {/* Mobile tab */}
         <div className="flex gap-1 mt-3 bg-slate-200 p-0.5 rounded-lg sm:hidden">
-          {(["inbox", "chat", "overview"] as MobilePanel[]).map((tab) => (
+          {(["inbox", "chat"] as MobilePanel[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setMobilePanel(tab)}
-              className={`flex-1 py-1.5 rounded-md text-xs font-bold capitalize transition-all ${
+              className={cn(
+                "flex-1 py-1.5 rounded-md text-xs font-bold capitalize transition-all",
                 mobilePanel === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
-              }`}
+              )}
             >
-              {tab === "inbox" ? "Inbox" : tab === "chat" ? "Chat" : "Overview"}
+              {tab === "inbox" ? "Inbox" : "Chat"}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ── Three-Panel Interface ────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 flex gap-4 p-3 sm:p-6 overflow-hidden">
+      {/* Two-panel layout */}
+      <div className="flex-1 min-h-0 flex gap-4 px-5 sm:px-7 pb-5 overflow-hidden">
 
-        {/* ── Panel 1: Thread List ───────────────────────────────────────── */}
-        <section className={`min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col shadow-sm
-          ${mobilePanel === "inbox" ? "flex" : "hidden"} w-full
-          sm:flex sm:w-1/4`}>
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <span className="font-label-caps text-label-caps text-slate-500">Inbox (12)</span>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-tight">Assigned Only</span>
-              <button className="w-8 h-4 bg-[#d4af37]/20 rounded-full relative transition-colors">
-                <div className="absolute left-0.5 top-0.5 w-3 h-3 bg-[#d4af37] rounded-full shadow-sm" />
-              </button>
-            </div>
+        {/* Thread list */}
+        <aside className={cn(
+          "min-h-0 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden",
+          mobilePanel === "inbox" ? "flex" : "hidden",
+          "w-full sm:flex sm:w-72 shrink-0"
+        )}>
+          <div className="px-4 py-3.5 border-b border-slate-100">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              Conversations ({threads.length})
+            </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-1 space-y-1 custom-scrollbar">
-
-            {/* Active / selected thread */}
-            <div className="p-4 rounded-lg bg-slate-50 border border-[#d4af37]/20 relative cursor-pointer">
-              <div className="flex justify-between mb-1">
-                <span className="font-bold text-body-sm text-slate-900">Bekele (Assigned)</span>
-                <span className="font-data-mono text-[10px] text-slate-400">10:42 AM</span>
+          <div className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#e2e8f0_transparent]">
+            {loadingThreads ? (
+              <div className="flex items-center justify-center h-24">
+                <Loader2 className="size-5 text-slate-300 animate-spin" />
               </div>
-              <p className="text-body-sm text-slate-600 truncate">&ldquo;Thanks Abebe, saw the EUR/USD trade win update!&rdquo;</p>
-              <div className="absolute right-4 bottom-4 w-2 h-2 bg-blue-500 rounded-full" />
-            </div>
-
-            {/* Thread */}
-            <div className="p-4 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group">
-              <div className="flex justify-between mb-1">
-                <span className="font-bold text-body-sm text-slate-900 group-hover:text-[#d4af37] transition-colors">Chala (Assigned)</span>
-                <span className="font-data-mono text-[10px] text-slate-400">09:15 AM</span>
+            ) : threads.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 gap-2 text-center px-4">
+                <MessageSquare className="size-6 text-slate-300" />
+                <p className="text-xs text-slate-400">No messages yet</p>
               </div>
-              <p className="text-body-sm text-slate-400 truncate">&ldquo;Can you review my account drawdown limit?&rdquo;</p>
-            </div>
-
-            {/* Thread */}
-            <div className="p-4 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group border-l-4 border-transparent">
-              <div className="flex justify-between mb-1">
-                <span className="font-bold text-body-sm text-slate-900 group-hover:text-[#d4af37] transition-colors">Invesco Cap Fund</span>
-                <span className="font-data-mono text-[10px] text-slate-400">Yesterday</span>
-              </div>
-              <p className="text-body-sm text-slate-400 truncate">&ldquo;KYC verification documents attached.&rdquo;</p>
-            </div>
-
-            {/* Thread (dimmed) */}
-            <div className="p-4 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer opacity-60">
-              <div className="flex justify-between mb-1">
-                <span className="font-bold text-body-sm text-slate-900">Sahle-Work Z.</span>
-                <span className="font-data-mono text-[10px] text-slate-400">Oct 24</span>
-              </div>
-              <p className="text-body-sm text-slate-400 truncate">&ldquo;Withdrawal request status update needed.&rdquo;</p>
-            </div>
-
+            ) : (
+              threads.map((t) => (
+                <button
+                  key={t.investor_id}
+                  onClick={() => selectThread(t.investor_id)}
+                  className={cn(
+                    "w-full px-4 py-3.5 text-left transition-colors border-b border-slate-50 last:border-0",
+                    activeId === t.investor_id
+                      ? "bg-[#D4AF37]/8 border-l-2 border-l-[#D4AF37]"
+                      : "hover:bg-slate-50"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-xs font-bold text-slate-600">
+                      {initials(t.investor_name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={cn("text-[13px] truncate", activeId === t.investor_id ? "font-bold text-slate-900" : "font-semibold text-slate-800")}>
+                          {t.investor_name || "Investor"}
+                        </p>
+                        <span className="text-[10px] text-slate-400 shrink-0">{fmtTime(t.last_at)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 mt-0.5">
+                        <p className="text-[11px] text-slate-400 truncate">{t.last_message}</p>
+                        {t.unread > 0 && (
+                          <span className="w-4 h-4 rounded-full bg-[#D4AF37] text-[#0C1526] text-[9px] font-bold flex items-center justify-center shrink-0">
+                            {t.unread}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
-        </section>
+        </aside>
 
-        {/* ── Panel 2: Active Chat ───────────────────────────────────────── */}
-        <section className={`min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col shadow-sm overflow-hidden
-          ${mobilePanel === "chat" ? "flex" : "hidden"} w-full
-          sm:flex sm:flex-1`}>
-
-          {/* Chat header */}
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  className="w-10 h-10 rounded-full object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeXrTFjTjMQtIPyZuR88i_Aa6SQhuIbatYOzDBaXLzKkEdjO5JcYztqRC_HEU_ipBkmiRQfBlMTG6uq4axUgYsrgADBFVsTcvIq5sZQ8wwcw_P2GfjtvRLc7wDdobdELBZcVTjcwhZhx2Ff3X3NHIKty1LXzgdDCnYDKqkIj-DSaDglIQqdopQMxnYW6NGSw1ls3UrRYGTr1cvzEZ_LpE7CUmLc6gdv6hBcMRxZArLXOH5ZnVFRLOE_6UQ57lr3EJN8stq6pX7rm8"
-                  alt="Bekele"
-                />
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+        {/* Chat panel */}
+        <div className={cn(
+          "min-h-0 flex-1 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden",
+          mobilePanel === "chat" ? "flex" : "hidden",
+          "sm:flex"
+        )}>
+          {!activeId ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-8">
+              <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center">
+                <MessageSquare className="size-6 text-slate-300" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-body-lg text-slate-900 leading-none">Bekele</h3>
-                  <span className="bg-slate-100 text-slate-500 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                    Live Online
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <span className="text-body-sm text-slate-400">Assigned Manager:</span>
-                  <span className="text-body-sm font-semibold text-[#d4af37]">Abebe</span>
-                </div>
+                <p className="text-sm font-semibold text-slate-600">Select a conversation</p>
+                <p className="text-xs text-slate-400 mt-1">Choose an investor from the list to start messaging</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                <span className="material-symbols-outlined">call</span>
-              </button>
-              <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                <span className="material-symbols-outlined">videocam</span>
-              </button>
-              <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                <span className="material-symbols-outlined">more_vert</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Message stream */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/50 custom-scrollbar">
-            <div className="flex justify-center">
-              <span className="bg-slate-200/50 px-4 py-1 rounded-full text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                Today
-              </span>
-            </div>
-
-            {/* Client message */}
-            <div className="flex gap-4 max-w-[80%]">
-              <div className="flex-shrink-0 mt-1">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  className="w-8 h-8 rounded-full"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqcLddj5rtVWu3xQLDr85NXs60EZzdcusMkzLUC1MLc5seuaP2cLJXR1hXfYbCsa47RXO7hIiDFNgnOpzWiv6y5gXL0MujfHRNEsLcY_w3s2PG-4Y1Fl9TaJrrtvhAYnIrBVOecvaoC5jHGpBijSoK3v1eucWwbJfOiSn0Av0-IEk9CXwDUD-Unr0hSNQz-1cR5v6z_fRwissE2nc4aKHDtqtGfmEUhzuPNsI2d5vmm2alDKn1RQQe_WorewgDot1pg7RUi1vaOFc"
-                  alt="Bekele avatar"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="chat-bubble-client p-4 rounded-2xl rounded-tl-none shadow-sm">
-                  <p className="text-body-md text-slate-700 leading-relaxed">
-                    Hello Abebe, I noticed the live MT5 trade entries are syncing on my user dashboard.
-                    Quick question about the leverage used for the EUR/USD position?
-                  </p>
-                </div>
-                <span className="text-[10px] text-slate-400 ml-2">10:40 AM</span>
-              </div>
-            </div>
-
-            {/* Manager message */}
-            <div className="flex flex-row-reverse gap-4 ml-auto max-w-[80%]">
-              <div className="flex-shrink-0 mt-1">
-                <div className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-[10px] text-[#d4af37] font-bold">
-                  A
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <div className="chat-bubble-manager p-4 rounded-2xl rounded-tr-none shadow-md text-white">
-                  <p className="text-body-md leading-relaxed">
-                    Hi Bekele! Yes, we safely executed that entry at 1:100 leverage to maximize the
-                    tight spread entry. It&apos;s performing perfectly within our risk management parameters.
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 mr-2">
-                  <span className="text-[10px] text-slate-400">10:42 AM</span>
-                  <span className="material-symbols-outlined text-[14px] text-[#d4af37]">done_all</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Typing indicator */}
-            <div className="flex gap-4 max-w-[80%] animate-pulse opacity-40">
-              <div className="w-8 h-8 rounded-full bg-slate-200" />
-              <div className="bg-slate-200 w-24 h-8 rounded-full" />
-            </div>
-          </div>
-
-          {/* Message input */}
-          <div className="p-6 bg-white border-t border-slate-100">
-            <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 focus-within:ring-2 focus-within:ring-[#d4af37]/20 transition-all">
-              <button className="text-slate-400 hover:text-[#d4af37] transition-colors">
-                <span className="material-symbols-outlined">attach_file</span>
-              </button>
-              <input
-                className="flex-1 bg-transparent border-none focus:ring-0 text-body-md text-slate-900 placeholder:text-slate-400 outline-none"
-                placeholder="Type your message to Bekele..."
-                type="text"
-              />
-              <div className="flex items-center gap-2">
-                <button className="text-slate-400 hover:text-[#d4af37] transition-colors">
-                  <span className="material-symbols-outlined">mood</span>
+          ) : (
+            <>
+              {/* Chat header */}
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-[#0C1526] shrink-0">
+                <button
+                  onClick={() => setMobilePanel("inbox")}
+                  className="sm:hidden text-slate-400 hover:text-white transition-colors mr-1"
+                >
+                  <ArrowLeft className="size-4" />
                 </button>
-                <button className="bg-[#d4af37] text-[#3c2f00] font-bold px-6 py-2 rounded-lg text-body-sm hover:opacity-90 active:scale-95 transition-all">
-                  Send Message
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Panel 3: Investor Overview ─────────────────────────────────── */}
-        <section className={`min-h-0 space-y-4 overflow-y-auto pr-1 custom-scrollbar
-          ${mobilePanel === "overview" ? "flex flex-col" : "hidden"} w-full
-          sm:flex sm:flex-col sm:w-1/4`}>
-
-          {/* Wallet Summary Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <h4 className="font-label-caps text-label-caps text-slate-400 mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
-              Investor Wallet Summary
-            </h4>
-            <div className="space-y-4">
-              <div>
-                <p className="text-body-sm text-slate-500">Total Capital</p>
-                <p className="text-headline-md font-bold text-slate-900 font-data-mono">$450,000.00</p>
-              </div>
-              <div className="pt-4 border-t border-slate-50">
-                <p className="text-body-sm text-slate-500 mb-1">Managed Allocation Pool</p>
-                <div className="flex items-center gap-2">
-                  <span className="bg-[#d4af37]/10 text-[#d4af37] px-2 py-1 rounded text-[10px] font-bold border border-[#d4af37]/20">
-                    Forex Alpha
-                  </span>
-                  <span className="text-emerald-500 font-bold text-body-sm">+12.4% YTD</span>
+                <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                  {initials(activeThread?.investor_name ?? "")}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-white">{activeThread?.investor_name || "Investor"}</p>
+                  <p className="text-[10px] text-slate-400">Investor</p>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Open Positions Card */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-label-caps text-label-caps text-slate-400 flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">monitoring</span>
-                Open Positions
-              </h4>
-              <span className="text-[10px] font-data-mono text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded">
-                LIVE
-              </span>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center p-2 bg-slate-50 rounded-lg border border-slate-100">
-                <div>
-                  <p className="font-bold text-body-sm text-slate-900">EUR/USD</p>
-                  <p className="text-[10px] text-slate-400">Buy @ 1.0845</p>
+              {/* Messages */}
+              <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-slate-50/40 [scrollbar-width:thin] [scrollbar-color:#e2e8f0_transparent]">
+                {loadingMessages ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Loader2 className="size-5 text-slate-300 animate-spin" />
+                  </div>
+                ) : (
+                  groups.map((group) => (
+                    <div key={group.label}>
+                      <DateDivider label={group.label} />
+                      <div className="space-y-2">
+                        {group.messages.map((msg) => <Bubble key={msg.id} msg={msg} />)}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Input */}
+              <div className="shrink-0 px-4 py-3 bg-white border-t border-slate-100">
+                <div className={cn(
+                  "flex items-center gap-3 bg-slate-50 border rounded-xl px-4 py-2.5 transition-all",
+                  "focus-within:border-[#D4AF37]/50 focus-within:ring-2 focus-within:ring-[#D4AF37]/10 border-slate-200"
+                )}>
+                  <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                    placeholder={`Reply to ${activeThread?.investor_name || "investor"}…`}
+                    className="flex-1 bg-transparent text-[13px] text-slate-800 placeholder:text-slate-400 outline-none"
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim() || sending}
+                    className={cn(
+                      "flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                      input.trim()
+                        ? "bg-[#D4AF37] text-[#0C1526] hover:bg-[#c9a030] active:scale-95"
+                        : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                    )}
+                  >
+                    {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                    Reply
+                  </button>
                 </div>
-                <div className="text-right">
-                  <p className="font-data-mono font-bold text-emerald-500">+$2,450.00</p>
-                  <p className="text-[10px] text-slate-400">Lot: 2.50</p>
-                </div>
               </div>
-              <div className="p-2 rounded-lg border border-dashed border-slate-200 text-center">
-                <button className="text-[#d4af37] text-[11px] font-bold hover:underline">
-                  View All Positions (4)
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="space-y-2">
-            <button className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all group">
-              <div className="flex items-center gap-4">
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-[#d4af37] transition-colors">terminal</span>
-                <span className="font-body-sm font-semibold text-slate-700">Open Terminal Logs</span>
-              </div>
-              <span className="material-symbols-outlined text-slate-300 text-[18px]">chevron_right</span>
-            </button>
-
-            <button className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all group">
-              <div className="flex items-center gap-4">
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-[#d4af37] transition-colors">verified_user</span>
-                <span className="font-body-sm font-semibold text-slate-700">Route to Compliance</span>
-              </div>
-              <span className="material-symbols-outlined text-slate-300 text-[18px]">chevron_right</span>
-            </button>
-
-            <button className="w-full p-4 bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:opacity-95 transition-all flex items-center justify-center gap-2">
-              <span className="material-symbols-outlined">check_circle</span>
-              Mark Ticket as Resolved
-            </button>
-          </div>
-
-        </section>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
