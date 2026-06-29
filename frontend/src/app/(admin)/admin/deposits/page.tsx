@@ -15,10 +15,10 @@ export default function DepositVerificationPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <main className="p-6 max-w-[1440px] h-full overflow-y-auto">
+    <main className="px-4 sm:p-6 max-w-[1440px] h-full overflow-y-auto pt-6">
 
       {/* ── Page header ──────────────────────────────────────────────────── */}
-      <header className="mb-10 flex items-end justify-between">
+      <header className="mb-6 sm:mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h2 className="font-headline-lg text-headline-lg text-[#0f172a]">Deposit Verification</h2>
           <div className="flex items-center gap-2 mt-1">

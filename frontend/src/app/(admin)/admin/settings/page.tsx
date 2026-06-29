@@ -13,7 +13,7 @@ export default function SystemSettingsPage() {
 
   return (
     <div className="h-full overflow-y-auto bg-[#F8FAFC]">
-      <div className="max-w-[1200px] mx-auto p-10">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-6 sm:py-10">
 
         {/* ── Page header ─────────────────────────────────────────────────── */}
         <header className="mb-10">
@@ -257,7 +257,7 @@ export default function SystemSettingsPage() {
         </div>
 
         {/* ── Global Action Footer ─────────────────────────────────────────── */}
-        <footer className="mt-10 flex items-center justify-between border-t border-slate-200 pt-6">
+        <footer className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-t border-slate-200 pt-6">
           <div className="flex items-center gap-4 text-slate-400">
             <span className="material-symbols-outlined text-[18px]">info</span>
             <p className="text-[12px]">Last configuration update: Oct 24, 2023 - 10:45 AM UTC</p>
@@ -266,7 +266,7 @@ export default function SystemSettingsPage() {
             <button className="px-6 py-2 rounded-lg border border-slate-200 font-bold hover:bg-slate-50 transition-all text-body-sm text-slate-600">
               Discard Changes
             </button>
-            <button className="px-10 py-2 rounded-lg bg-[#d4af37] text-white font-bold hover:brightness-110 shadow-lg active:scale-95 transition-all text-body-sm">
+            <button className="px-6 sm:px-10 py-2 rounded-lg bg-[#d4af37] text-white font-bold hover:brightness-110 shadow-lg active:scale-95 transition-all text-body-sm">
               Confirm &amp; Deploy Settings
             </button>
           </div>

@@ -14,10 +14,10 @@ export default function AssetLiquidityPage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <div className="p-6 bg-slate-50 h-full overflow-y-auto">
+    <div className="px-4 sm:p-6 pt-6 bg-slate-50 h-full overflow-y-auto">
 
       {/* ── Dashboard header ─────────────────────────────────────────────── */}
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 mb-6">
         <div>
           <h2 className="font-headline-lg text-headline-lg text-slate-900">Asset Liquidity</h2>
           <p className="text-slate-600 font-body-md text-body-md">

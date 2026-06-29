@@ -3,28 +3,52 @@
 // Direct Stitch → Next.js conversion of Client Messages / Ticket Router.
 // Sidebar + Navbar in (admin)/layout.tsx. This page fills the remaining
 // height with a three-panel flex layout: thread list (25%) | chat (50%) | overview (25%).
+// On mobile: tab-driven single-panel view (Inbox / Chat / Overview).
 // Custom CSS (.chat-bubble-manager, .chat-bubble-client) defined in globals.css.
 
+import { useState } from "react";
+
+type MobilePanel = "inbox" | "chat" | "overview";
+
 export default function ClientMessagesPage() {
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("inbox");
+
   return (
     <div className="flex flex-col h-full bg-[#F8F9FA] text-slate-900 overflow-hidden">
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 p-6 pb-0">
-        <h2 className="font-headline-md text-headline-md font-bold text-slate-900">
+      <div className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-0 pb-0">
+        <h2 className="font-headline-md text-headline-md font-bold text-slate-900 text-lg sm:text-2xl">
           Client Communications &amp; Ticket Router
         </h2>
-        <p className="font-body-md text-body-md text-slate-500 max-w-3xl">
+        <p className="font-body-md text-body-md text-slate-500 max-w-3xl hidden sm:block">
           Live multi-tenant investor messaging queue. Securely route tickets, handle direct client
           inquiries, and manage active support chats.
         </p>
+
+        {/* Mobile tab switcher */}
+        <div className="flex gap-1 mt-3 bg-slate-200 p-0.5 rounded-lg sm:hidden">
+          {(["inbox", "chat", "overview"] as MobilePanel[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setMobilePanel(tab)}
+              className={`flex-1 py-1.5 rounded-md text-xs font-bold capitalize transition-all ${
+                mobilePanel === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
+              }`}
+            >
+              {tab === "inbox" ? "Inbox" : tab === "chat" ? "Chat" : "Overview"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Three-Panel Interface ────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0 flex gap-4 p-6 overflow-hidden">
+      <div className="flex-1 min-h-0 flex gap-4 p-3 sm:p-6 overflow-hidden">
 
-        {/* ── Panel 1: Thread List (25%) ─────────────────────────────────── */}
-        <section className="w-1/4 min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col shadow-sm">
+        {/* ── Panel 1: Thread List ───────────────────────────────────────── */}
+        <section className={`min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col shadow-sm
+          ${mobilePanel === "inbox" ? "flex" : "hidden"} w-full
+          sm:flex sm:w-1/4`}>
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
             <span className="font-label-caps text-label-caps text-slate-500">Inbox (12)</span>
             <div className="flex items-center gap-1">
@@ -77,8 +101,10 @@ export default function ClientMessagesPage() {
           </div>
         </section>
 
-        {/* ── Panel 2: Active Chat (50%) ─────────────────────────────────── */}
-        <section className="flex-1 min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col shadow-sm overflow-hidden">
+        {/* ── Panel 2: Active Chat ───────────────────────────────────────── */}
+        <section className={`min-h-0 bg-white rounded-xl border border-slate-200 flex flex-col shadow-sm overflow-hidden
+          ${mobilePanel === "chat" ? "flex" : "hidden"} w-full
+          sm:flex sm:flex-1`}>
 
           {/* Chat header */}
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
@@ -198,8 +224,10 @@ export default function ClientMessagesPage() {
           </div>
         </section>
 
-        {/* ── Panel 3: Investor Overview (25%) ───────────────────────────── */}
-        <section className="w-1/4 min-h-0 space-y-4 overflow-y-auto pr-1 custom-scrollbar">
+        {/* ── Panel 3: Investor Overview ─────────────────────────────────── */}
+        <section className={`min-h-0 space-y-4 overflow-y-auto pr-1 custom-scrollbar
+          ${mobilePanel === "overview" ? "flex flex-col" : "hidden"} w-full
+          sm:flex sm:flex-col sm:w-1/4`}>
 
           {/* Wallet Summary Card */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">

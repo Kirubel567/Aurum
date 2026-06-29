@@ -19,10 +19,10 @@ export default function UserManagementPage() {
   }, []);
 
   return (
-    <main className="p-6 space-y-6 h-full overflow-y-auto bg-[#f8fafc]">
+    <main className="px-4 sm:p-6 pt-6 space-y-6 h-full overflow-y-auto bg-[#f8fafc]">
 
       {/* ── Page header ─────────────────────────────────────────────────── */}
-      <header className="flex justify-between items-end pb-2 border-b border-slate-200">
+      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 pb-2 border-b border-slate-200">
         <div>
           <h2 className="font-headline-lg text-headline-lg text-[#0f172a]">User Management</h2>
           <p className="font-body-md text-body-md text-[#64748b]">Monitor and manage institutional client access and KYC compliance.</p>

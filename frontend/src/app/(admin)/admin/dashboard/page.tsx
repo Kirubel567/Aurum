@@ -5,10 +5,10 @@
 
 export default function AdminDashboardPage() {
   return (
-    <div className="h-full overflow-y-auto px-6 pt-6 pb-10 max-w-[1440px]">
+    <div className="h-full overflow-y-auto px-4 sm:px-6 pt-6 pb-10 max-w-[1440px]">
 
       {/* ── Page header ──────────────────────────────────────────────────── */}
-      <section className="mb-6 flex justify-between items-end">
+      <section className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
         <div>
           <h2 className="text-[24px] leading-[32px] font-semibold text-gray-900 mb-1">
             Executive Dashboard
