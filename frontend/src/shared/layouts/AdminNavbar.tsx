@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, History, BarChart2, Search, Zap, Menu } from "lucide-react";
+import { Bell, History, BarChart2, Search, Zap, Menu, Sun, Moon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/src/store/auth.store";
 import { ROUTES } from "@/src/lib/constants/routes";
+import { useTheme } from "@/src/hooks/useTheme";
 
 // ── AdminNavbar ───────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
   const router  = useRouter();
   const user    = useAuthStore((s) => s.session?.user);
   const [query, setQuery] = useState("");
+  const { isDark, toggle: toggleTheme } = useTheme();
 
   const initials = user?.name
     ? user.name
@@ -30,7 +32,7 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
     : "A";
 
   return (
-    <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-[#e2e8f0] bg-white/85 px-4 sm:px-6 backdrop-blur-xl">
+    <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-[#e2e8f0] dark:border-white/[0.07] bg-white/85 dark:bg-[#0f172a]/90 px-4 sm:px-6 backdrop-blur-xl">
 
       {/* ── Hamburger (mobile only) ─────────────────────────────────────────── */}
       <button
@@ -80,10 +82,32 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
 
           {/* Platform analytics */}
           <button
-            className="flex size-8 items-center justify-center rounded-lg text-[#64748b] transition-all duration-150 hover:bg-[#f1f5f9] hover:text-[#1a1c1e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4af37]/30"
+            className="flex size-8 items-center justify-center rounded-lg text-[#64748b] transition-all duration-150 hover:bg-[#f1f5f9] hover:text-[#1a1c1e] dark:hover:bg-white/10 dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4af37]/30"
             aria-label="Platform analytics"
           >
             <BarChart2 className="size-[17px]" />
+          </button>
+
+          {/* Dark mode toggle */}
+          <button
+            onClick={toggleTheme}
+            aria-label="Toggle dark mode"
+            className="relative flex size-8 items-center justify-center rounded-lg text-[#64748b] transition-all duration-200 hover:bg-[#f1f5f9] hover:text-[#1a1c1e] dark:hover:bg-white/10 dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4af37]/30"
+          >
+            <Sun
+              className="size-[17px] absolute transition-all duration-300"
+              style={{
+                opacity: isDark ? 1 : 0,
+                transform: isDark ? "rotate(0deg) scale(1)" : "rotate(-90deg) scale(0.5)",
+              }}
+            />
+            <Moon
+              className="size-[17px] absolute transition-all duration-300"
+              style={{
+                opacity: isDark ? 0 : 1,
+                transform: isDark ? "rotate(90deg) scale(0.5)" : "rotate(0deg) scale(1)",
+              }}
+            />
           </button>
         </div>
 
@@ -99,7 +123,7 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
         {/* User profile */}
         <div className="flex items-center gap-2.5">
           <div className="text-right hidden md:block">
-            <p className="text-[13px] font-semibold leading-tight text-[#1a1c1e]">
+            <p className="text-[13px] font-semibold leading-tight text-[#1a1c1e] dark:text-white">
               {user?.name ?? "Admin"}
             </p>
             <p className="text-[10px] font-bold uppercase tracking-wider text-[#d4af37]">

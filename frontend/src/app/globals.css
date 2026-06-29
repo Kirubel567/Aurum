@@ -117,6 +117,29 @@
   color-scheme: light;
 }
 
+.dark.theme-admin,
+.dark .theme-admin {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --popover: #1e293b;
+  --popover-foreground: #f1f5f9;
+  --primary: #d4af37;
+  --primary-foreground: #0c1017;
+  --secondary: #1e293b;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: rgb(212 175 55 / 0.1);
+  --accent-foreground: #d4af37;
+  --destructive: #ef4444;
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.08);
+  --ring: #d4af37;
+  color-scheme: dark;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -195,6 +218,12 @@
     overflow: hidden;
   }
 
+  .dark .glass-card-light {
+    background: #1e293b !important;
+    border: 1px solid rgb(255 255 255 / 0.08) !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+  }
+
   .glass-card-light::before {
     content: "";
     position: absolute;
@@ -228,6 +257,12 @@
     transition: all 0.3s ease;
   }
 
+  .dark .glass-card {
+    background: #1e293b !important;
+    border: 1px solid rgb(255 255 255 / 0.08) !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+  }
+
   .glass-card:hover {
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
   }
@@ -239,6 +274,11 @@
     box-shadow: 0 4px 15px -1px rgba(176, 141, 26, 0.05);
     position: relative;
     overflow: hidden;
+  }
+
+  .dark .glass-card-gold {
+    background: #1e293b !important;
+    border: 1px solid rgba(176, 141, 26, 0.25) !important;
   }
 
   /* ── custom-scrollbar: thin gold-tinted scrollbar ─────────────────── */
@@ -372,6 +412,12 @@
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
   }
 
+  .dark .light-card {
+    background: #1e293b !important;
+    border: 1px solid rgb(255 255 255 / 0.08) !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+  }
+
   /* ── Admin card (white surface with gold hover accent) ────────────────── */
   .admin-card {
     background: #ffffff;
@@ -411,4 +457,78 @@
   .theme-admin ::-webkit-scrollbar-thumb:hover {
     background: rgba(212, 175, 55, 0.55);
   }
+
+  /* ── Dark mode: admin-card ────────────────────────────────────────────── */
+  .dark .admin-card {
+    background: #1e293b !important;
+    border-color: rgb(255 255 255 / 0.07) !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK MODE — Admin pages
+   Applied when <html class="dark"> + .theme-admin wrapper is present.
+   Overrides hardcoded Tailwind color utilities used across all admin pages.
+════════════════════════════════════════════════════════════════════════════ */
+.dark .theme-admin {
+
+  /* Page backgrounds */
+  .bg-\[\#F8F9FA\], .bg-\[\#f8f9fa\],
+  .bg-\[\#F8FAFC\], .bg-\[\#f8fafc\],
+  .bg-\[\#F8F8F8\],
+  .bg-slate-50 { background-color: #0f172a !important; }
+
+  .bg-white { background-color: #1e293b !important; }
+  .bg-gray-50, .bg-gray-100 { background-color: #1e293b !important; }
+  .bg-slate-100 { background-color: #1e293b !important; }
+  .bg-slate-200 { background-color: #334155 !important; }
+
+  /* Text */
+  .text-gray-900, .text-slate-900, .text-\[\#0f172a\],
+  .text-\[\#1a1c1e\] { color: #f1f5f9 !important; }
+
+  .text-gray-700, .text-slate-700 { color: #cbd5e1 !important; }
+  .text-gray-600, .text-slate-600 { color: #94a3b8 !important; }
+  .text-gray-500, .text-slate-500 { color: #64748b !important; }
+  .text-gray-400, .text-slate-400 { color: #475569 !important; }
+
+  /* Borders */
+  .border-gray-200, .border-slate-200,
+  .border-\[\#e2e8f0\], .border-\[\#E2E8F0\] {
+    border-color: rgb(255 255 255 / 0.08) !important;
+  }
+  .border-gray-100, .border-slate-100 {
+    border-color: rgb(255 255 255 / 0.05) !important;
+  }
+
+  /* Inputs & selects */
+  input:not([type="range"]):not([type="checkbox"]),
+  select,
+  textarea {
+    background-color: #0f172a !important;
+    border-color: rgb(255 255 255 / 0.1) !important;
+    color: #f1f5f9 !important;
+  }
+
+  /* Table rows */
+  tr:hover { background-color: rgb(255 255 255 / 0.03) !important; }
+  thead th { background-color: #0f172a !important; color: #64748b !important; }
+  tbody td { border-color: rgb(255 255 255 / 0.05) !important; color: #cbd5e1 !important; }
+
+  /* Inline bg utilities used in cards and badges */
+  .bg-emerald-50\/50 { background-color: rgb(6 78 59 / 0.2) !important; }
+  .bg-red-100 { background-color: rgb(127 29 29 / 0.4) !important; }
+  .bg-emerald-100 { background-color: rgb(6 78 59 / 0.3) !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DARK MODE — Investor pages
+   The investor shell is already dark (#0B1221) so very little needs changing.
+   Only the navbar and any light-surface components need overrides.
+════════════════════════════════════════════════════════════════════════════ */
+.dark .theme-investor {
+  /* Investor shell is already dark — ensure any white surfaces flip */
+  .bg-white { background-color: #1e293b !important; }
+  .text-slate-800, .text-slate-900 { color: #f1f5f9 !important; }
+  .border-\[\#E2E8F0\] { border-color: rgb(255 255 255 / 0.08) !important; }
 }
