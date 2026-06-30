@@ -42,11 +42,11 @@ const fmt = (n: number) =>
   `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const STATUS_CONFIG: Record<WithdrawStatus, { label: string; classes: string }> = {
-  pending:    { label: "Pending",    classes: "bg-amber-50 text-amber-700 border border-amber-200" },
-  processing: { label: "Processing", classes: "bg-blue-50 text-blue-700 border border-blue-200" },
-  approved:   { label: "Approved",   classes: "bg-indigo-50 text-indigo-700 border border-indigo-200" },
-  completed:  { label: "Completed",  classes: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
-  rejected:   { label: "Rejected",   classes: "bg-red-50 text-red-700 border border-red-200" },
+  pending:    { label: "Pending",    classes: "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/20" },
+  processing: { label: "Processing", classes: "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20" },
+  approved:   { label: "Approved",   classes: "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20" },
+  completed:  { label: "Completed",  classes: "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20" },
+  rejected:   { label: "Rejected",   classes: "bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/20" },
 };
 
 const PRESETS = [500, 1000, 2500, 5000];
@@ -68,18 +68,20 @@ function StatCard({
 }) {
   return (
     <div className={`rounded-2xl p-5 sm:p-6 border shadow-sm flex flex-col gap-2 ${
-      highlight ? "bg-[#0C1526] border-[#D4AF37]/25" : "bg-white border-slate-200"
+      highlight
+        ? "bg-[#0C1526] border-[#D4AF37]/25 dark:bg-[#050b14] dark:border-[#e9c349]/30"
+        : "bg-white border-slate-200 dark:bg-[rgba(255,255,255,0.03)] dark:[backdrop-filter:blur(10px)] dark:border-[rgba(255,255,255,0.05)] dark:shadow-none"
     }`}>
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-1 ${
-        highlight ? "bg-[#D4AF37]/15" : "bg-slate-100"
+        highlight ? "bg-[#D4AF37]/15" : "bg-slate-100 dark:bg-white/10"
       }`}>
-        <Icon className={`size-5 ${highlight ? "text-[#D4AF37]" : "text-slate-600"}`} />
+        <Icon className={`size-5 ${highlight ? "text-[#D4AF37]" : "text-slate-600 dark:text-white/60"}`} />
       </div>
-      <p className={`text-[11px] font-semibold uppercase tracking-wider ${highlight ? "text-slate-400" : "text-slate-500"}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-wider ${highlight ? "text-slate-400" : "text-slate-500 dark:text-white/40"}`}>
         {label}
       </p>
-      <p className={`text-2xl font-extrabold ${highlight ? "text-[#D4AF37]" : "text-slate-900"}`}>{value}</p>
-      {sub && <p className={`text-[11px] ${highlight ? "text-slate-500" : "text-slate-400"}`}>{sub}</p>}
+      <p className={`text-2xl font-extrabold ${highlight ? "text-[#D4AF37]" : "text-slate-900 dark:text-white"}`}>{value}</p>
+      {sub && <p className={`text-[11px] ${highlight ? "text-slate-500" : "text-slate-400 dark:text-white/30"}`}>{sub}</p>}
     </div>
   );
 }
@@ -97,7 +99,7 @@ function ConfirmModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={(e) => { if (e.target === e.currentTarget && !submitting) onCancel(); }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden dark:bg-[#0e141a] dark:border dark:border-white/10">
         <div className="bg-[#0C1526] p-6 flex items-center gap-3">
           <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center">
             <Send className="size-5 text-white" />
@@ -116,29 +118,29 @@ function ConfirmModal({
             { label: "Account Number",   value: accountNumber },
             { label: "Processing Time",  value: PROCESSING_DAYS[method] },
           ].map(({ label, value, bold, note: n }) => (
-            <div key={label} className="flex justify-between items-start py-2 border-b border-slate-100 last:border-0">
-              <span className="text-[13px] text-slate-500">{label}</span>
-              <span className={`text-[13px] text-right ${bold ? "font-bold text-slate-900" : "text-slate-800"}`}>
+            <div key={label} className="flex justify-between items-start py-2 border-b border-slate-100 last:border-0 dark:border-white/5">
+              <span className="text-[13px] text-slate-500 dark:text-white/40">{label}</span>
+              <span className={`text-[13px] text-right ${bold ? "font-bold text-slate-900 dark:text-white" : "text-slate-800 dark:text-white/80"}`}>
                 {value}
-                {n && <span className="text-slate-400 ml-1 text-[11px]">{n}</span>}
+                {n && <span className="text-slate-400 ml-1 text-[11px] dark:text-white/30">{n}</span>}
               </span>
             </div>
           ))}
 
-          <div className="flex justify-between items-center pt-3 mt-1 border-t-2 border-slate-900">
-            <span className="text-[14px] font-bold text-slate-900">You Will Receive</span>
-            <span className="text-xl font-extrabold text-emerald-600">{fmt(net)}</span>
+          <div className="flex justify-between items-center pt-3 mt-1 border-t-2 border-slate-900 dark:border-white/20">
+            <span className="text-[14px] font-bold text-slate-900 dark:text-white">You Will Receive</span>
+            <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">{fmt(net)}</span>
           </div>
 
           {note && (
-            <div className="bg-[#D4AF37]/8 rounded-xl p-3 text-[12px] text-slate-600 border border-[#D4AF37]/20">
-              <span className="font-semibold text-slate-800">Note: </span>{note}
+            <div className="bg-[#D4AF37]/8 rounded-xl p-3 text-[12px] text-slate-600 border border-[#D4AF37]/20 dark:bg-[#e9c349]/10 dark:text-white/70 dark:border-[#e9c349]/20">
+              <span className="font-semibold text-slate-800 dark:text-white">Note: </span>{note}
             </div>
           )}
 
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-start gap-2">
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-start gap-2 dark:bg-amber-500/10 dark:border-amber-500/20">
             <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
-            <p className="text-[11px] text-amber-800">
+            <p className="text-[11px] text-amber-800 dark:text-amber-200">
               Withdrawal requests cannot be cancelled once submitted. Funds will be transferred to your registered bank account.
             </p>
           </div>
@@ -148,7 +150,7 @@ function ConfirmModal({
           <button
             onClick={onCancel}
             disabled={submitting}
-            className="flex-1 py-3 border border-slate-200 rounded-xl text-[14px] font-semibold text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            className="flex-1 py-3 border border-slate-200 rounded-xl text-[14px] font-semibold text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50 dark:border-white/10 dark:text-white/50 dark:hover:bg-white/5"
           >
             Cancel
           </button>
@@ -179,19 +181,19 @@ function ConfirmModal({
 
 function SuccessBanner({ reference, onDismiss }: { reference: string; onDismiss: () => void }) {
   return (
-    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start justify-between gap-4 mb-6">
+    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start justify-between gap-4 mb-6 dark:bg-emerald-500/10 dark:border-emerald-500/20">
       <div className="flex items-start gap-4">
-        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
-          <CheckCircle2 className="size-5 text-emerald-600" />
+        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center shrink-0 dark:bg-emerald-500/15">
+          <CheckCircle2 className="size-5 text-emerald-600 dark:text-emerald-400" />
         </div>
         <div>
-          <p className="font-bold text-emerald-800">Withdrawal Request Submitted</p>
-          <p className="text-[13px] text-emerald-700 mt-0.5">
+          <p className="font-bold text-emerald-800 dark:text-emerald-300">Withdrawal Request Submitted</p>
+          <p className="text-[13px] text-emerald-700 mt-0.5 dark:text-emerald-400/80">
             Reference: <span className="font-semibold">{reference}</span> · Our team will process your request within 1–3 business days.
           </p>
         </div>
       </div>
-      <button onClick={onDismiss} className="text-emerald-400 hover:text-emerald-600 shrink-0">
+      <button onClick={onDismiss} className="text-emerald-400 hover:text-emerald-600 shrink-0 dark:text-emerald-400/60 dark:hover:text-emerald-300">
         <X className="size-5" />
       </button>
     </div>
@@ -205,26 +207,26 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
 
   if (items.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-16 text-center">
-        <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <ArrowUpRight className="size-7 text-slate-400" />
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-16 text-center dark:bg-[rgba(255,255,255,0.03)] dark:[backdrop-filter:blur(10px)] dark:border-[rgba(255,255,255,0.05)] dark:shadow-none">
+        <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 dark:bg-white/10">
+          <ArrowUpRight className="size-7 text-slate-400 dark:text-white/30" />
         </div>
-        <p className="text-slate-500 text-sm font-medium">No withdrawal history yet.</p>
-        <p className="text-slate-400 text-xs mt-1">Your completed withdrawals will appear here.</p>
+        <p className="text-slate-500 text-sm font-medium dark:text-white/40">No withdrawal history yet.</p>
+        <p className="text-slate-400 text-xs mt-1 dark:text-white/30">Your completed withdrawals will appear here.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden dark:bg-[rgba(255,255,255,0.03)] dark:[backdrop-filter:blur(10px)] dark:border-[rgba(255,255,255,0.05)] dark:shadow-none">
+      <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between dark:border-white/5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+          <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center dark:bg-white/10 dark:border dark:border-white/10">
             <History className="size-4 text-white" />
           </div>
-          <h3 className="text-[15px] font-bold text-slate-900">Withdrawal History</h3>
+          <h3 className="text-[15px] font-bold text-slate-900 dark:text-white">Withdrawal History</h3>
         </div>
-        <span className="text-[12px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full font-medium">
+        <span className="text-[12px] text-slate-400 bg-slate-100 px-3 py-1 rounded-full font-medium dark:bg-white/10 dark:text-white/40">
           {items.length} transaction{items.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -232,7 +234,7 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
       <div className="overflow-x-auto">
         <table className="w-full text-left">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100 bg-slate-50/50">
+            <tr className="text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100 bg-slate-50/50 dark:text-white/40 dark:border-white/5 dark:bg-white/5">
               <th className="px-6 py-4 font-semibold">Reference</th>
               <th className="px-6 py-4 font-semibold">Date</th>
               <th className="px-6 py-4 font-semibold">Amount</th>
@@ -250,17 +252,17 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
                 <Fragment key={item.id}>
                   <tr
                     onClick={() => setExpanded(open ? null : item.id)}
-                    className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors cursor-pointer"
+                    className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors cursor-pointer dark:border-white/5 dark:hover:bg-white/5"
                   >
-                    <td className="px-6 py-4 text-[13px] font-semibold text-slate-800">{item.id}</td>
-                    <td className="px-6 py-4 text-[13px] text-slate-500">{item.date}</td>
-                    <td className="px-6 py-4 text-[13px] font-bold text-slate-900">{fmt(item.amount)}</td>
-                    <td className="px-6 py-4 text-[13px] text-slate-500 max-w-[160px] truncate">{item.bankName}</td>
+                    <td className="px-6 py-4 text-[13px] font-semibold text-slate-800 dark:text-white/80">{item.id}</td>
+                    <td className="px-6 py-4 text-[13px] text-slate-500 dark:text-white/40">{item.date}</td>
+                    <td className="px-6 py-4 text-[13px] font-bold text-slate-900 dark:text-white">{fmt(item.amount)}</td>
+                    <td className="px-6 py-4 text-[13px] text-slate-500 max-w-[160px] truncate dark:text-white/40">{item.bankName}</td>
                     <td className="px-6 py-4">
                       <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${
                         item.method === "express"
-                          ? "bg-[#D4AF37]/10 text-[#b8941a] border border-[#D4AF37]/20"
-                          : "bg-slate-100 text-slate-500"
+                          ? "bg-[#D4AF37]/10 text-[#b8941a] border border-[#D4AF37]/20 dark:bg-[#e9c349]/10 dark:text-[#e9c349] dark:border-[#e9c349]/20"
+                          : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
                       }`}>
                         {item.method}
                       </span>
@@ -270,10 +272,10 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
                         {cfg.label}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right text-[13px] font-bold text-emerald-600">{fmt(item.netAmount)}</td>
+                    <td className="px-6 py-4 text-right text-[13px] font-bold text-emerald-600 dark:text-emerald-400">{fmt(item.netAmount)}</td>
                   </tr>
                   {open && (
-                    <tr key={`${item.id}-detail`} className="bg-slate-50/50">
+                    <tr key={`${item.id}-detail`} className="bg-slate-50/50 dark:bg-white/5">
                       <td colSpan={7} className="px-6 py-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-[12px]">
                           {[
@@ -283,8 +285,8 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
                             { label: "Reference",       value: item.reference },
                           ].map(({ label, value }) => (
                             <div key={label}>
-                              <p className="text-slate-400 mb-1">{label}</p>
-                              <p className="font-semibold text-slate-800">{value}</p>
+                              <p className="text-slate-400 mb-1 dark:text-white/30">{label}</p>
+                              <p className="font-semibold text-slate-800 dark:text-white/80">{value}</p>
                             </div>
                           ))}
                         </div>
@@ -407,7 +409,7 @@ export function WithdrawPage() {
   const activeBank = form.bankId ? banks.find((b) => b.id === form.bankId) ?? selectedBank : selectedBank;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC]">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] dark:bg-transparent">
       {confirming && activeBank && (
         <ConfirmModal
           amount={parsedAmount} fee={fee} net={net}
@@ -422,12 +424,12 @@ export function WithdrawPage() {
       {/* Page header */}
       <div className="flex flex-col sm:flex-row gap-3 sm:items-start sm:justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Withdraw Funds</h1>
-          <p className="text-sm text-slate-500">Transfer your available balance to a registered bank account.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 dark:text-white">Withdraw Funds</h1>
+          <p className="text-sm text-slate-500 dark:text-white/40">Transfer your available balance to a registered bank account.</p>
         </div>
-        <div className="flex w-fit items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl">
+        <div className="flex w-fit items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl dark:bg-emerald-500/10 dark:border-emerald-500/20">
           <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-          <span className="text-[12px] font-semibold text-emerald-700">Withdrawals Active</span>
+          <span className="text-[12px] font-semibold text-emerald-700 dark:text-emerald-400">Withdrawals Active</span>
         </div>
       </div>
 
@@ -446,25 +448,25 @@ export function WithdrawPage() {
 
         {/* ── Left: Form ── */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-8 dark:bg-[rgba(255,255,255,0.03)] dark:[backdrop-filter:blur(10px)] dark:border-[rgba(255,255,255,0.05)] dark:shadow-none">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center dark:bg-white/10 dark:border dark:border-white/10">
                 <Send className="size-4 text-white" />
               </div>
-              <h2 className="text-[16px] font-bold text-slate-900">Withdrawal Request</h2>
+              <h2 className="text-[16px] font-bold text-slate-900 dark:text-white">Withdrawal Request</h2>
             </div>
 
             <div className="space-y-6">
               {/* Amount */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-[13px] font-semibold text-slate-800">Withdrawal Amount</label>
-                  <span className="text-[12px] text-slate-400">
-                    Available: <span className="font-bold text-slate-700">{fmt(balance.availableToWithdraw)}</span>
+                  <label className="text-[13px] font-semibold text-slate-800 dark:text-white/80">Withdrawal Amount</label>
+                  <span className="text-[12px] text-slate-400 dark:text-white/40">
+                    Available: <span className="font-bold text-slate-700 dark:text-white/80">{fmt(balance.availableToWithdraw)}</span>
                   </span>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg dark:text-white/30">$</span>
                   <input
                     type="number"
                     min={MIN_WITHDRAW}
@@ -472,8 +474,8 @@ export function WithdrawPage() {
                     value={form.amount}
                     onChange={(e) => { setForm({ ...form, amount: e.target.value }); setAmountError(""); }}
                     placeholder="0.00"
-                    className={`w-full h-14 pl-9 pr-16 rounded-xl border text-xl font-bold text-slate-900 outline-none transition-all focus:ring-2 focus:ring-[#D4AF37]/40 ${
-                      amountError ? "border-red-400 bg-red-50/30" : "border-slate-200"
+                    className={`w-full h-14 pl-9 pr-16 rounded-xl border text-xl font-bold text-slate-900 outline-none transition-all focus:ring-2 focus:ring-[#D4AF37]/40 dark:bg-white/5 dark:text-white ${
+                      amountError ? "border-red-400 bg-red-50/30 dark:border-red-400/60 dark:bg-red-500/10" : "border-slate-200 dark:border-white/10"
                     }`}
                   />
                   <button
@@ -484,7 +486,7 @@ export function WithdrawPage() {
                   </button>
                 </div>
                 {amountError && (
-                  <p className="mt-1.5 text-[12px] text-red-600 flex items-center gap-1">
+                  <p className="mt-1.5 text-[12px] text-red-600 flex items-center gap-1 dark:text-red-400">
                     <AlertCircle className="size-3.5" />
                     {amountError}
                   </p>
@@ -498,7 +500,7 @@ export function WithdrawPage() {
                       className={`flex-1 py-2 rounded-lg text-[12px] font-bold border transition-all disabled:opacity-40 ${
                         parsedAmount === p
                           ? "bg-[#D4AF37] text-[#0C1526] border-[#D4AF37]"
-                          : "bg-slate-50 text-slate-700 border-slate-200 hover:border-[#D4AF37]/50 hover:text-[#D4AF37]"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:border-[#D4AF37]/50 hover:text-[#D4AF37] dark:bg-white/5 dark:text-white/70 dark:border-white/10 dark:hover:border-[#e9c349]/50 dark:hover:text-[#e9c349]"
                       }`}
                     >
                       ${p.toLocaleString()}
@@ -509,11 +511,11 @@ export function WithdrawPage() {
 
               {/* Destination Bank */}
               <div>
-                <label className="block text-[13px] font-semibold text-slate-800 mb-2">Destination Bank Account</label>
+                <label className="block text-[13px] font-semibold text-slate-800 mb-2 dark:text-white/80">Destination Bank Account</label>
                 {banks.length === 0 ? (
-                  <div className="border border-dashed border-slate-300 rounded-xl p-5 text-center text-[13px] text-slate-500">
+                  <div className="border border-dashed border-slate-300 rounded-xl p-5 text-center text-[13px] text-slate-500 dark:border-white/20 dark:text-white/40">
                     No bank accounts saved.{" "}
-                    <button onClick={() => router.push(ROUTES.PROFILE)} className="text-[#D4AF37] font-bold hover:underline">
+                    <button onClick={() => router.push(ROUTES.PROFILE)} className="text-[#D4AF37] font-bold hover:underline dark:text-[#e9c349]">
                       Add one in Profile Settings
                     </button>.
                   </div>
@@ -526,8 +528,8 @@ export function WithdrawPage() {
                           key={bank.id}
                           className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
                             selected
-                              ? "border-[#D4AF37] bg-[#D4AF37]/5 ring-1 ring-[#D4AF37]/30"
-                              : "border-slate-200 hover:border-slate-300"
+                              ? "border-[#D4AF37] bg-[#D4AF37]/5 ring-1 ring-[#D4AF37]/30 dark:border-[#e9c349] dark:bg-[#e9c349]/5 dark:ring-[#e9c349]/30"
+                              : "border-slate-200 hover:border-slate-300 dark:border-white/10 dark:hover:border-white/20"
                           }`}
                         >
                           <input
@@ -536,19 +538,19 @@ export function WithdrawPage() {
                             className="sr-only"
                           />
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                            selected ? "border-[#D4AF37]" : "border-slate-300"
+                            selected ? "border-[#D4AF37] dark:border-[#e9c349]" : "border-slate-300 dark:border-white/20"
                           }`}>
-                            {selected && <div className="w-2.5 h-2.5 bg-[#D4AF37] rounded-full" />}
+                            {selected && <div className="w-2.5 h-2.5 bg-[#D4AF37] dark:bg-[#e9c349] rounded-full" />}
                           </div>
-                          <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
-                            <Landmark className="size-4 text-slate-600" />
+                          <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center shrink-0 dark:bg-white/10">
+                            <Landmark className="size-4 text-slate-600 dark:text-white/60" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-bold text-slate-900 truncate">{bank.bankName}</p>
-                            <p className="text-[12px] text-slate-400">{bank.accountHolder} · {bank.accountNumber}</p>
+                            <p className="text-[13px] font-bold text-slate-900 truncate dark:text-white">{bank.bankName}</p>
+                            <p className="text-[12px] text-slate-400 dark:text-white/40">{bank.accountHolder} · {bank.accountNumber}</p>
                           </div>
                           {bank.isPrimary && (
-                            <span className="text-[10px] bg-slate-900 text-white px-2.5 py-0.5 rounded-full font-bold shrink-0">
+                            <span className="text-[10px] bg-slate-900 text-white px-2.5 py-0.5 rounded-full font-bold shrink-0 dark:bg-white/15 dark:border dark:border-white/20">
                               Primary
                             </span>
                           )}
@@ -561,7 +563,7 @@ export function WithdrawPage() {
 
               {/* Processing Speed */}
               <div>
-                <label className="block text-[13px] font-semibold text-slate-800 mb-2">Processing Speed</label>
+                <label className="block text-[13px] font-semibold text-slate-800 mb-2 dark:text-white/80">Processing Speed</label>
                 <div className="grid grid-cols-2 gap-3">
                   {(["standard", "express"] as WithdrawMethod[]).map((m) => {
                     const selected = form.method === m;
@@ -571,21 +573,21 @@ export function WithdrawPage() {
                         onClick={() => setForm({ ...form, method: m })}
                         className={`p-4 rounded-xl border text-left transition-all ${
                           selected
-                            ? "border-[#D4AF37] bg-[#D4AF37]/10"
-                            : "border-slate-200 hover:border-[#D4AF37]/40"
+                            ? "border-[#D4AF37] bg-[#D4AF37]/10 dark:border-[#e9c349] dark:bg-[#e9c349]/10"
+                            : "border-slate-200 hover:border-[#D4AF37]/40 dark:border-white/10 dark:hover:border-[#e9c349]/40"
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className={`text-[13px] font-bold capitalize ${selected ? "text-[#0C1526]" : "text-slate-800"}`}>
+                          <span className={`text-[13px] font-bold capitalize ${selected ? "text-[#0C1526] dark:text-[#e9c349]" : "text-slate-800 dark:text-white/70"}`}>
                             {m}
                           </span>
                           <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                            selected ? "bg-[#D4AF37]/20 text-[#b8941a]" : "bg-slate-100 text-slate-500"
+                            selected ? "bg-[#D4AF37]/20 text-[#b8941a] dark:bg-[#e9c349]/20 dark:text-[#e9c349]" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
                           }`}>
                             {m === "standard" ? "0.5% fee" : "1.0% fee"}
                           </span>
                         </div>
-                        <p className={`text-[11px] ${selected ? "text-[#b8941a]" : "text-slate-400"}`}>
+                        <p className={`text-[11px] ${selected ? "text-[#b8941a] dark:text-[#e9c349]/80" : "text-slate-400 dark:text-white/30"}`}>
                           {PROCESSING_DAYS[m]}
                         </p>
                       </button>
@@ -596,34 +598,34 @@ export function WithdrawPage() {
 
               {/* Note */}
               <div>
-                <label className="block text-[13px] font-semibold text-slate-800 mb-2">
-                  Reference Note <span className="text-slate-400 font-normal">(optional)</span>
+                <label className="block text-[13px] font-semibold text-slate-800 mb-2 dark:text-white/80">
+                  Reference Note <span className="text-slate-400 font-normal dark:text-white/30">(optional)</span>
                 </label>
                 <textarea
                   rows={2}
                   value={form.note}
                   onChange={(e) => setForm({ ...form, note: e.target.value })}
                   placeholder="Add a note for your records…"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#D4AF37]/40 outline-none text-[13px] text-slate-800 resize-none transition-all"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#D4AF37]/40 outline-none text-[13px] text-slate-800 resize-none transition-all dark:bg-white/5 dark:border-white/10 dark:text-white dark:placeholder:text-white/30"
                 />
               </div>
 
               {/* Fee Breakdown */}
               {parsedAmount > 0 && (
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-3">
-                  <h4 className="text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-3">Fee Breakdown</h4>
+                <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 space-y-3 dark:bg-white/5 dark:border-white/10">
+                  <h4 className="text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-3 dark:text-white/70">Fee Breakdown</h4>
                   {[
                     { label: "Withdrawal Amount", value: fmt(parsedAmount) },
                     { label: `Processing Fee (${form.method === "express" ? "1%" : "0.5%"})`, value: `-${fmt(fee)}`, muted: true },
                   ].map(({ label, value, muted }) => (
                     <div key={label} className="flex justify-between text-[13px]">
-                      <span className={muted ? "text-slate-400" : "text-slate-700"}>{label}</span>
-                      <span className={muted ? "text-slate-400" : "font-semibold text-slate-700"}>{value}</span>
+                      <span className={muted ? "text-slate-400 dark:text-white/30" : "text-slate-700 dark:text-white/70"}>{label}</span>
+                      <span className={muted ? "text-slate-400 dark:text-white/30" : "font-semibold text-slate-700 dark:text-white/80"}>{value}</span>
                     </div>
                   ))}
-                  <div className="border-t border-slate-200 pt-3 flex justify-between">
-                    <span className="text-[14px] font-bold text-slate-800">You Will Receive</span>
-                    <span className="text-[16px] font-extrabold text-emerald-600">{fmt(net)}</span>
+                  <div className="border-t border-slate-200 pt-3 flex justify-between dark:border-white/10">
+                    <span className="text-[14px] font-bold text-slate-800 dark:text-white">You Will Receive</span>
+                    <span className="text-[16px] font-extrabold text-emerald-600 dark:text-emerald-400">{fmt(net)}</span>
                   </div>
                 </div>
               )}
@@ -644,12 +646,12 @@ export function WithdrawPage() {
         <div className="col-span-12 lg:col-span-4 space-y-5">
 
           {/* Withdrawal Limits */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 dark:bg-[rgba(255,255,255,0.03)] dark:[backdrop-filter:blur(10px)] dark:border-[rgba(255,255,255,0.05)] dark:shadow-none">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center dark:bg-white/10 dark:border dark:border-white/10">
                 <Gauge className="size-4 text-white" />
               </div>
-              <h3 className="text-[14px] font-bold text-slate-900">Withdrawal Limits</h3>
+              <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">Withdrawal Limits</h3>
             </div>
             <div className="space-y-4">
               {[
@@ -660,13 +662,13 @@ export function WithdrawPage() {
                 return (
                   <div key={label}>
                     <div className="flex justify-between text-[12px] mb-1.5">
-                      <span className="text-slate-500">{label}</span>
-                      <span className="font-semibold text-slate-700">{fmt(total - used)} remaining</span>
+                      <span className="text-slate-500 dark:text-white/40">{label}</span>
+                      <span className="font-semibold text-slate-700 dark:text-white/70">{fmt(total - used)} remaining</span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-1.5">
-                      <div className="bg-slate-700 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 dark:bg-white/10">
+                      <div className="bg-slate-700 h-1.5 rounded-full transition-all dark:bg-[#e9c349]" style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">{fmt(used)} used of {fmt(total)}</p>
+                    <p className="text-[10px] text-slate-400 mt-1 dark:text-white/30">{fmt(used)} used of {fmt(total)}</p>
                   </div>
                 );
               })}
@@ -674,12 +676,12 @@ export function WithdrawPage() {
           </div>
 
           {/* Processing Schedule */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 dark:bg-[rgba(255,255,255,0.03)] dark:[backdrop-filter:blur(10px)] dark:border-[rgba(255,255,255,0.05)] dark:shadow-none">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center">
+              <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center dark:bg-white/10 dark:border dark:border-white/10">
                 <CalendarClock className="size-4 text-white" />
               </div>
-              <h3 className="text-[14px] font-bold text-slate-900">Processing Schedule</h3>
+              <h3 className="text-[14px] font-bold text-slate-900 dark:text-white">Processing Schedule</h3>
             </div>
             <div className="space-y-1 text-[13px]">
               {[
@@ -687,22 +689,22 @@ export function WithdrawPage() {
                 { day: "Saturday",  time: "10:00 AM – 2:00 PM EAT", active: true },
                 { day: "Sunday",    time: "Closed", active: false },
               ].map(({ day, time, active }) => (
-                <div key={day} className="flex justify-between items-center py-2.5 border-b border-slate-50 last:border-0">
-                  <span className="text-slate-500">{day}</span>
-                  <span className={`font-semibold text-[12px] ${active ? "text-slate-800" : "text-slate-300"}`}>{time}</span>
+                <div key={day} className="flex justify-between items-center py-2.5 border-b border-slate-50 last:border-0 dark:border-white/5">
+                  <span className="text-slate-500 dark:text-white/40">{day}</span>
+                  <span className={`font-semibold text-[12px] ${active ? "text-slate-800 dark:text-white/80" : "text-slate-300 dark:text-white/20"}`}>{time}</span>
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-slate-400 mt-4 leading-relaxed">
+            <p className="text-[11px] text-slate-400 mt-4 leading-relaxed dark:text-white/30">
               Requests submitted outside business hours are queued and processed the next business day.
             </p>
           </div>
 
           {/* Important Notices */}
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6">
+          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-6 dark:bg-amber-500/10 dark:border-amber-500/20">
             <div className="flex items-center gap-2 mb-4">
               <Info className="size-5 text-amber-500" />
-              <h3 className="text-[14px] font-bold text-amber-900">Important Notices</h3>
+              <h3 className="text-[14px] font-bold text-amber-900 dark:text-amber-200">Important Notices</h3>
             </div>
             <ul className="space-y-2.5">
               {[
@@ -712,7 +714,7 @@ export function WithdrawPage() {
                 "Withdrawal requests cannot be cancelled after confirmation.",
                 "Large withdrawals (>$10,000) may require additional verification.",
               ].map((notice) => (
-                <li key={notice} className="flex items-start gap-2 text-[12px] text-amber-800">
+                <li key={notice} className="flex items-start gap-2 text-[12px] text-amber-800 dark:text-amber-200/80">
                   <AlertTriangle className="size-3.5 text-amber-500 mt-0.5 shrink-0" />
                   {notice}
                 </li>
@@ -721,10 +723,10 @@ export function WithdrawPage() {
           </div>
 
           {/* Need Help */}
-          <div className="bg-[#050B14] rounded-2xl p-6">
+          <div className="bg-[#050B14] rounded-2xl p-6 dark:bg-[#0f172a] dark:border dark:border-white/10">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 bg-[#D4AF37]/15 rounded-xl flex items-center justify-center">
-                <HeadphonesIcon className="size-4 text-[#D4AF37]" />
+              <div className="w-9 h-9 bg-[#D4AF37]/15 rounded-xl flex items-center justify-center dark:bg-[#e9c349]/15">
+                <HeadphonesIcon className="size-4 text-[#D4AF37] dark:text-[#e9c349]" />
               </div>
               <h3 className="text-white font-bold text-[14px]">Need Assistance?</h3>
             </div>
