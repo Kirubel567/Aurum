@@ -32,7 +32,7 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
     : "A";
 
   return (
-    <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-[#e2e8f0] dark:border-white/[0.07] bg-white/85 dark:bg-[#0f172a]/90 px-4 sm:px-6 backdrop-blur-xl">
+    <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-[#e2e8f0] dark:border-white/[0.07] bg-white/85 dark:bg-[#0d141d]/90 px-4 sm:px-6 backdrop-blur-xl">
 
       {/* ── Hamburger (mobile only) ─────────────────────────────────────────── */}
       <button
@@ -52,7 +52,7 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search transactions..."
-            className="w-full rounded-lg border border-[#e2e8f0] bg-[#f8fafc] py-[7px] pl-9 pr-4 text-[13px] text-[#1a1c1e] placeholder-[#94a3b8] outline-none transition-all focus:border-[#d4af37]/50 focus:bg-white focus:ring-1 focus:ring-[#d4af37]/25 focus-visible:ring-2 focus-visible:ring-[#d4af37]/30"
+            className="w-full rounded-lg border border-[#e2e8f0] dark:border-white/10 bg-[#f8fafc] dark:bg-black/20 py-[7px] pl-9 pr-4 text-[13px] text-[#1a1c1e] dark:text-[#dce3f0] placeholder-[#94a3b8] dark:placeholder-[#99907c] outline-none transition-all focus:border-[#d4af37]/50 focus:bg-white dark:focus:bg-black/30 focus:ring-1 focus:ring-[#d4af37]/25 focus-visible:ring-2 focus-visible:ring-[#d4af37]/30"
           />
         </div>
       </div>
@@ -61,7 +61,7 @@ export function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
       <div className="flex items-center gap-5">
 
         {/* Icon action buttons */}
-        <div className="flex items-center gap-0.5 border-r border-[#e2e8f0] pr-5">
+        <div className="flex items-center gap-0.5 border-r border-[#e2e8f0] dark:border-white/10 pr-5">
           {/* Notifications */}
           <button
             className="relative flex size-8 items-center justify-center rounded-lg text-[#64748b] transition-all duration-150 hover:bg-[#f1f5f9] hover:text-[#1a1c1e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d4af37]/30"

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, X } from "lucide-react";
+import { useTheme } from "@/src/hooks/useTheme";
 
 import { cn } from "@/lib/utils";
 import { BrandLockup } from "@/src/app/(public)/_components/BrandLockup";
@@ -26,6 +27,7 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const user     = useAuthStore((s) => s.session?.user);
+  const { isDark } = useTheme();
 
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -47,7 +49,7 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
         // Desktop: static, part of normal flow
         "lg:static lg:inset-auto lg:h-screen lg:translate-x-0 lg:z-auto"
       )}
-      style={{ background: "#050b14" }}
+      style={{ background: "#0B1221" }}
     >
       {/* ── Mobile close button ─────────────────────────────────────────────── */}
       <button

@@ -119,21 +119,21 @@
 
 .dark.theme-admin,
 .dark .theme-admin {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --card: #1e293b;
-  --card-foreground: #f1f5f9;
-  --popover: #1e293b;
-  --popover-foreground: #f1f5f9;
+  --background: #050b14;
+  --foreground: #dce3f0;
+  --card: rgba(25, 32, 42, 0.4);
+  --card-foreground: #dce3f0;
+  --popover: #19202a;
+  --popover-foreground: #dce3f0;
   --primary: #d4af37;
-  --primary-foreground: #0c1017;
-  --secondary: #1e293b;
-  --secondary-foreground: #f1f5f9;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
+  --primary-foreground: #3c2f00;
+  --secondary: #4edea3;
+  --secondary-foreground: #003824;
+  --muted: rgba(25, 32, 42, 0.6);
+  --muted-foreground: #d0c5af;
   --accent: rgb(212 175 55 / 0.1);
   --accent-foreground: #d4af37;
-  --destructive: #ef4444;
+  --destructive: #ffb4ab;
   --border: rgb(255 255 255 / 0.08);
   --input: rgb(255 255 255 / 0.08);
   --ring: #d4af37;
@@ -265,9 +265,14 @@
   }
 
   .dark .glass-card {
-    background: #1e293b !important;
-    border: 1px solid rgb(255 255 255 / 0.08) !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+    background: rgba(25, 32, 42, 0.4) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+  }
+
+  .dark .glass-card:hover {
+    border: 1px solid rgba(212, 175, 55, 0.3) !important;
   }
 
   .glass-card:hover {
@@ -420,9 +425,14 @@
   }
 
   .dark .light-card {
-    background: #1e293b !important;
-    border: 1px solid rgb(255 255 255 / 0.08) !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+    background: rgba(25, 32, 42, 0.4) !important;
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+  }
+
+  .dark .light-card:hover {
+    border: 1px solid rgba(212, 175, 55, 0.3) !important;
   }
 
   /* ── Admin card (white surface with gold hover accent) ────────────────── */
@@ -479,53 +489,59 @@
 ════════════════════════════════════════════════════════════════════════════ */
 .dark .theme-admin {
 
-  /* Page backgrounds */
+  /* ── Page & section backgrounds — stitch surface tokens ──────────────── */
   .bg-\[\#F8F9FA\], .bg-\[\#f8f9fa\],
   .bg-\[\#F8FAFC\], .bg-\[\#f8fafc\],
   .bg-\[\#F8F8F8\],
-  .bg-slate-50 { background-color: #0f172a !important; }
+  .bg-slate-50 { background-color: #080f18 !important; }
 
-  .bg-white { background-color: #1e293b !important; }
-  .bg-gray-50, .bg-gray-100 { background-color: #1e293b !important; }
-  .bg-slate-100 { background-color: #1e293b !important; }
-  .bg-slate-200 { background-color: #334155 !important; }
+  .bg-white    { background: rgba(13, 20, 29, 0.7) !important;
+                 backdrop-filter: blur(12px); }
+  .bg-gray-50  { background-color: #19202a !important; }
+  .bg-gray-100 { background-color: #151c26 !important; }
+  .bg-slate-100 { background-color: #151c26 !important; }
+  .bg-slate-200 { background-color: #242a34 !important; }
 
-  /* Text */
-  .text-gray-900, .text-slate-900, .text-\[\#0f172a\],
-  .text-\[\#1a1c1e\] { color: #f1f5f9 !important; }
+  /* ── Text — stitch on-surface / on-surface-variant ───────────────────── */
+  .text-gray-900, .text-slate-900,
+  .text-\[\#0f172a\], .text-\[\#1a1c1e\] { color: #dce3f0 !important; }
 
-  .text-gray-700, .text-slate-700 { color: #cbd5e1 !important; }
-  .text-gray-600, .text-slate-600 { color: #94a3b8 !important; }
-  .text-gray-500, .text-slate-500 { color: #64748b !important; }
-  .text-gray-400, .text-slate-400 { color: #475569 !important; }
+  .text-gray-700, .text-slate-700 { color: #dce3f0 !important; }
+  .text-gray-600, .text-slate-600 { color: #d0c5af !important; }
+  .text-gray-500, .text-slate-500 { color: #d0c5af !important; }
+  .text-gray-400, .text-slate-400 { color: #99907c !important; }
 
-  /* Borders */
+  /* ── Borders ──────────────────────────────────────────────────────────── */
   .border-gray-200, .border-slate-200,
   .border-\[\#e2e8f0\], .border-\[\#E2E8F0\] {
-    border-color: rgb(255 255 255 / 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
   }
   .border-gray-100, .border-slate-100 {
-    border-color: rgb(255 255 255 / 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
   }
 
-  /* Inputs & selects */
-  input:not([type="range"]):not([type="checkbox"]),
+  /* ── Inputs & selects ─────────────────────────────────────────────────── */
+  input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    background-color: #0f172a !important;
-    border-color: rgb(255 255 255 / 0.1) !important;
-    color: #f1f5f9 !important;
+    background-color: #080f18 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #dce3f0 !important;
   }
 
-  /* Table rows */
-  tr:hover { background-color: rgb(255 255 255 / 0.03) !important; }
-  thead th { background-color: #0f172a !important; color: #64748b !important; }
-  tbody td { border-color: rgb(255 255 255 / 0.05) !important; color: #cbd5e1 !important; }
+  /* ── Tables ───────────────────────────────────────────────────────────── */
+  tr:hover   { background-color: rgba(255, 255, 255, 0.03) !important; }
+  thead th   { background-color: #080f18 !important; color: #99907c !important; }
+  tbody td   { border-color: rgba(255, 255, 255, 0.05) !important; color: #dce3f0 !important; }
+  .divide-y > * { border-color: rgba(255, 255, 255, 0.05) !important; }
 
-  /* Inline bg utilities used in cards and badges */
-  .bg-emerald-50\/50 { background-color: rgb(6 78 59 / 0.2) !important; }
-  .bg-red-100 { background-color: rgb(127 29 29 / 0.4) !important; }
-  .bg-emerald-100 { background-color: rgb(6 78 59 / 0.3) !important; }
+  /* ── Badge & utility bg overrides ────────────────────────────────────── */
+  .bg-emerald-50\/50 { background-color: rgba(6, 78, 59, 0.2) !important; }
+  .bg-red-100        { background-color: rgba(127, 29, 29, 0.4) !important; }
+  .bg-emerald-100    { background-color: rgba(6, 78, 59, 0.3) !important; }
+
+  /* ── Shadows disappear in glass-dark mode ─────────────────────────────── */
+  .shadow-sm { box-shadow: none !important; }
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
