@@ -5,6 +5,8 @@ import { X, Download, Loader2, Shield, FileText, Eye, Handshake, ScrollText, Lan
 import { useNotificationStore } from "@/src/store/notification.store";
 import type { ToastItem } from "@/src/store/notification.store";
 
+// Stitch dark: glass rgba(15,23,42,0.6)+blur(12px)+border rgba(255,255,255,0.1), gold #d4af37
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type DocType = "agreement" | "contract" | "bank" | "legal";
@@ -17,7 +19,7 @@ interface Document {
   date: string;
   description: string;
   filename: string;
-  previewContent: string[];  // paragraphs to show in preview modal
+  previewContent: string[];
 }
 
 // ── Static data ────────────────────────────────────────────────────────────────
@@ -125,10 +127,10 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 const TYPE_BADGE: Record<DocType, { label: string; className: string }> = {
-  agreement: { label: "Agreement",   className: "bg-orange-50 text-orange-600" },
-  contract:  { label: "Contract",    className: "bg-blue-50 text-blue-600" },
-  bank:      { label: "Bank Detail", className: "bg-green-50 text-green-600" },
-  legal:     { label: "Legal",       className: "bg-purple-50 text-purple-600" },
+  agreement: { label: "Agreement",   className: "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400" },
+  contract:  { label: "Contract",    className: "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400" },
+  bank:      { label: "Bank Detail", className: "bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400" },
+  legal:     { label: "Legal",       className: "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400" },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -153,8 +155,8 @@ function DocIcon({ size = "sm" }: { size?: "sm" | "lg" }) {
   const cls = size === "lg" ? "w-12 h-12 rounded-xl" : "w-8 h-8 rounded";
   const icon = size === "lg" ? "w-6 h-6" : "w-4 h-4";
   return (
-    <div className={`${cls} bg-red-50 flex items-center justify-center shrink-0`}>
-      <svg className={`${icon} text-red-500`} fill="currentColor" viewBox="0 0 24 24">
+    <div className={`${cls} bg-red-50 dark:bg-red-500/10 flex items-center justify-center shrink-0`}>
+      <svg className={`${icon} text-red-500 dark:text-red-400`} fill="currentColor" viewBox="0 0 24 24">
         <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M13,9V3.5L18.5,9H13Z" />
       </svg>
     </div>
@@ -181,16 +183,14 @@ function PreviewModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
 
-      {/* Modal */}
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 dark:bg-[rgba(15,23,42,0.6)] dark:[backdrop-filter:blur(12px)] dark:border dark:border-[rgba(255,255,255,0.1)]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100 bg-[#0C1526] shrink-0">
+        {/* Header — already dark bg */}
+        <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100 bg-[#0C1526] shrink-0 dark:border-[rgba(255,255,255,0.1)]">
           <DocIcon size="lg" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-white truncate">{doc.name}</p>
@@ -222,14 +222,13 @@ function PreviewModal({
         </div>
 
         {/* Document body */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-slate-50/50 [scrollbar-width:thin] [scrollbar-color:#e2e8f0_transparent]">
-          {/* Paper effect */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-5">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 bg-slate-50/50 dark:bg-transparent [scrollbar-width:thin] [scrollbar-color:#e2e8f0_transparent]">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-5 dark:bg-[rgba(255,255,255,0.03)] dark:border-[rgba(255,255,255,0.1)]">
             {/* Watermark header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-[rgba(255,255,255,0.1)]">
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Aurum Sovereign Capital</p>
-                <p className="text-[11px] text-slate-400">Confidential · {doc.date}</p>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase tracking-widest">Aurum Sovereign Capital</p>
+                <p className="text-[11px] text-slate-400 dark:text-white/30">Confidential · {doc.date}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-[#0C1526] flex items-center justify-center">
                 <FileText className="size-3.5 text-[#D4AF37]" />
@@ -243,18 +242,18 @@ function PreviewModal({
               return (
                 <div key={i}>
                   {isTitle ? (
-                    <h2 className="text-lg font-extrabold text-slate-900 text-center tracking-wide">{para}</h2>
+                    <h2 className="text-lg font-extrabold text-slate-900 dark:text-white text-center tracking-wide">{para}</h2>
                   ) : isSectionHeading ? (
                     <div>
-                      <p className="text-[13px] font-bold text-slate-800 mb-1">{para.split("\n")[0]}</p>
+                      <p className="text-[13px] font-bold text-slate-800 dark:text-white/90 mb-1">{para.split("\n")[0]}</p>
                       {para.split("\n").slice(1).map((line, j) => (
-                        <p key={j} className="text-[13px] text-slate-600 leading-relaxed">{line}</p>
+                        <p key={j} className="text-[13px] text-slate-600 dark:text-white/60 leading-relaxed">{line}</p>
                       ))}
                     </div>
                   ) : (
                     <div>
                       {para.split("\n").map((line, j) => (
-                        <p key={j} className={`text-[13px] leading-relaxed ${line.startsWith("•") || line.startsWith("⚠") ? "text-slate-700" : "text-slate-600"}`}>
+                        <p key={j} className={`text-[13px] leading-relaxed dark:text-white/60 ${line.startsWith("•") || line.startsWith("⚠") ? "text-slate-700 dark:text-white/70" : "text-slate-600"}`}>
                           {line}
                         </p>
                       ))}
@@ -265,9 +264,9 @@ function PreviewModal({
             })}
 
             {/* Footer */}
-            <div className="pt-4 border-t border-slate-100 flex items-center gap-2">
-              <Shield className="size-3.5 text-slate-300 shrink-0" />
-              <p className="text-[10px] text-slate-400">Document ID: ASC-{doc.id.padStart(6, "0")} · Digitally signed · Aurum Sovereign Capital LLC</p>
+            <div className="pt-4 border-t border-slate-100 dark:border-[rgba(255,255,255,0.1)] flex items-center gap-2">
+              <Shield className="size-3.5 text-slate-300 dark:text-white/20 shrink-0" />
+              <p className="text-[10px] text-slate-400 dark:text-white/30">Document ID: ASC-{doc.id.padStart(6, "0")} · Digitally signed · Aurum Sovereign Capital LLC</p>
             </div>
           </div>
         </div>
@@ -313,17 +312,17 @@ export function LegalPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-[#f8fafc]">
+    <div className="p-4 sm:p-6 lg:p-8 bg-[#f8fafc] dark:bg-transparent">
       {/* Documents Guide modal */}
       {showGuide && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowGuide(false)}>
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
           <div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 dark:bg-[rgba(15,23,42,0.6)] dark:[backdrop-filter:blur(12px)] dark:border dark:border-[rgba(255,255,255,0.1)]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-[#0C1526] shrink-0">
+            {/* Header — already dark */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-[#0C1526] shrink-0 dark:border-[rgba(255,255,255,0.1)]">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-[#D4AF37]/15 flex items-center justify-center">
                   <FileText className="size-4 text-[#D4AF37]" />
@@ -384,24 +383,24 @@ export function LegalPage() {
               ].map((item, i) => {
                 const badge = TYPE_BADGE[item.type];
                 return (
-                  <div key={i} className="border border-slate-100 rounded-xl p-4 hover:border-slate-200 transition-colors">
+                  <div key={i} className="border border-slate-100 rounded-xl p-4 hover:border-slate-200 transition-colors dark:border-[rgba(255,255,255,0.1)] dark:hover:border-[rgba(255,255,255,0.2)]">
                     <div className="flex items-start gap-3 mb-3">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
-                        <item.Icon className="size-4 text-slate-500" />
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <item.Icon className="size-4 text-slate-500 dark:text-white/60" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <p className="text-[13px] font-bold text-slate-900">{item.title}</p>
+                          <p className="text-[13px] font-bold text-slate-900 dark:text-white">{item.title}</p>
                           <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md uppercase ${badge.className}`}>{badge.label}</span>
                         </div>
-                        <p className="text-[12px] text-slate-500">{item.what}</p>
+                        <p className="text-[12px] text-slate-500 dark:text-white/40">{item.what}</p>
                       </div>
                     </div>
                     <div className="ml-9 space-y-2">
-                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Contains</p>
+                      <p className="text-[11px] font-bold text-slate-400 dark:text-white/40 uppercase tracking-wide">Contains</p>
                       <ul className="space-y-1">
                         {item.contains.map((c) => (
-                          <li key={c} className="flex items-start gap-2 text-[12px] text-slate-600">
+                          <li key={c} className="flex items-start gap-2 text-[12px] text-slate-600 dark:text-white/60">
                             <svg className="w-2.5 h-2.5 text-[#D4AF37] mt-1 shrink-0" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                               <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
@@ -410,7 +409,7 @@ export function LegalPage() {
                         ))}
                       </ul>
                       <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-lg px-3 py-2 mt-2">
-                        <p className="text-[11px] text-[#9a7c3f] font-medium">{item.action}</p>
+                        <p className="text-[11px] text-[#9a7c3f] dark:text-[#d4af37]/80 font-medium">{item.action}</p>
                       </div>
                     </div>
                   </div>
@@ -434,12 +433,12 @@ export function LegalPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:justify-between mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1">My Contract</h1>
-          <p className="text-sm text-[#64748b]">View and download your agreements and important documents.</p>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mb-1">My Contract</h1>
+          <p className="text-sm text-[#64748b] dark:text-[#94a3b8]">View and download your agreements and important documents.</p>
         </div>
         <button
           onClick={() => setShowGuide(true)}
-          className="flex w-fit items-center gap-2 px-4 py-2 border border-[#d4af37] text-[#d4af37] rounded-lg text-sm font-semibold hover:bg-[#fdf6e3] transition-colors"
+          className="flex w-fit items-center gap-2 px-4 py-2 border border-[#d4af37] text-[#d4af37] rounded-lg text-sm font-semibold hover:bg-[#fdf6e3] transition-colors dark:hover:bg-[#d4af37]/10"
         >
           <FileText className="size-4" />
           Documents Guide
@@ -447,23 +446,23 @@ export function LegalPage() {
       </div>
 
       {/* Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#e2e8f0] overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-[#e2e8f0] overflow-hidden dark:bg-[rgba(15,23,42,0.6)] dark:[backdrop-filter:blur(12px)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-none">
 
-        {/* Tabs — overflow-y-hidden removes the vertical scrollbar */}
-        <div className="flex overflow-x-auto overflow-y-hidden border-b border-[#e2e8f0] px-4 sm:px-6 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* Tabs */}
+        <div className="flex overflow-x-auto overflow-y-hidden border-b border-[#e2e8f0] px-4 sm:px-6 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden dark:border-[rgba(255,255,255,0.1)]">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`shrink-0 px-3 sm:px-4 py-3 text-sm font-medium mr-2 sm:mr-4 transition-colors whitespace-nowrap ${
                 activeTab === tab.id
-                  ? "border-b-2 border-[#d4af37] text-[#050b14] font-semibold -mb-px"
-                  : "text-[#64748b] hover:text-slate-900"
+                  ? "border-b-2 border-[#d4af37] text-[#050b14] font-semibold -mb-px dark:text-[#d4af37]"
+                  : "text-[#64748b] hover:text-slate-900 dark:text-[#94a3b8] dark:hover:text-white"
               }`}
             >
               {tab.label}
               {tab.id !== "all" && (
-                <span className="ml-1.5 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium">
+                <span className="ml-1.5 text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-medium dark:bg-white/10 dark:text-white/40">
                   {DOCUMENTS.filter((d) => d.type === tab.id).length}
                 </span>
               )}
@@ -474,7 +473,7 @@ export function LegalPage() {
         {/* Document list */}
         <div className="p-4 sm:p-6">
           {filtered.length === 0 ? (
-            <div className="py-16 text-center text-[#64748b] text-sm">No documents in this category.</div>
+            <div className="py-16 text-center text-[#64748b] dark:text-[#94a3b8] text-sm">No documents in this category.</div>
           ) : (
             <>
               {/* ── Mobile cards ── */}
@@ -485,30 +484,30 @@ export function LegalPage() {
                     <div
                       key={doc.id}
                       onClick={() => setPreview(doc)}
-                      className="flex items-start gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50/50 cursor-pointer hover:border-[#d4af37]/30 hover:bg-[#fdf6e3]/30 transition-all"
+                      className="flex items-start gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50/50 cursor-pointer hover:border-[#d4af37]/30 hover:bg-[#fdf6e3]/30 transition-all dark:border-[rgba(255,255,255,0.08)] dark:bg-white/5 dark:hover:border-[#d4af37]/30 dark:hover:bg-[rgba(212,175,55,0.05)]"
                     >
                       <DocIcon />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <p className="text-[13px] font-semibold text-slate-900 leading-tight">{doc.name}</p>
+                          <p className="text-[13px] font-semibold text-slate-900 dark:text-white leading-tight">{doc.name}</p>
                           <span className={`shrink-0 px-2 py-0.5 text-[10px] font-bold rounded-md uppercase ${badge.className}`}>
                             {badge.label}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mb-2">{doc.description}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-white/40 mb-2">{doc.description}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] text-slate-400">{doc.date}</span>
+                          <span className="text-[11px] text-slate-400 dark:text-white/30">{doc.date}</span>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={(e) => { e.stopPropagation(); setPreview(doc); }}
-                              className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+                              className="flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 transition-colors dark:text-white/40 dark:hover:text-white"
                             >
                               <Eye className="size-3" /> Preview
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
                               disabled={downloading === doc.id}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 border border-[#d4af37] text-[#d4af37] text-xs font-bold rounded-lg hover:bg-[#fdf6e3] transition-colors disabled:opacity-60"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 border border-[#d4af37] text-[#d4af37] text-xs font-bold rounded-lg hover:bg-[#fdf6e3] transition-colors disabled:opacity-60 dark:hover:bg-[#d4af37]/10"
                             >
                               {downloading === doc.id
                                 ? <Loader2 className="size-3 animate-spin" />
@@ -526,7 +525,7 @@ export function LegalPage() {
               {/* ── Desktop table ── */}
               <table className="hidden md:table w-full text-left">
                 <thead>
-                  <tr className="text-[11px] uppercase tracking-wider text-[#64748b] border-b border-[#e2e8f0]">
+                  <tr className="text-[11px] uppercase tracking-wider text-[#64748b] dark:text-white/40 border-b border-[#e2e8f0] dark:border-[rgba(255,255,255,0.1)]">
                     <th className="pb-4 font-semibold">Document Name</th>
                     <th className="pb-4 font-semibold">Type</th>
                     <th className="pb-4 font-semibold">Date</th>
@@ -542,12 +541,12 @@ export function LegalPage() {
                       <tr
                         key={doc.id}
                         onClick={() => setPreview(doc)}
-                        className={`cursor-pointer transition-colors hover:bg-slate-50 ${!isLast ? "border-b border-slate-50" : ""}`}
+                        className={`cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-[rgba(255,255,255,0.03)] ${!isLast ? "border-b border-slate-50 dark:border-[rgba(255,255,255,0.05)]" : ""}`}
                       >
                         <td className="py-5">
                           <div className="flex items-center gap-3">
                             <DocIcon />
-                            <span className="font-medium text-slate-900">{doc.name}</span>
+                            <span className="font-medium text-slate-900 dark:text-slate-200">{doc.name}</span>
                           </div>
                         </td>
                         <td className="py-5">
@@ -555,20 +554,20 @@ export function LegalPage() {
                             {badge.label}
                           </span>
                         </td>
-                        <td className="py-5 text-[#64748b]">{doc.date}</td>
-                        <td className="py-5 text-[#64748b]">{doc.description}</td>
+                        <td className="py-5 text-[#64748b] dark:text-[#94a3b8]">{doc.date}</td>
+                        <td className="py-5 text-[#64748b] dark:text-[#94a3b8]">{doc.description}</td>
                         <td className="py-5 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={(e) => { e.stopPropagation(); setPreview(doc); }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors dark:text-white/40 dark:border-white/10 dark:hover:bg-white/5"
                             >
                               <Eye className="size-3.5" /> Preview
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDownload(doc); }}
                               disabled={downloading === doc.id}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[#d4af37] text-[#d4af37] text-xs font-bold rounded-lg hover:bg-[#fdf6e3] transition-colors disabled:opacity-60"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-[#d4af37] text-[#d4af37] text-xs font-bold rounded-lg hover:bg-[#fdf6e3] transition-colors disabled:opacity-60 dark:hover:bg-[#d4af37]/10"
                             >
                               {downloading === doc.id
                                 ? <Loader2 className="size-3.5 animate-spin" />
@@ -588,10 +587,10 @@ export function LegalPage() {
 
         {/* Trust banner */}
         <div className="px-4 sm:px-6 pb-6 pt-2">
-          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex items-center gap-3 text-xs text-slate-700">
-            <Shield className="w-5 h-5 text-blue-600 shrink-0" />
+          <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex items-center gap-3 text-xs text-slate-700 dark:bg-blue-900/20 dark:border-blue-500/30 dark:text-blue-200">
+            <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
             <span>
-              <strong className="text-blue-700">Your security and peace of mind are our priority.</strong>{" "}
+              <strong className="text-blue-700 dark:text-blue-300">Your security and peace of mind are our priority.</strong>{" "}
               All documents are legally verified and encrypted for your protection.
             </span>
           </div>
