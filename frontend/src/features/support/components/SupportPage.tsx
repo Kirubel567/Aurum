@@ -95,14 +95,14 @@ function TypingDots() {
   return (
     <div className="flex items-end gap-3 max-w-[80%]">
       {/* AI avatar */}
-      <div className="w-8 h-8 rounded-xl bg-[#0C1526] flex items-center justify-center shrink-0 mb-1 shadow-md">
-        <Sparkles className="size-3.5 text-[#D4AF37]" />
+      <div className="w-8 h-8 rounded-xl bg-[#0C1526] flex items-center justify-center shrink-0 mb-1 shadow-md dark:border dark:border-[#e9c349]/20">
+        <Sparkles className="size-3.5 text-[#D4AF37] dark:text-[#e9c349]" />
       </div>
-      <div className="bg-white border border-slate-100 shadow-sm rounded-2xl rounded-tl-sm px-4 py-3.5">
+      <div className="bg-white border border-slate-100 shadow-sm rounded-2xl rounded-tl-sm px-4 py-3.5 dark:bg-white/5 dark:border-white/5 dark:shadow-none">
         <div className="flex items-center gap-1">
-          <span className="w-2 h-2 bg-[#D4AF37] rounded-full animate-bounce [animation-delay:-0.32s]" />
-          <span className="w-2 h-2 bg-[#D4AF37] rounded-full animate-bounce [animation-delay:-0.16s]" />
-          <span className="w-2 h-2 bg-[#D4AF37] rounded-full animate-bounce" />
+          <span className="w-2 h-2 bg-[#D4AF37] dark:bg-[#e9c349] rounded-full animate-bounce [animation-delay:-0.32s]" />
+          <span className="w-2 h-2 bg-[#D4AF37] dark:bg-[#e9c349] rounded-full animate-bounce [animation-delay:-0.16s]" />
+          <span className="w-2 h-2 bg-[#D4AF37] dark:bg-[#e9c349] rounded-full animate-bounce" />
         </div>
       </div>
     </div>
@@ -117,14 +117,14 @@ function ChatBubble({ msg }: { msg: Message }) {
   if (msg.role === "ai") {
     return (
       <div className="flex items-end gap-3 max-w-[82%]">
-        <div className="w-8 h-8 rounded-xl bg-[#0C1526] flex items-center justify-center shrink-0 mb-1 shadow-md">
-          <Sparkles className="size-3.5 text-[#D4AF37]" />
+        <div className="w-8 h-8 rounded-xl bg-[#0C1526] flex items-center justify-center shrink-0 mb-1 shadow-md dark:border dark:border-[#e9c349]/20">
+          <Sparkles className="size-3.5 text-[#D4AF37] dark:text-[#e9c349]" />
         </div>
         <div className="flex flex-col gap-1">
-          <div className="bg-white border border-slate-100 shadow-sm rounded-2xl rounded-tl-sm px-4 py-3">
-            <p className="text-[13px] text-slate-800 leading-relaxed">{msg.text}</p>
+          <div className="bg-white border border-slate-100 shadow-sm rounded-2xl rounded-tl-sm px-4 py-3 dark:bg-white/5 dark:border-white/5 dark:shadow-none">
+            <p className="text-[13px] text-slate-800 leading-relaxed dark:text-white/90">{msg.text}</p>
           </div>
-          <span className="text-[10px] text-slate-400 ml-1">{msg.time}</span>
+          <span className="text-[10px] text-slate-400 ml-1 dark:text-white/30">{msg.time}</span>
         </div>
       </div>
     );
@@ -132,14 +132,14 @@ function ChatBubble({ msg }: { msg: Message }) {
 
   return (
     <div className="flex items-end gap-3 max-w-[82%] ml-auto flex-row-reverse">
-      <div className="w-8 h-8 rounded-xl bg-slate-200 flex items-center justify-center shrink-0 mb-1">
-        <User className="size-3.5 text-slate-500" />
+      <div className="w-8 h-8 rounded-xl bg-slate-200 flex items-center justify-center shrink-0 mb-1 dark:bg-white/10">
+        <User className="size-3.5 text-slate-500 dark:text-white/60" />
       </div>
       <div className="flex flex-col items-end gap-1">
         <div className="bg-[#0C1526] rounded-2xl rounded-tr-sm px-4 py-3 shadow-md shadow-slate-900/10">
           <p className="text-[13px] text-white/90 leading-relaxed">{msg.text}</p>
         </div>
-        <span className="text-[10px] text-slate-400 mr-1">{msg.time}</span>
+        <span className="text-[10px] text-slate-400 mr-1 dark:text-white/30">{msg.time}</span>
       </div>
     </div>
   );
@@ -158,21 +158,21 @@ function QuickCard({
       className={cn(
         "w-full text-left px-4 py-4 rounded-2xl border transition-all group flex items-center gap-4",
         dark
-          ? "bg-[#0C1526] border-[#0C1526] hover:bg-[#111d35] shadow-lg"
-          : "bg-white border-slate-100 shadow-sm hover:border-[#D4AF37]/30 hover:shadow-md hover:bg-[#D4AF37]/3"
+          ? "bg-[#0C1526] border-[#0C1526] hover:bg-[#111d35] shadow-lg dark:bg-[#1c2a45] dark:border-white/10 dark:hover:bg-[#243450]"
+          : "bg-white border-slate-100 shadow-sm hover:border-[#D4AF37]/30 hover:shadow-md hover:bg-[#D4AF37]/3 dark:bg-white/5 dark:border-white/5 dark:shadow-none dark:hover:bg-white/[0.07]"
       )}
     >
       <div className={cn(
         "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-        dark ? "bg-[#D4AF37]/15" : "bg-slate-100 group-hover:bg-[#D4AF37]/10"
+        dark ? "bg-[#D4AF37]/15 dark:bg-[#e9c349]/15" : "bg-slate-100 group-hover:bg-[#D4AF37]/10 dark:bg-white/10 dark:group-hover:bg-[#e9c349]/10"
       )}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={cn("text-[13px] font-bold leading-tight", dark ? "text-white" : "text-slate-800")}>{label}</p>
-        <p className={cn("text-[11px] mt-0.5 leading-tight", dark ? "text-slate-400" : "text-slate-400")}>{desc}</p>
+        <p className={cn("text-[13px] font-bold leading-tight", dark ? "text-white" : "text-slate-800 dark:text-white")}>{label}</p>
+        <p className={cn("text-[11px] mt-0.5 leading-tight", dark ? "text-slate-400" : "text-slate-400 dark:text-white/40")}>{desc}</p>
       </div>
-      <ChevronRight className={cn("size-4 shrink-0 transition-transform group-hover:translate-x-0.5", dark ? "text-[#D4AF37]" : "text-slate-300 group-hover:text-slate-500")} />
+      <ChevronRight className={cn("size-4 shrink-0 transition-transform group-hover:translate-x-0.5", dark ? "text-[#D4AF37] dark:text-[#e9c349]" : "text-slate-300 group-hover:text-slate-500 dark:text-white/20 dark:group-hover:text-white/40")} />
     </button>
   );
 }
@@ -287,13 +287,13 @@ export function SupportPage() {
             <div className="w-7 h-7 rounded-lg bg-[#0C1526] flex items-center justify-center">
               <Sparkles className="size-3.5 text-[#D4AF37]" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">AI Support</h2>
-            <span className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">AI Support</h2>
+            <span className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full dark:bg-emerald-500/10 dark:border-emerald-500/20">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-[10px] font-bold text-emerald-700">24 / 7</span>
+              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">24 / 7</span>
             </span>
           </div>
-          <p className="text-slate-500 text-sm">Instant answers on deposits, performance, and portfolio strategy.</p>
+          <p className="text-slate-500 text-sm dark:text-white/40">Instant answers on deposits, performance, and portfolio strategy.</p>
         </div>
 
         <div className="grid grid-cols-12 gap-5">
@@ -301,13 +301,13 @@ export function SupportPage() {
           {/* ── Chat (9 cols) ── */}
           <div className="col-span-12 lg:col-span-9 flex flex-col">
             <div
-              className="rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden"
+              className="rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden dark:bg-[rgba(255,255,255,0.03)] dark:[backdrop-filter:blur(12px)] dark:border-[rgba(255,255,255,0.05)] dark:shadow-none"
               style={{ height: "clamp(500px, 70vh, 700px)" }}
             >
               {/* Chat header */}
-              <div className="flex items-center gap-4 px-5 py-4 border-b border-slate-100 bg-[#0C1526] shrink-0">
-                <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/20 flex items-center justify-center shrink-0">
-                  <Sparkles className="size-4 text-[#D4AF37]" />
+              <div className="flex items-center gap-4 px-5 py-4 border-b border-slate-100 bg-[#0C1526] shrink-0 dark:border-white/5 dark:bg-white/[0.02]">
+                <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/20 flex items-center justify-center shrink-0 dark:bg-[#e9c349]/15 dark:border-[#e9c349]/20">
+                  <Sparkles className="size-4 text-[#D4AF37] dark:text-[#e9c349]" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-white leading-none">Aurum Core AI</p>
@@ -325,19 +325,19 @@ export function SupportPage() {
                     <MoreVertical className="size-4 text-slate-400" />
                   </button>
                   {menuOpen && (
-                    <div className="absolute right-0 top-10 bg-white border border-slate-100 rounded-xl shadow-xl z-20 w-40 py-1.5 text-sm overflow-hidden">
+                    <div className="absolute right-0 top-10 bg-white border border-slate-100 rounded-xl shadow-xl z-20 w-40 py-1.5 text-sm overflow-hidden dark:bg-[#1f2937] dark:border-white/10 dark:shadow-2xl">
                       <button
                         onClick={clearHistory}
-                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 font-medium flex items-center gap-2.5 transition-colors"
+                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 font-medium flex items-center gap-2.5 transition-colors dark:hover:bg-white/5 dark:text-white/80"
                       >
-                        <Trash2 className="size-3.5 text-slate-400" />
+                        <Trash2 className="size-3.5 text-slate-400 dark:text-white/40" />
                         Clear chat
                       </button>
                       <button
                         onClick={exportChat}
-                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 font-medium flex items-center gap-2.5 transition-colors"
+                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 font-medium flex items-center gap-2.5 transition-colors dark:hover:bg-white/5 dark:text-white/80"
                       >
-                        <Download className="size-3.5 text-slate-400" />
+                        <Download className="size-3.5 text-slate-400 dark:text-white/40" />
                         Export chat
                       </button>
                     </div>
@@ -348,7 +348,7 @@ export function SupportPage() {
               {/* Messages */}
               <div
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto px-5 py-5 space-y-4 bg-slate-50/40 [scrollbar-width:thin] [scrollbar-color:#e2e8f0_transparent]"
+                className="flex-1 overflow-y-auto px-5 py-5 space-y-4 bg-slate-50/40 [scrollbar-width:thin] [scrollbar-color:#e2e8f0_transparent] dark:bg-black/10"
               >
                 {messages.map((msg) => <ChatBubble key={msg.id} msg={msg} />)}
 
@@ -359,7 +359,7 @@ export function SupportPage() {
                       <button
                         key={s}
                         onClick={() => sendMessage(s)}
-                        className="text-[12px] font-medium text-slate-600 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full hover:border-[#D4AF37]/50 hover:text-[#9a7c3f] hover:bg-[#D4AF37]/5 transition-all"
+                        className="text-[12px] font-medium text-slate-600 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full hover:border-[#D4AF37]/50 hover:text-[#9a7c3f] hover:bg-[#D4AF37]/5 transition-all dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:border-[#e9c349]/50 dark:hover:text-[#e9c349] dark:hover:bg-[#e9c349]/10"
                       >
                         {s}
                       </button>
@@ -369,20 +369,21 @@ export function SupportPage() {
               </div>
 
               {/* Input */}
-              <div className="shrink-0 px-4 py-3.5 bg-white border-t border-slate-100">
+              <div className="shrink-0 px-4 py-3.5 bg-white border-t border-slate-100 dark:bg-white/[0.02] dark:border-white/5">
                 {/* Attached file pill */}
                 {attachedFile && (
-                  <div className="flex items-center gap-2 mb-2 bg-[#D4AF37]/10 border border-[#D4AF37]/20 px-3 py-1.5 rounded-lg w-fit max-w-full">
-                    <Paperclip className="size-3 text-[#9a7c3f] shrink-0" />
-                    <span className="text-[11px] font-medium text-[#9a7c3f] truncate max-w-[200px]">{attachedFile}</span>
+                  <div className="flex items-center gap-2 mb-2 bg-[#D4AF37]/10 border border-[#D4AF37]/20 px-3 py-1.5 rounded-lg w-fit max-w-full dark:bg-[#e9c349]/10 dark:border-[#e9c349]/20">
+                    <Paperclip className="size-3 text-[#9a7c3f] shrink-0 dark:text-[#e9c349]" />
+                    <span className="text-[11px] font-medium text-[#9a7c3f] truncate max-w-[200px] dark:text-[#e9c349]">{attachedFile}</span>
                     <button onClick={() => setAttachedFile(null)} className="ml-1 shrink-0">
-                      <X className="size-3 text-[#9a7c3f] hover:text-[#6b5520] transition-colors" />
+                      <X className="size-3 text-[#9a7c3f] hover:text-[#6b5520] transition-colors dark:text-[#e9c349] dark:hover:text-white" />
                     </button>
                   </div>
                 )}
                 <div className={cn(
                   "flex items-center gap-3 bg-slate-50 border rounded-xl px-4 py-2.5 transition-all",
-                  "focus-within:border-[#D4AF37]/50 focus-within:ring-2 focus-within:ring-[#D4AF37]/10 border-slate-200"
+                  "focus-within:border-[#D4AF37]/50 focus-within:ring-2 focus-within:ring-[#D4AF37]/10 border-slate-200",
+                  "dark:bg-[#050b14] dark:border-white/10 dark:focus-within:border-[#e9c349]/50 dark:focus-within:ring-[#e9c349]/10"
                 )}>
                   {/* Hidden real file input */}
                   <input
@@ -395,7 +396,7 @@ export function SupportPage() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     title="Attach file"
-                    className="shrink-0 hover:text-[#D4AF37] transition-colors"
+                    className="shrink-0 hover:text-[#D4AF37] transition-colors dark:text-white/40 dark:hover:text-[#e9c349]"
                   >
                     <Paperclip className="size-4 text-slate-400" />
                   </button>
@@ -407,7 +408,7 @@ export function SupportPage() {
                     onKeyDown={(e) => { if (e.key === "Enter") sendMessage(); }}
                     disabled={busy}
                     placeholder="Ask about your portfolio, deposits, or strategy…"
-                    className="flex-1 bg-transparent text-[13px] text-slate-800 placeholder:text-slate-400 outline-none disabled:opacity-50"
+                    className="flex-1 bg-transparent text-[13px] text-slate-800 placeholder:text-slate-400 outline-none disabled:opacity-50 dark:text-white dark:placeholder:text-white/30"
                   />
                   <button
                     onClick={() => sendMessage()}
@@ -415,15 +416,15 @@ export function SupportPage() {
                     className={cn(
                       "flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0",
                       input.trim() && !busy
-                        ? "bg-[#D4AF37] text-[#0C1526] hover:bg-[#c9a030] active:scale-95"
-                        : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                        ? "bg-[#D4AF37] text-[#0C1526] hover:bg-[#c9a030] active:scale-95 dark:bg-[#e9c349] dark:hover:bg-[#f0d275]"
+                        : "bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-white/10 dark:text-white/30"
                     )}
                   >
                     <Send className="size-3.5" />
                     Send
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-400 text-center mt-1.5">
+                <p className="text-[10px] text-slate-400 text-center mt-1.5 dark:text-white/30">
                   AI responses are informational only · Not financial advice
                 </p>
               </div>
@@ -432,7 +433,7 @@ export function SupportPage() {
 
           {/* ── Sidebar (3 cols) ── */}
           <div className="col-span-12 lg:col-span-3 space-y-3">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-0.5">Quick Actions</p>
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-0.5 dark:text-white/40">Quick Actions</p>
 
             <QuickCard
               icon={<ShieldCheck className="size-4 text-slate-500 group-hover:text-[#D4AF37] transition-colors" />}
@@ -461,8 +462,8 @@ export function SupportPage() {
             />
 
             {/* Status widget */}
-            <div className="bg-white border border-slate-100 shadow-sm rounded-2xl px-4 py-4 mt-1">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Support Status</p>
+            <div className="bg-white border border-slate-100 shadow-sm rounded-2xl px-4 py-4 mt-1 dark:bg-white/5 dark:border-white/5 dark:shadow-none">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 dark:text-white/40">Support Status</p>
               <div className="space-y-2.5">
                 {[
                   { label: "AI Response", value: "Instant", ok: true },
@@ -470,12 +471,12 @@ export function SupportPage() {
                   { label: "Avg. reply time", value: "~1 hour", ok: null },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between">
-                    <span className="text-[12px] text-slate-500">{item.label}</span>
+                    <span className="text-[12px] text-slate-500 dark:text-white/40">{item.label}</span>
                     <div className="flex items-center gap-1.5">
                       {item.ok !== null && (
-                        <span className={cn("w-1.5 h-1.5 rounded-full", item.ok ? "bg-emerald-500 animate-pulse" : "bg-slate-300")} />
+                        <span className={cn("w-1.5 h-1.5 rounded-full", item.ok ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-white/20")} />
                       )}
-                      <span className={cn("text-[12px] font-semibold", item.ok ? "text-emerald-600" : "text-slate-600")}>{item.value}</span>
+                      <span className={cn("text-[12px] font-semibold", item.ok ? "text-emerald-600 dark:text-emerald-400" : "text-slate-600 dark:text-white/60")}>{item.value}</span>
                     </div>
                   </div>
                 ))}
