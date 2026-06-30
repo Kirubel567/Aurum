@@ -9,7 +9,6 @@ import type { DashboardMetrics } from "@/src/types/dashboard.types";
 import { cn } from "@/lib/utils";
 
 // ── Per-period mock overrides ─────────────────────────────────────────────────
-// These delta values make the period selector feel live without a real API.
 const PERIOD_DATA: Record<
   string,
   {
@@ -101,12 +100,18 @@ function Sparkline({ points }: { points: { value: number }[] }) {
     <svg className="mb-6 h-24 w-full" preserveAspectRatio="none" viewBox="0 0 200 80">
       <defs>
         <linearGradient id="sparklineFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#c4a24d" stopOpacity={0.3} />
+          <stop offset="100%" stopColor="#c4a24d" stopOpacity={0} />
+        </linearGradient>
+        <linearGradient id="sparklineFillLight" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
           <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
         </linearGradient>
       </defs>
-      <path d={area} fill="url(#sparklineFill)" />
-      <path d={path} fill="none" stroke="#10b981" strokeWidth={3} />
+      <path className="hidden dark:block" d={area} fill="url(#sparklineFill)" />
+      <path className="dark:hidden" d={area} fill="url(#sparklineFillLight)" />
+      <path className="dark:hidden" d={path} fill="none" stroke="#10b981" strokeWidth={3} />
+      <path className="hidden dark:block" d={path} fill="none" stroke="#c4a24d" strokeWidth={3} style={{ filter: "drop-shadow(0 0 4px rgba(196,162,77,0.6))" }} />
     </svg>
   );
 }
@@ -123,7 +128,7 @@ function DonutChart({
   return (
     <div className="relative flex size-24 items-center justify-center">
       <svg className="size-full -rotate-90" viewBox="0 0 96 96">
-        <circle cx="48" cy="48" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="12" />
+        <circle cx="48" cy="48" r={radius} fill="none" className="stroke-gray-200 dark:stroke-white/10" strokeWidth="12" />
         {segments.map((segment) => {
           const dash = (segment.percent / 100) * circumference;
           const circle = (
@@ -154,25 +159,25 @@ export function MetricsRow({ metrics, period }: MetricsRowProps) {
   return (
     <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
 
-      {/* ── Card 1: Fund Performance ───────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl bg-[#050b14] p-6 text-white">
+      {/* ── Card 1: Fund Performance ── always dark bg per stitch */}
+      <div className="relative overflow-hidden rounded-2xl bg-[#050b14] p-6 text-white border border-white/5 dark:border-[#c4a24d]/30">
         <div className="mb-6 flex items-start justify-between">
           <div>
             <Link
               href={ROUTES.ORDERS}
-              className="mb-1 flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+              className="mb-1 flex items-center gap-1.5 text-sm font-medium text-white/40 hover:text-white transition-colors"
             >
               Fund Performance
               <ExternalLink className="size-3 flex-shrink-0" />
             </Link>
-            <div className="text-2xl font-bold text-[#10b981]">
+            <div className="text-2xl font-bold text-[#c4a24d]">
               +{pd.ytdPercent}%{" "}
-              <span className="text-xs font-medium opacity-70">{pd.label}</span>
+              <span className="text-xs font-medium opacity-50">{pd.label}</span>
             </div>
           </div>
           <Link
             href={ROUTES.ORDERS}
-            className="rounded border border-[#10b981]/30 bg-[#10b981]/20 px-2 py-1 text-[10px] font-bold text-[#10b981] hover:bg-[#10b981]/30 transition-colors"
+            className="rounded border border-[#c4a24d]/30 bg-[#c4a24d]/20 px-2 py-1 text-[10px] font-bold text-[#c4a24d] hover:bg-[#c4a24d]/30 transition-colors"
           >
             Live Performance
           </Link>
@@ -180,13 +185,13 @@ export function MetricsRow({ metrics, period }: MetricsRowProps) {
         <Sparkline points={pd.sparkline} />
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <div className="mb-1 text-[10px] font-bold text-gray-500 uppercase">
+            <div className="mb-1 text-[10px] font-bold text-white/40 uppercase">
               Total Profit
             </div>
             <div className="text-xl font-extrabold">{formatUSD(pd.totalProfit)}</div>
           </div>
           <div>
-            <div className="mb-1 text-[10px] font-bold text-gray-500 uppercase">
+            <div className="mb-1 text-[10px] font-bold text-white/40 uppercase">
               Net Return
             </div>
             <div className="text-xl font-extrabold">{formatUSD(pd.netReturn)}</div>
@@ -194,27 +199,27 @@ export function MetricsRow({ metrics, period }: MetricsRowProps) {
         </div>
       </div>
 
-      {/* ── Card 2: Account Overview ───────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <h3 className="mb-6 text-sm font-bold text-gray-900">Account Overview</h3>
+      {/* ── Card 2: Account Overview ── */}
+      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)] dark:[backdrop-filter:blur(20px)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-none">
+        <h3 className="mb-6 text-sm font-bold text-gray-900 dark:text-white">Account Overview</h3>
         <div className="mb-4">
-          <div className="mb-1 text-[10px] font-bold text-gray-400 uppercase">
+          <div className="mb-1 text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase">
             Available for Trading
           </div>
-          <div className="text-3xl font-extrabold text-gray-900">
+          <div className="text-3xl font-extrabold text-gray-900 dark:text-white">
             {formatUSD(accountOverview.availableForTrading)}
           </div>
         </div>
-        <div className="mb-6 rounded-r-lg border-l-4 border-[#C5A059] bg-[#C5A059]/10 p-3">
-          <div className="text-[10px] font-extrabold text-[#C5A059] uppercase">
+        <div className="mb-6 rounded-r-lg border-l-4 border-[#C5A059] bg-[#C5A059]/10 p-3 dark:bg-[#c4a24d]/10">
+          <div className="text-[10px] font-extrabold text-[#C5A059] dark:text-[#c4a24d] uppercase">
             Open Positions
           </div>
-          <div className="text-lg font-bold text-gray-900">
+          <div className="text-lg font-bold text-gray-900 dark:text-white">
             {formatUSD(accountOverview.openPositions)}
           </div>
         </div>
         <div>
-          <div className="mb-1 text-[10px] font-bold text-gray-400 uppercase">
+          <div className="mb-1 text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase">
             {pd.gainLossLabel}
           </div>
           <div className={cn("text-xl font-bold", pd.positive ? "text-[#10b981]" : "text-red-500")}>
@@ -223,22 +228,22 @@ export function MetricsRow({ metrics, period }: MetricsRowProps) {
         </div>
       </div>
 
-      {/* ── Card 3: Active Investments ─────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <h3 className="mb-6 text-sm font-bold text-gray-900">Active Investments</h3>
+      {/* ── Card 3: Active Investments ── */}
+      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)] dark:[backdrop-filter:blur(20px)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-none">
+        <h3 className="mb-6 text-sm font-bold text-gray-900 dark:text-white">Active Investments</h3>
         <div className="flex flex-col items-center gap-6">
           <DonutChart segments={strategyAllocation} />
           <div className="w-full space-y-3">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+            <div className="text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase tracking-wider">
               Strategy Allocation
             </div>
             {strategyAllocation.map((item) => (
               <div key={item.name} className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-2 font-semibold text-gray-600">
+                <span className="flex items-center gap-2 font-semibold text-gray-600 dark:text-white/80">
                   <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} />
                   {item.name}
                 </span>
-                <span className="font-bold text-gray-900">{item.percent}%</span>
+                <span className="font-bold text-gray-900 dark:text-white">{item.percent}%</span>
               </div>
             ))}
           </div>
@@ -254,20 +259,20 @@ export function DashboardInfoBanner({
   allocatedBalance: number;
 }) {
   return (
-    <div className="mb-6 flex flex-col items-start justify-between gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center">
+    <div className="mb-6 flex flex-col items-start justify-between gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4 sm:flex-row sm:items-center dark:bg-[#c4a24d]/10 dark:border-[#c4a24d]/20">
       <div className="flex items-start gap-3 sm:items-center">
-        <div className="flex size-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">
+        <div className="flex size-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 dark:bg-[#c4a24d] text-xs font-bold text-white dark:text-[#050b14]">
           i
         </div>
-        <p className="text-sm text-blue-900">
+        <p className="text-sm text-blue-900 dark:text-white/80">
           Your allocated wallet balance of{" "}
-          <span className="font-bold">{formatUSD(allocatedBalance)}</span> is NOT
+          <span className="font-bold dark:text-[#c4a24d]">{formatUSD(allocatedBalance)}</span> is NOT
           used for trading. It is for withdrawals and personal use only.
         </p>
       </div>
       <Link
         href={ROUTES.WALLET}
-        className="shrink-0 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+        className="shrink-0 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-bold text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:bg-white/10 dark:border-white/20 dark:text-white dark:hover:bg-white/20"
       >
         View Wallet
       </Link>
@@ -286,8 +291,8 @@ export function PeriodSelector({
 
   return (
     <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
-      <span className="font-medium text-gray-500">Performance Period:</span>
-      <div className="flex gap-1 rounded-lg border border-gray-100 bg-white p-1">
+      <span className="font-medium text-gray-500 dark:text-white/40">Performance Period:</span>
+      <div className="flex gap-1 rounded-lg border border-gray-100 bg-white p-1 dark:bg-white/5 dark:border-white/10">
         {periods.map((period) => (
           <button
             key={period}
@@ -296,8 +301,8 @@ export function PeriodSelector({
             className={cn(
               "rounded-md px-3 py-1 text-xs font-semibold transition-colors",
               active === period.toLowerCase()
-                ? "bg-[#C5A059]/10 font-bold text-[#C5A059]"
-                : "text-gray-400 hover:bg-gray-50"
+                ? "bg-[#C5A059]/10 font-bold text-[#C5A059] dark:bg-[#c4a24d] dark:text-[#050b14]"
+                : "text-gray-400 hover:bg-gray-50 dark:text-white/40 dark:hover:bg-white/5"
             )}
           >
             {period}

@@ -26,14 +26,14 @@ export function DashboardFooterBadges({ badges }: DashboardFooterBadgesProps) {
         return (
           <div
             key={badge.title}
-            className="flex items-center gap-4 rounded-xl border border-[#E2E8F0] bg-white p-4 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]"
+            className="flex items-center gap-4 rounded-xl border border-[#E2E8F0] bg-white p-4 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)] dark:[backdrop-filter:blur(20px)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-none"
           >
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-50">
-              <Icon className="size-5 text-blue-600" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-[#c4a24d]/10">
+              <Icon className="size-5 text-blue-600 dark:text-[#c4a24d]" />
             </div>
             <div>
-              <div className="text-xs font-bold text-gray-900">{badge.title}</div>
-              <div className="text-[10px] leading-tight text-gray-500">
+              <div className="text-xs font-bold text-gray-900 dark:text-white">{badge.title}</div>
+              <div className="text-[10px] leading-tight text-gray-500 dark:text-white/40">
                 {badge.description}
               </div>
             </div>

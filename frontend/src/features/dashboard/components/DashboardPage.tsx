@@ -33,7 +33,7 @@ export function DashboardPage() {
   return (
     <div className="px-8 py-6 xl:px-10">
       <div className="mb-8">
-        <h2 className="mb-4 text-3xl font-extrabold text-gray-900">
+        <h2 className="mb-4 text-3xl font-extrabold text-gray-900 dark:text-white">
           My Dashboard
         </h2>
         <PeriodSelector active={period} onChange={setPeriod} />

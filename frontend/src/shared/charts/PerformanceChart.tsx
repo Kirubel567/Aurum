@@ -39,7 +39,12 @@ export function PerformanceChart({
               <stop offset="100%" stopColor={STATUS_COLORS.negative} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#f1f5f9" vertical={false} />
+          <CartesianGrid
+            stroke="currentColor"
+            strokeOpacity={0.5}
+            vertical={false}
+            className="text-gray-100 dark:text-white/10"
+          />
           <XAxis
             dataKey="date"
             tick={{ fontSize: 10, fill: "#94a3b8" }}

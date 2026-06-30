@@ -16,7 +16,7 @@ export function InvestorShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="flex h-screen overflow-hidden w-full bg-[#F3F4F6]">
+    <div className="flex h-screen overflow-hidden w-full bg-[#F3F4F6] dark:bg-[#050b14]">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
