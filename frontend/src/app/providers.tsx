@@ -21,7 +21,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PageTransition>{children}</PageTransition>
+      <PageTransition className="h-full">{children}</PageTransition>
       <ToastContainer />
     </QueryClientProvider>
   );

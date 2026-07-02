@@ -3,5 +3,5 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="theme-investor bg-[#020617] min-h-full overflow-y-auto">{children}</div>;
+  return <div className="theme-investor bg-[#020617] h-full overflow-y-auto">{children}</div>;
 }
