@@ -429,9 +429,9 @@ export default function UserManagementPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total Users",          value: (users.length + 12838).toLocaleString(), sub: "+4% MoM",  subColor: "text-[#059669] dark:text-[#4edea3]", icon: "group",          accentL: "", accentD: "" },
-          { label: "Pending KYC",          value: String(users.filter((u) => u.status === "Pending").length + 40), sub: "Urgent", subColor: "text-[#dc2626] dark:text-[#ffb4ab]", icon: "assignment_late", accentL: "border-l-4 border-l-[#dc2626]", accentD: "dark:border-l-[#ffb4ab]" },
+          { label: "Pending KYC",          value: String(users.filter((u) => u.status === "Pending").length + 40), sub: "Urgent", subColor: "text-[#dc2626] dark:text-[#ffb4ab]", icon: "assignment_late", accentL: "border-l-4! border-l-[#dc2626]!", accentD: "dark:border-l-[#ffb4ab]!" },
           { label: "Verified Institutions",value: "856",   sub: "Tier 3",  subColor: "text-[#d4af37] dark:text-[#f2ca50]", icon: "corporate_fare", accentL: "", accentD: "" },
-          { label: "Active Sessions",       value: activeSessions.toLocaleString(), sub: "Live", subColor: "text-[#059669] dark:text-[#4edea3] animate-pulse", icon: "sensors", accentL: "border-l-4 border-l-[#059669]", accentD: "dark:border-l-[#4edea3]" },
+          { label: "Active Sessions",       value: activeSessions.toLocaleString(), sub: "Live", subColor: "text-[#059669] dark:text-[#4edea3] animate-pulse", icon: "sensors", accentL: "border-l-4! border-l-[#059669]!", accentD: "dark:border-l-[#4edea3]!" },
         ].map((c) => (
           <div key={c.label} className={`glass-panel ${gp} p-6 rounded-xl relative overflow-hidden group ${c.accentL} ${c.accentD}`}>
             <p className="font-label-caps text-label-caps text-[#64748b] dark:text-[#d0c5af] mb-2 uppercase">{c.label}</p>
