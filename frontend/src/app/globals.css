@@ -324,11 +324,11 @@
   }
 
   .glass-panel {
-    @apply rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-md;
+    @apply rounded-xl border border-slate-200 bg-white backdrop-blur-md dark:border-white/[0.08] dark:bg-white/[0.03];
   }
 
   .glass-panel-xl {
-    @apply rounded-xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl;
+    @apply rounded-xl border border-slate-200 bg-white backdrop-blur-xl dark:border-white/[0.08] dark:bg-white/[0.03];
   }
 
   .gold-glow {
