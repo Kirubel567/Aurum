@@ -1,5 +1,5 @@
 export const MAX_PROOF_FILE_BYTES = 10 * 1024 * 1024;
-export const MIN_DEPOSIT_AMOUNT_USD = 1200;
+export const MIN_DEPOSIT_AMOUNT_USD = 1350;
 
 export const ALLOWED_PROOF_MIME_TYPES = new Set([
   "application/pdf",

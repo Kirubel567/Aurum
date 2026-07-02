@@ -81,7 +81,7 @@ async function dispatchEmail(options: SendEmailOptions): Promise<void> {
 // ── Shared layout shell (light mode) ─────────────────────────────────────────
 
 function shell(previewText: string, body: string): string {
-  const logoUrl = `${resolveAppBaseUrl()}/brand/aurum-icon-gold.png`;
+  const logoUrl = "https://aurumsovereigncapital.com/brand/aurum-icon-gold.png";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -239,7 +239,7 @@ export async function sendEmailConfirmedEmail(
       ${p("You can now sign in to view your sovereign deposit instructions, select your preferred banking institution, and submit your payment proof for audit verification.")}
       ${infoTable(
         infoRow("Next Step", "Sign in and initiate your bank transfer") +
-        infoRow("Minimum Deposit", "USD 1,200") +
+        infoRow("Minimum Deposit", "USD 1,350") +
         infoRow("Verification Timeline", "Within 24–48 hours of receipt submission")
       )}
       ${notice("The platform launch date will be communicated to all verified investors via email before trading begins.")}

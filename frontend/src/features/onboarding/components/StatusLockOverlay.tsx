@@ -44,9 +44,10 @@ export function StatusLockOverlay({
   const searchParams = useSearchParams();
   const justVerified = searchParams.get("emailVerified") === "1";
   const [showVerifiedBanner, setShowVerifiedBanner] = useState(justVerified);
-  const [step, setStep] = useState<DepositStep>(() =>
-    resolveInitialStep(depositStatus, emailVerified)
-  );
+  const [step, setStep] = useState<DepositStep>(() => {
+    if (justVerified) return depositStatus === "rejected" ? "upload" : "coordinates";
+    return resolveInitialStep(depositStatus, emailVerified);
+  });
   const [depositAmount, setDepositAmount] = useState("");
   const [signingOut, setSigningOut] = useState(false);
 

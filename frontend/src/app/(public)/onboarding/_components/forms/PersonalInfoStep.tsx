@@ -118,6 +118,7 @@ export function PersonalInfoStep({
             icon={<Calendar className="size-4" />}
             value={data.dateOfBirth}
             onChange={(e) => onChange("dateOfBirth", e.target.value)}
+            onFocus={(e) => (e.target as HTMLInputElement).showPicker?.()}
             error={errors.dateOfBirth}
           />
         </div>

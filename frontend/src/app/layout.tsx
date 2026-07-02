@@ -17,6 +17,10 @@ const plusJakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Aurum Sovereign Capital",
   description: "Institutional investment management platform",
+  icons: {
+    icon: "/brand/aurum-icon-gold.png",
+    apple: "/brand/aurum-icon-gold.png",
+  },
 };
 
 export default function RootLayout({

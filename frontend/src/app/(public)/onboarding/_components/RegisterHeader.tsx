@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, Globe } from "lucide-react";
 
 import { ROUTES } from "@/src/lib/constants/routes";
 import { cn } from "@/lib/utils";
@@ -37,14 +36,6 @@ export function RegisterHeader({
         >
           {variant === "register" ? "Sign In" : "Register"}
         </Link>
-        <button
-          type="button"
-          className="hidden items-center gap-1 text-sm font-medium text-slate-400 transition-colors hover:text-[#e9c349] sm:flex"
-        >
-          <Globe className="size-3.5" />
-          <span className="text-xs">EN</span>
-          <ChevronDown className="size-3.5" />
-        </button>
       </div>
     </header>
   );

@@ -14,7 +14,7 @@ export function StepIndicator({ activeStep }: StepIndicatorProps) {
   return (
     <div className="relative mb-7 flex items-start justify-between gap-2">
       {/* Connector line */}
-      <div className="absolute top-[18px] right-8 left-8 z-0 h-px bg-slate-200" />
+      <div className="absolute top-[18px] right-1/6 left-1/6 z-0 h-px bg-slate-200" />
 
       {REGISTRATION_STEPS.map((step) => {
         const isActive = step.id === activeStep;
