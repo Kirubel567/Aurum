@@ -1,7 +1,22 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { ChevronDown, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, Loader2, RefreshCw, Search, X } from "lucide-react";
+
+import { useSessionHydration } from "@/src/hooks/useSessionHydration";
+import { useAdminUserSearch } from "@/src/features/notifications/hooks/useNotifications";
+import {
+  fetchMarketPrice,
+  useClosePosition,
+  useConsoleExecutions,
+  useMyAssignedInvestors,
+  useOpenPosition,
+  useUpdatePrice,
+  type ConsoleExecution,
+} from "@/src/features/admin/hooks/useTradingConsole";
+import { computeRiskReward, formatRiskReward } from "@/src/lib/trading/risk-reward";
+import { classifyAssetPair, computeNotionalUsd, computePositionPl, nominalLeverageLabel } from "@/src/lib/trading/lot-size";
+import { PoolAllocationsPanel } from "@/src/features/admin/components/PoolAllocationsPanel";
 
 // ── Live server clock ──────────────────────────────────────────────────────────
 function ServerClock() {
@@ -25,57 +40,20 @@ function ServerClock() {
 // surface-container-lowest:#080f18  ← input bg
 // surface-container:       #19202a  ← server-time box, some bg
 // surface-container-high:  #242a34  ← row hover, button hover
-// surface-container-highest:#2e353f ← pool track
 // outline-variant:         #4d4635  ← input borders
-// outline:                 #99907c  ← label / muted text
 // on-surface:              #dce3f0  ← main text
-// on-surface-variant:      #d0c5af  ← secondary text
-// primary:                 #f2ca50 / primary-container: #d4af37
-// secondary:               #4edea3
-// error:                   #ffb4ab
-// tertiary:                #ffbec1
-// glass-panel:             rgba(13,20,29,0.7) + blur(12px) + border rgba(255,255,255,0.1)
+// primary-container:       #d4af37   secondary: #4edea3   error: #ffb4ab
 
-// ── Mock asset prices ──────────────────────────────────────────────────────────
-const ASSET_DATA: Record<string, { entry: string; tp: string; sl: string; leverage: string }> = {
-  "EUR/USD": { entry: "1.08420",   tp: "1.09200",   sl: "1.07800",   leverage: "1:100" },
-  "XAU/USD": { entry: "2341.20",   tp: "2380.00",   sl: "2310.00",   leverage: "1:50"  },
-  "BTC/USD": { entry: "64281.00",  tp: "67000.00",  sl: "62000.00",  leverage: "1:20"  },
-  "GBP/JPY": { entry: "192.340",   tp: "194.500",   sl: "190.200",   leverage: "1:100" },
+// Entry-price presets for common pairs — a convenience autofill only; the
+// admin can always type real numbers.
+const ASSET_PRESETS: Record<string, { entry: string }> = {
+  "EUR/USD": { entry: "1.08420" },
+  "XAU/USD": { entry: "2341.20" },
+  "BTC/USD": { entry: "64281.00" },
+  "GBP/JPY": { entry: "192.340" },
 };
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-type Broadcast = {
-  id: number; asset: string; direction: "LONG" | "SHORT";
-  leverage: string; entry: string; current: string; pnl: number;
-};
-type Settled = {
-  id: number; asset: string; direction: "LONG" | "SHORT";
-  entry: string; exit: string; pnl: number; archived: boolean;
-};
-type Pool = { name: string; pct: number; color: string };
 type LogEntry = { time: string; color: string; text: string };
-
-const INITIAL_BROADCASTS: Broadcast[] = [
-  { id: 1, asset: "EUR/USD",  direction: "LONG",  leverage: "1:100", entry: "1.0824",    current: "1.0831",    pnl: +0.065 },
-  { id: 2, asset: "BTC/USDT", direction: "SHORT", leverage: "1:20",  entry: "64,281.00", current: "64,310.20", pnl: -0.045 },
-];
-const INITIAL_SETTLED: Settled[] = [
-  { id: 1, asset: "XAU/USD (Gold)", direction: "LONG",  entry: "2,341.20", exit: "2,355.80", pnl: +14.60, archived: false },
-  { id: 2, asset: "OIL/USD",        direction: "SHORT", entry: "78.45",    exit: "78.52",    pnl: -0.07,  archived: false },
-];
-const INITIAL_POOLS: Pool[] = [
-  { name: "Forex Core",     pct: 40, color: "bg-[#d4af37]" },
-  { name: "Commodities",    pct: 30, color: "bg-[#4edea3]" },
-  { name: "Volatility Idx", pct: 30, color: "bg-[#ffbec1]" },
-];
-const MOCK_LOG_LINES = [
-  "User validation completed for Node Group-A (APAC Region).",
-  "Broadcast latency optimized to 142ms across all segments.",
-  "Syncing real-time market data with terminal execution engine...",
-  "Protocol ASC-78345 authentication handshake success.",
-  "Liquidity verification completed for Node Cluster-4 (London/Frankfurt).",
-];
 
 function makeLog(text: string, color = "text-[#4edea3]"): LogEntry {
   return {
@@ -85,6 +63,14 @@ function makeLog(text: string, color = "text-[#4edea3]"): LogEntry {
     color,
     text,
   };
+}
+
+// Percentage move sign-adjusted for side (used for the compact % shown in
+// the row before a live refresh has run).
+function unrealizedPct(e: ConsoleExecution): number | null {
+  if (e.current_price == null || Number(e.entry_price) === 0) return null;
+  const raw = ((Number(e.current_price) - Number(e.entry_price)) / Number(e.entry_price)) * 100;
+  return e.side === "SHORT" ? -raw : raw;
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
@@ -102,119 +88,368 @@ function Toast({ msg, type, onClose }: { msg: string; type: "success" | "error" 
   );
 }
 
+// ── Inline editable current-price cell ────────────────────────────────────────
+function PriceCell({
+  execution,
+  canEdit,
+  onApply,
+}: {
+  execution: ConsoleExecution;
+  canEdit: boolean;
+  onApply: (price: number) => void;
+}) {
+  const [value, setValue] = useState(String(execution.current_price ?? ""));
+  const [syncedPrice, setSyncedPrice] = useState(execution.current_price);
+  if (syncedPrice !== execution.current_price) {
+    setSyncedPrice(execution.current_price);
+    setValue(String(execution.current_price ?? ""));
+  }
+
+  const apply = () => {
+    const price = Number(value);
+    if (price > 0 && price !== Number(execution.current_price)) onApply(price);
+  };
+
+  if (!canEdit) {
+    return <span className="font-data-mono font-bold">{execution.current_price ?? "—"}</span>;
+  }
+  return (
+    <input
+      className="w-24 bg-transparent font-data-mono font-bold outline-none border-b border-dashed border-slate-300 dark:border-[#4d4635] focus:border-[#d4af37] text-inherit"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={apply}
+      onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+      aria-label={`Current price for ${execution.asset_pair}`}
+    />
+  );
+}
+
+// ── Investor targeting picker ─────────────────────────────────────────────────
+// admin: dropdown limited to their own assigned roster (can't broadcast).
+// super_admin: choice between "Broadcast to pool" and searching any investor.
+function TargetingPicker({
+  isSuperAdmin,
+  targetInvestorId,
+  onChange,
+}: {
+  isSuperAdmin: boolean;
+  targetInvestorId: string | null;
+  onChange: (id: string | null, label: string) => void;
+}) {
+  const { data: mine } = useMyAssignedInvestors(!isSuperAdmin);
+  const [mode, setMode] = useState<"broadcast" | "targeted">(isSuperAdmin ? "broadcast" : "targeted");
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+  const { data: searchData } = useAdminUserSearch(isSuperAdmin && mode === "targeted" ? debounced : "");
+
+  if (!isSuperAdmin) {
+    const roster = mine?.assignments ?? [];
+    return (
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 dark:text-[#99907c] uppercase tracking-wider">
+          Assigned Investor (required)
+        </label>
+        <select
+          value={targetInvestorId ?? ""}
+          onChange={(e) => {
+            const inv = roster.find((r) => r.investorId === e.target.value);
+            onChange(e.target.value || null, inv?.investorName ?? "");
+          }}
+          className="w-full bg-slate-50 dark:bg-[#080f18] border border-slate-200 dark:border-[#4d4635] rounded-lg p-3 text-slate-900 dark:text-[#dce3f0] font-data-mono focus:ring-1 focus:ring-[#d4af37] focus:border-[#d4af37] outline-none transition-colors"
+        >
+          <option value="">Select an investor…</option>
+          {roster.map((r) => (
+            <option key={r.investorId} value={r.investorId}>{r.investorName} ({r.investorEmail})</option>
+          ))}
+        </select>
+        {roster.length === 0 && (
+          <p className="text-[11px] text-amber-600 dark:text-[#e9c349]">
+            No investors are assigned to you yet — ask the Platform Controller.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex h-9 p-1 bg-slate-50 dark:bg-[#080f18] border border-slate-200 dark:border-[#4d4635] rounded-lg text-[11px] font-bold">
+        <button type="button" onClick={() => { setMode("broadcast"); onChange(null, ""); }}
+          className={`flex-1 rounded transition-all ${mode === "broadcast" ? "bg-[#d4af37] text-[#3c2f00]" : "text-slate-400 dark:text-[#99907c]"}`}>
+          Broadcast to Pool
+        </button>
+        <button type="button" onClick={() => setMode("targeted")}
+          className={`flex-1 rounded transition-all ${mode === "targeted" ? "bg-[#d4af37] text-[#3c2f00]" : "text-slate-400 dark:text-[#99907c]"}`}>
+          Target One Investor
+        </button>
+      </div>
+      {mode === "targeted" && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
+          <input
+            value={targetInvestorId ? query : query}
+            onChange={(e) => { setQuery(e.target.value); onChange(null, ""); }}
+            placeholder="Search investor by name or email…"
+            className="w-full bg-slate-50 dark:bg-[#080f18] border border-slate-200 dark:border-[#4d4635] rounded-lg p-2.5 pl-9 text-[12px] text-slate-900 dark:text-[#dce3f0] outline-none focus:border-[#d4af37]"
+          />
+          {debounced.length >= 2 && !targetInvestorId && (
+            <ul className="absolute z-10 mt-1 w-full max-h-40 overflow-y-auto rounded-lg border border-slate-200 dark:border-[#4d4635] bg-white dark:bg-[#0d141d] shadow-lg divide-y divide-slate-50 dark:divide-white/5">
+              {(searchData?.results ?? []).map((r) => (
+                <li key={r.id}>
+                  <button type="button" onClick={() => { onChange(r.id, r.name); setQuery(r.name); }}
+                    className="w-full text-left px-3 py-2 text-[12px] hover:bg-slate-50 dark:hover:bg-white/5">
+                    <span className="font-semibold text-slate-800 dark:text-[#dce3f0]">{r.name}</span>{" "}
+                    <span className="text-slate-400 dark:text-[#99907c]">{r.email}</span>
+                  </button>
+                </li>
+              ))}
+              {(searchData?.results ?? []).length === 0 && (
+                <li className="px-3 py-2 text-[11px] text-slate-400 dark:text-[#99907c]">No matches.</li>
+              )}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function TradingConsolePage() {
-  const [asset, setAsset]           = useState("EUR/USD");
-  const [direction, setDirection]   = useState<"LONG" | "SHORT">("LONG");
-  const [leverage, setLeverage]     = useState(ASSET_DATA["EUR/USD"].leverage);
-  const [entry, setEntry]           = useState(ASSET_DATA["EUR/USD"].entry);
-  const [tp, setTp]                 = useState(ASSET_DATA["EUR/USD"].tp);
-  const [sl, setSl]                 = useState(ASSET_DATA["EUR/USD"].sl);
-  const [broadcasting, setBroadcasting] = useState(false);
-  const [broadcasts, setBroadcasts] = useState<Broadcast[]>(INITIAL_BROADCASTS);
-  const [settled, setSettled]       = useState<Settled[]>(INITIAL_SETTLED);
-  const [roi, setRoi]               = useState("12.4");
-  const [latency, setLatency]       = useState("142");
-  const [drawdown, setDrawdown]     = useState("2.8");
-  const [pools, setPools]           = useState<Pool[]>(INITIAL_POOLS);
-  const [logs, setLogs]             = useState<LogEntry[]>([
-    makeLog("Pushed Active Position EUR/USD Long to 12,842 user nodes successfully.", "text-[#4edea3]"),
-    makeLog("Global ROI recalibration broadcast initiated by Alexander V. (+0.4%).", "text-[#d4af37]"),
-    makeLog("Liquidity verification completed for Node Cluster-4 (London/Frankfurt).", "text-[#4edea3]"),
+  const session = useSessionHydration();
+  const isSuperAdmin = session?.user.role === "super_admin";
+  const canOpen = session?.user.role === "super_admin" || session?.user.role === "admin";
+
+  const { data, isLoading } = useConsoleExecutions("open");
+  const { data: closedData } = useConsoleExecutions("closed");
+  const openMutation = useOpenPosition();
+  const closeMutation = useClosePosition();
+  const priceMutation = useUpdatePrice();
+
+  const pools = data?.pools ?? [];
+  const openExecutions = data?.executions ?? [];
+  const closedExecutions = (closedData?.executions ?? []).slice(0, 6);
+
+  // Form state
+  const [asset, setAsset] = useState("EUR/USD");
+  const [poolId, setPoolId] = useState("");
+  const [direction, setDirection] = useState<"LONG" | "SHORT">("LONG");
+  const [lotSize, setLotSize] = useState("0.5");
+  const [entry, setEntry] = useState(ASSET_PRESETS["EUR/USD"].entry);
+  const [tp, setTp] = useState("");
+  const [sl, setSl] = useState("");
+  const [targetInvestorId, setTargetInvestorId] = useState<string | null>(null);
+  const [targetLabel, setTargetLabel] = useState("");
+
+  // Close-position dialog
+  const [closing, setClosing] = useState<ConsoleExecution | null>(null);
+  const [closePrice, setClosePrice] = useState("");
+  const [closePl, setClosePl] = useState("");
+  const [fetchingClosePrice, setFetchingClosePrice] = useState(false);
+
+  // Per-row live-price refresh state
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+
+  const [logs, setLogs] = useState<LogEntry[]>([
+    makeLog("Trading console connected — live position data active.", "text-[#4edea3]"),
   ]);
-  const [logOpen, setLogOpen]       = useState(true);
-  const [toast, setToast]           = useState<{ msg: string; type: "success" | "error" | "info" } | null>(null);
-  const nextId = useRef(100);
+  const [logOpen, setLogOpen] = useState(true);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "info" } | null>(null);
+
+  // Default the pool selector to the first pool once pools arrive
+  // (adjust-during-render, no effect needed).
+  if (pools.length > 0 && !poolId) setPoolId(pools[0].id);
 
   const showToast = (msg: string, type: "success" | "error" | "info" = "success") =>
     setToast({ msg, type });
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      const text = MOCK_LOG_LINES[Math.floor(Math.random() * MOCK_LOG_LINES.length)];
-      setLogs((prev) => [makeLog(text), ...prev.slice(0, 7)]);
-    }, 5000);
-    return () => clearInterval(id);
-  }, []);
+  const addLog = (text: string, color?: string) =>
+    setLogs((prev) => [makeLog(text, color), ...prev.slice(0, 7)]);
 
   function handleAssetChange(val: string) {
     setAsset(val);
-    const d = ASSET_DATA[val];
-    if (d) { setLeverage(d.leverage); setEntry(d.entry); setTp(d.tp); setSl(d.sl); }
+    const preset = ASSET_PRESETS[val];
+    if (preset) setEntry(preset.entry);
   }
 
-  function handleBroadcast() {
-    if (!entry || !tp || !sl) {
-      showToast("Fill in Entry, Take Profit and Stop Loss.", "error");
+  const derivedLeverage = nominalLeverageLabel(asset);
+  const parsedLotSize = Number(lotSize);
+  const notionalPreview =
+    parsedLotSize > 0 && Number(entry) > 0 ? computeNotionalUsd(asset, parsedLotSize, Number(entry)) : null;
+
+  async function handleOpen() {
+    if (!canOpen) return;
+    const entryPrice = Number(entry);
+    if (!poolId || !(entryPrice > 0) || !(parsedLotSize > 0)) {
+      showToast("Select a pool, and enter a valid entry price and lot size.", "error");
       return;
     }
-    setBroadcasting(true);
-    setTimeout(() => {
-      const id = nextId.current++;
-      setBroadcasts((prev) => [{ id, asset, direction, leverage, entry, current: entry, pnl: 0 }, ...prev]);
-      setLogs((prev) => [
-        makeLog(`Pushed Active Position ${asset} ${direction} to 12,842 user nodes successfully.`, "text-[#4edea3]"),
-        ...prev.slice(0, 7),
-      ]);
-      setBroadcasting(false);
-      showToast(`${asset} ${direction} broadcast to 12,842 nodes.`, "success");
-    }, 1800);
+    if (!isSuperAdmin && !targetInvestorId) {
+      showToast("Select which of your assigned investors this trade is for.", "error");
+      return;
+    }
+    try {
+      await openMutation.mutateAsync({
+        strategyPoolId: poolId,
+        assetPair: asset,
+        side: direction,
+        lotSize: parsedLotSize,
+        entryPrice,
+        takeProfitPrice: tp ? Number(tp) : undefined,
+        stopLossPrice: sl ? Number(sl) : undefined,
+        targetInvestorId: targetInvestorId ?? undefined,
+      });
+      const rr = tp && sl ? formatRiskReward(computeRiskReward(entryPrice, Number(tp), Number(sl))) : null;
+      const who = targetInvestorId ? `targeted at ${targetLabel}` : "pool broadcast";
+      addLog(`Opened ${direction} ${asset} @ ${entry}, lot ${parsedLotSize} (${who})${rr ? `, R:R ${rr}` : ""}.`, "text-[#4edea3]");
+      showToast(`${asset} ${direction} position is live.`, "success");
+      setTp(""); setSl(""); setTargetInvestorId(null); setTargetLabel("");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to open position.", "error");
+    }
   }
 
-  function handleTerminate(id: number, assetName: string) {
-    setBroadcasts((prev) => prev.filter((b) => b.id !== id));
-    setLogs((prev) => [makeLog(`Position ${assetName} manually terminated by admin.`, "text-[#ffb4ab]"), ...prev.slice(0, 7)]);
-    showToast(`${assetName} position terminated.`, "info");
+  async function handlePriceApply(execution: ConsoleExecution, price: number) {
+    try {
+      await priceMutation.mutateAsync({ id: execution.id, currentPrice: price });
+      addLog(`${execution.asset_pair} marked to ${price}.`, "text-[#d4af37]");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Price update failed.", "error");
+    }
   }
 
-  function handleArchive(id: number) {
-    setSettled((prev) => prev.map((s) => s.id === id ? { ...s, archived: true } : s));
-    showToast("Trade archived to investor history.", "info");
+  async function handleRefreshLivePrice(execution: ConsoleExecution) {
+    setRefreshingId(execution.id);
+    try {
+      const result = await fetchMarketPrice(execution.asset_pair);
+      if (!result.available || !result.price) {
+        showToast(result.reason ?? "No live price available for this pair.", "info");
+        return;
+      }
+      await handlePriceApply(execution, result.price);
+      showToast(`${execution.asset_pair} refreshed to live price (${result.source}).`, "success");
+    } finally {
+      setRefreshingId(null);
+    }
   }
 
-  function adjustPool(idx: number, delta: number) {
-    setPools((prev) => {
-      const next = [...prev];
-      next[idx] = { ...next[idx], pct: Math.max(0, Math.min(100, next[idx].pct + delta)) };
-      return next;
-    });
+  async function openCloseDialog(execution: ConsoleExecution) {
+    setClosing(execution);
+    setClosePrice(String(execution.current_price ?? execution.entry_price ?? ""));
+    setClosePl("");
+
+    // Best-effort live refresh so the close dialog opens with a real quote
+    // and a computed P/L preview when a feed exists for this pair — never
+    // blocks the admin from typing their own numbers instead.
+    if (execution.lot_size != null && classifyAssetPair(execution.asset_pair) !== "other") {
+      setFetchingClosePrice(true);
+      try {
+        const result = await fetchMarketPrice(execution.asset_pair);
+        if (result.available && result.price) {
+          setClosePrice(String(result.price));
+          const pl = computePositionPl(
+            execution.asset_pair,
+            execution.side,
+            Number(execution.lot_size),
+            Number(execution.entry_price),
+            result.price
+          );
+          setClosePl(String(pl));
+        }
+      } finally {
+        setFetchingClosePrice(false);
+      }
+    }
   }
 
-  function handleMetricsApply() {
-    setLogs((prev) => [
-      makeLog(`Global ROI set to ${roi}%, Latency ${latency}ms, Drawdown ${drawdown}% by admin.`, "text-[#d4af37]"),
-      ...prev.slice(0, 7),
-    ]);
-    showToast("Global metrics updated and broadcast.", "success");
-  }
+  async function handleCloseConfirm() {
+    if (!closing) return;
+    const price = closePrice ? Number(closePrice) : undefined;
+    const pl = closePl ? Number(closePl) : NaN;
 
-  function handlePoolUpdate() {
-    const total = pools.reduce((s, p) => s + p.pct, 0);
-    if (total !== 100) { showToast(`Allocations must sum to 100% (currently ${total}%).`, "error"); return; }
-    setLogs((prev) => [
-      makeLog(`Pool allocations updated: ${pools.map((p) => `${p.name} ${p.pct}%`).join(", ")}.`, "text-[#d4af37]"),
-      ...prev.slice(0, 7),
-    ]);
-    showToast("Pool weights updated across all nodes.", "success");
+    // If the admin left P/L blank but we have lot_size + a close price, compute
+    // it now rather than forcing a guess.
+    let finalPl = pl;
+    if (!Number.isFinite(finalPl) && closing.lot_size != null && price) {
+      finalPl = computePositionPl(closing.asset_pair, closing.side, Number(closing.lot_size), Number(closing.entry_price), price);
+    }
+    if (!Number.isFinite(finalPl)) {
+      showToast("Enter the realized P/L in USD (or a close price, for lot-sized trades).", "error");
+      return;
+    }
+    try {
+      const { result } = await closeMutation.mutateAsync({ id: closing.id, closePrice: price, realizedPlUsd: finalPl });
+      addLog(
+        `Closed ${closing.asset_pair} @ ${price ?? "last mark"} — ${finalPl >= 0 ? "+" : ""}$${finalPl} distributed to ${result?.investors_credited ?? 0} investor(s).`,
+        finalPl >= 0 ? "text-[#4edea3]" : "text-[#ffb4ab]"
+      );
+      showToast(`${closing.asset_pair} closed. ${result?.investors_credited ?? 0} investor(s) credited.`, "success");
+      setClosing(null); setClosePrice(""); setClosePl("");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to close position.", "error");
+    }
   }
 
   // ── Shared dark-mode class strings (exact stitch tokens) ──────────────────
-  // card = glass-panel style
   const card  = "bg-white dark:bg-[rgba(25,32,42,0.4)] dark:backdrop-blur-md rounded-xl border border-slate-200 dark:border-[rgba(255,255,255,0.08)] shadow-sm dark:shadow-none";
-  // input fields
   const input = "w-full bg-slate-50 dark:bg-[#080f18] border border-slate-200 dark:border-[#4d4635] rounded-lg p-3 text-slate-900 dark:text-[#dce3f0] font-data-mono focus:ring-1 focus:ring-[#d4af37] focus:border-[#d4af37] outline-none transition-colors";
-  // field labels
   const label = "text-[10px] font-bold text-slate-500 dark:text-[#99907c] uppercase tracking-wider";
-  // metric row container
-  const metricRow = "flex items-center justify-between p-3 bg-slate-50 dark:bg-[#080f18] rounded-lg border border-slate-200 dark:border-[#4d4635]";
 
   return (
     <>
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <div className="flex flex-col h-full overflow-hidden">
+      {/* Close-position dialog */}
+      {closing && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setClosing(null)}>
+          <div className={`${card} w-full max-w-sm p-6 dark:!bg-[#0d141d]`} onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[13px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase tracking-wider mb-1">
+              Close {closing.asset_pair} ({closing.side})
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-[#99907c] mb-5">
+              {closing.target_investor_id
+                ? "The stated P/L is credited entirely to the targeted investor."
+                : "The stated P/L is distributed across pool investors proportional to their allocations."}
+              {" "}Atomic, via the ledger.
+            </p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className={label}>
+                  Close Price {fetchingClosePrice && <Loader2 className="inline size-3 animate-spin ml-1" />}
+                </label>
+                <input className={input} value={closePrice} onChange={(e) => setClosePrice(e.target.value)} placeholder={String(closing.current_price ?? closing.entry_price)} />
+              </div>
+              <div className="space-y-2">
+                <label className={label}>
+                  Realized P/L (USD{closing.target_investor_id ? "" : ", pool-level"} — negative for a loss)
+                </label>
+                <input className={input} value={closePl} onChange={(e) => setClosePl(e.target.value)} placeholder="e.g. 1250 or -400" />
+                {closing.lot_size != null && (
+                  <p className="text-[10px] text-slate-400 dark:text-[#99907c]">
+                    Auto-computed from lot size {closing.lot_size} when a live price is available — still editable.
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setClosing(null)}
+                  className="flex-1 py-2.5 rounded-lg border border-slate-200 dark:border-[#4d4635] text-[12px] font-bold text-slate-600 dark:text-[#d0c5af] hover:bg-slate-50 dark:hover:bg-[#242a34] transition-colors">
+                  Cancel
+                </button>
+                <button type="button" onClick={handleCloseConfirm} disabled={closeMutation.isPending}
+                  className="flex-1 py-2.5 rounded-lg bg-[#ffb4ab] text-[#690005] text-[12px] font-bold hover:opacity-90 disabled:opacity-60 transition-all">
+                  {closeMutation.isPending ? "Closing..." : "Close & Distribute"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-        {/* ── Scrollable content ───────────────────────────────────────────── */}
+      <div className="flex flex-col h-full overflow-hidden">
         <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pt-6 pb-6">
 
           {/* Header */}
@@ -224,14 +459,15 @@ export default function TradingConsolePage() {
                 <h2 className="text-[20px] sm:text-[24px] font-bold text-slate-900 dark:text-[#dce3f0] flex flex-wrap items-center gap-3">
                   Trading Console Terminal
                   <span className="px-2 py-0.5 rounded text-[10px] bg-[#d4af37]/10 text-[#d4af37] border border-[#d4af37]/20 uppercase font-black">
-                    Admin Override Active
+                    {isSuperAdmin ? "Platform Controller" : canOpen ? "Account Manager" : "Read Only"}
                   </span>
                 </h2>
                 <p className="text-[14px] text-slate-500 dark:text-[#d0c5af] mt-1 max-w-2xl">
-                  Execute manual trade broadcasts across global investor nodes. Direct liquidity injection and platform ROI override controls.
+                  {isSuperAdmin
+                    ? "Broadcast trades to an entire pool, or target a specific investor. Positions appear live on investor terminals; closing distributes P/L through the ledger."
+                    : "Open trades for your assigned investors. Closing a position credits that investor directly through the ledger."}
                 </p>
               </div>
-              {/* Server time — bg-surface-container + border-outline-variant */}
               <div className="flex items-center gap-2 font-data-mono text-[12px] text-slate-500 dark:text-[#d0c5af] bg-slate-50 dark:bg-[#19202a] px-4 py-2 rounded-lg border border-slate-200 dark:border-[#4d4635] shrink-0">
                 <span className="material-symbols-outlined text-[16px] text-[#4edea3]">schedule</span>
                 Server Time: <ServerClock />
@@ -245,82 +481,100 @@ export default function TradingConsolePage() {
             {/* ── LEFT ─────────────────────────────────────────────────────── */}
             <div className="col-span-12 lg:col-span-8 space-y-6">
 
-              {/* Broadcast form — glass-panel + gold left border */}
+              {/* Open-position form */}
               <div
                 className="bg-white dark:bg-[rgba(25,32,42,0.4)] dark:backdrop-blur-md rounded-xl shadow-sm dark:shadow-none p-6"
                 style={{ border: "1px solid #d4af37", borderLeftWidth: "4px" }}
               >
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-[12px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase tracking-wider">
-                    Broadcast New Active Trade Position
+                    Open New Trade Position
                   </h3>
                   <span className="material-symbols-outlined text-slate-400 dark:text-[#99907c]">broadcast_on_personal</span>
                 </div>
 
                 <div className="space-y-6">
-                  {/* Asset + Direction */}
+                  {canOpen && (
+                    <TargetingPicker
+                      isSuperAdmin={isSuperAdmin}
+                      targetInvestorId={targetInvestorId}
+                      onChange={(id, lbl) => { setTargetInvestorId(id); setTargetLabel(lbl); }}
+                    />
+                  )}
+
+                  {/* Asset + Pool */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className={label}>Asset Pair</label>
                       <select value={asset} onChange={(e) => handleAssetChange(e.target.value)} className={input}>
-                        {Object.keys(ASSET_DATA).map((a) => <option key={a}>{a}</option>)}
+                        {Object.keys(ASSET_PRESETS).map((a) => <option key={a}>{a}</option>)}
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className={label}>Order Direction</label>
-                      {/* direction toggle — bg-surface-container-lowest in dark */}
-                      <div className="flex h-[46px] p-1 bg-slate-50 dark:bg-[#080f18] border border-slate-200 dark:border-[#4d4635] rounded-lg">
-                        <button type="button" onClick={() => setDirection("LONG")}
-                          className={`flex-1 flex items-center justify-center gap-2 rounded text-[12px] font-bold transition-all ${
-                            direction === "LONG"
-                              ? "bg-[#4edea3] text-[#003824] shadow-sm"
-                              : "text-slate-400 dark:text-[#99907c] hover:text-slate-900 dark:hover:text-[#dce3f0]"
-                          }`}>
-                          <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
-                          LONG
-                        </button>
-                        <button type="button" onClick={() => setDirection("SHORT")}
-                          className={`flex-1 flex items-center justify-center gap-2 rounded text-[12px] font-bold transition-all ${
-                            direction === "SHORT"
-                              ? "bg-red-600 text-white shadow-sm"
-                              : "text-slate-400 dark:text-[#99907c] hover:text-slate-900 dark:hover:text-[#dce3f0]"
-                          }`}>
-                          <span className="material-symbols-outlined text-[18px]">trending_down</span>
-                          SHORT
-                        </button>
-                      </div>
+                      <label className={label}>Strategy Pool</label>
+                      <select value={poolId} onChange={(e) => setPoolId(e.target.value)} className={input}>
+                        {pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
                     </div>
                   </div>
 
-                  {/* Leverage + Entry */}
+                  {/* Direction */}
+                  <div className="space-y-2">
+                    <label className={label}>Order Direction</label>
+                    <div className="flex h-[46px] p-1 bg-slate-50 dark:bg-[#080f18] border border-slate-200 dark:border-[#4d4635] rounded-lg">
+                      <button type="button" onClick={() => setDirection("LONG")}
+                        className={`flex-1 flex items-center justify-center gap-2 rounded text-[12px] font-bold transition-all ${
+                          direction === "LONG"
+                            ? "bg-[#4edea3] text-[#003824] shadow-sm"
+                            : "text-slate-400 dark:text-[#99907c] hover:text-slate-900 dark:hover:text-[#dce3f0]"
+                        }`}>
+                        <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
+                        LONG
+                      </button>
+                      <button type="button" onClick={() => setDirection("SHORT")}
+                        className={`flex-1 flex items-center justify-center gap-2 rounded text-[12px] font-bold transition-all ${
+                          direction === "SHORT"
+                            ? "bg-red-600 text-white shadow-sm"
+                            : "text-slate-400 dark:text-[#99907c] hover:text-slate-900 dark:hover:text-[#dce3f0]"
+                        }`}>
+                        <span className="material-symbols-outlined text-[18px]">trending_down</span>
+                        SHORT
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Lot size + Entry — leverage is derived, not typed */}
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <label className={label}>Leverage</label>
-                      <div className="relative">
-                        <input className={input} type="text" value={leverage} onChange={(e) => setLeverage(e.target.value)} />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#99907c] text-[12px]">MAX</span>
-                      </div>
+                      <label className={label}>Lot Size</label>
+                      <input className={input} type="text" value={lotSize} onChange={(e) => setLotSize(e.target.value)} placeholder="0.5" />
+                      <p className="text-[10px] text-slate-400 dark:text-[#99907c]">Leverage: <span className="font-bold text-slate-600 dark:text-[#d0c5af]">{derivedLeverage}</span></p>
                     </div>
                     <div className="space-y-2 col-span-2">
                       <label className={label}>Entry Price</label>
                       <div className="relative">
                         <input className={input} type="text" value={entry} onChange={(e) => setEntry(e.target.value)} placeholder="0.00000" />
-                        <button type="button" onClick={() => setEntry(ASSET_DATA[asset]?.entry ?? "")}
+                        <button type="button" onClick={() => setEntry(ASSET_PRESETS[asset]?.entry ?? "")}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4edea3] text-[12px] font-bold hover:opacity-75">
                           AUTO
                         </button>
                       </div>
+                      {notionalPreview != null && (
+                        <p className="text-[10px] text-slate-400 dark:text-[#99907c]">
+                          Notional exposure: <span className="font-bold text-slate-600 dark:text-[#d0c5af]">{notionalPreview.toLocaleString("en-US", { style: "currency", currency: "USD" })}</span>
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   {/* TP + SL */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className={label}>Take Profit (Target)</label>
+                      <label className={label}>Take Profit (optional)</label>
                       <input className={input} type="text" value={tp} onChange={(e) => setTp(e.target.value)} placeholder="0.00000" />
                     </div>
                     <div className="space-y-2">
-                      <label className={label}>Stop Loss</label>
+                      <label className={label}>Stop Loss (optional)</label>
                       <input
                         className={`${input} border-red-300/50 dark:border-[#ffb4ab]/30 focus:ring-red-400/50`}
                         type="text" value={sl} onChange={(e) => setSl(e.target.value)} placeholder="0.00000"
@@ -328,74 +582,110 @@ export default function TradingConsolePage() {
                     </div>
                   </div>
 
-                  {/* Broadcast button */}
+                  {/* Submit */}
                   <div className="pt-2">
-                    <button type="button" onClick={handleBroadcast} disabled={broadcasting}
-                      className="group w-full bg-[#d4af37] hover:bg-[#c9a830] disabled:opacity-70 text-[#3c2f00] font-bold py-4 rounded-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-[rgba(212,175,55,0.2)]">
-                      <span className={`material-symbols-outlined ${broadcasting ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`}>sync</span>
-                      {broadcasting ? "BROADCASTING…" : "BROADCAST ACTIVE TRADE & SYNC LIVE"}
+                    <button type="button" onClick={handleOpen} disabled={openMutation.isPending || !canOpen}
+                      title={canOpen ? undefined : "Only staff can open positions"}
+                      className="group w-full bg-[#d4af37] hover:bg-[#c9a830] disabled:opacity-50 disabled:cursor-not-allowed text-[#3c2f00] font-bold py-4 rounded-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-lg shadow-[rgba(212,175,55,0.2)]">
+                      <span className={`material-symbols-outlined ${openMutation.isPending ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`}>sync</span>
+                      {openMutation.isPending ? "OPENING…" : "OPEN POSITION & SYNC LIVE"}
                     </button>
                     <p className="text-center text-[10px] text-slate-400 dark:text-[#99907c] mt-3 flex items-center justify-center gap-2">
                       <span className="material-symbols-outlined text-[12px]">security</span>
-                      Action will be logged and synced with 12,842 nodes.
+                      Every action is written to the manual-adjustments audit trail.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Active broadcasts table */}
+              {/* Open positions table */}
               <div className={`${card} overflow-hidden`}>
                 <div className="px-6 py-4 border-b border-slate-100 dark:border-[rgba(255,255,255,0.05)] bg-slate-50/80 dark:bg-[#080f18] flex justify-between items-center">
                   <h3 className="text-[12px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase tracking-wider">
-                    Current Active Broadcasts
+                    Open Positions
                   </h3>
                   <span className="text-[10px] font-bold text-[#4edea3] bg-[#4edea3]/10 px-2 py-0.5 rounded">LIVE SYNCING</span>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left min-w-[600px]">
+                  <table className="w-full text-left min-w-[720px]">
                     <thead className="bg-slate-50/80 dark:bg-[#080f18] text-[10px] font-bold uppercase tracking-wider">
                       <tr>
-                        {["Asset Pair","Direction","Leverage","Entry / Current","P&L","Action"].map((h) => (
+                        {["Asset Pair","Target","Direction","Lot / Lev","Entry / Current","Unrealized","Action"].map((h) => (
                           <th key={h} className="px-6 py-3 text-slate-500 dark:text-[#99907c]">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {broadcasts.length === 0 && (
+                      {isLoading && (
+                        <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-400 dark:text-[#99907c] text-[13px]">Loading positions...</td></tr>
+                      )}
+                      {!isLoading && openExecutions.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="px-6 py-8 text-center text-slate-400 dark:text-[#99907c] text-[13px]">
-                            No active broadcasts. Use the form above to push a position.
+                          <td colSpan={7} className="px-6 py-8 text-center text-slate-400 dark:text-[#99907c] text-[13px]">
+                            No open positions. Use the form above to open one.
                           </td>
                         </tr>
                       )}
-                      {broadcasts.map((b) => (
-                        <tr key={b.id} className="border-t border-slate-100 dark:border-[rgba(255,255,255,0.05)] hover:bg-slate-50/50 dark:hover:bg-[#242a34] transition-colors">
-                          <td className="px-6 py-4 font-bold text-slate-900 dark:text-[#dce3f0]">{b.asset}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${b.direction === "LONG" ? "bg-[#4edea3] text-[#003824]" : "bg-red-700 text-white"}`}>
-                              {b.direction}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 font-data-mono text-slate-600 dark:text-[#d0c5af]">{b.leverage}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#99907c]">E: {b.entry}</span>
-                              <span className={`font-data-mono font-bold ${b.direction === "LONG" ? "text-[#4edea3]" : "text-red-400 dark:text-[#ffb4ab]"}`}>C: {b.current}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`font-data-mono font-bold text-[13px] ${b.pnl >= 0 ? "text-[#4edea3]" : "text-red-400 dark:text-[#ffb4ab]"}`}>
-                              {b.pnl >= 0 ? "+" : ""}{b.pnl.toFixed(3)}%
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <button onClick={() => handleTerminate(b.id, b.asset)}
-                              className="px-3 py-1 rounded text-[10px] font-bold border border-red-300/50 dark:border-[#ffb4ab]/30 text-red-500 dark:text-[#ffb4ab] hover:bg-red-50 dark:hover:bg-[#ffb4ab]/10 transition-colors">
-                              Terminate
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {openExecutions.map((e) => {
+                        const pct = unrealizedPct(e);
+                        const canManage = isSuperAdmin || e.target_investor_id != null;
+                        const hasLiveFeed = classifyAssetPair(e.asset_pair) !== "other";
+                        return (
+                          <tr key={e.id} className="border-t border-slate-100 dark:border-[rgba(255,255,255,0.05)] hover:bg-slate-50/50 dark:hover:bg-[#242a34] transition-colors">
+                            <td className="px-6 py-4 font-bold text-slate-900 dark:text-[#dce3f0]">{e.asset_pair}</td>
+                            <td className="px-6 py-4 text-[12px] text-slate-500 dark:text-[#d0c5af]">
+                              {e.target_investor_id ? (
+                                <span className="px-1.5 py-0.5 rounded bg-[#d4af37]/10 text-[#d4af37] text-[10px] font-bold">
+                                  {e.deposit_users?.full_name ?? "Investor"}
+                                </span>
+                              ) : (
+                                e.strategy_pools?.name ?? "—"
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${e.side === "LONG" ? "bg-[#4edea3] text-[#003824]" : "bg-red-700 text-white"}`}>
+                                {e.side}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 font-data-mono text-slate-600 dark:text-[#d0c5af] text-[11px]">
+                              {e.lot_size != null ? `${e.lot_size} lot` : "—"}<br />
+                              <span className="text-slate-400 dark:text-[#99907c]">{e.leverage ?? "—"}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#99907c]">E: {e.entry_price}</span>
+                                <span className={`flex items-center gap-1 ${e.side === "LONG" ? "text-[#4edea3]" : "text-red-400 dark:text-[#ffb4ab]"}`}>
+                                  C: <PriceCell execution={e} canEdit={canManage} onApply={(price) => handlePriceApply(e, price)} />
+                                  {canManage && hasLiveFeed && (
+                                    <button
+                                      onClick={() => handleRefreshLivePrice(e)}
+                                      disabled={refreshingId === e.id}
+                                      title="Refresh from live market price"
+                                      className="text-slate-400 hover:text-[#d4af37] disabled:opacity-50"
+                                    >
+                                      <RefreshCw className={`size-3 ${refreshingId === e.id ? "animate-spin" : ""}`} />
+                                    </button>
+                                  )}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`font-data-mono font-bold text-[13px] ${(pct ?? 0) >= 0 ? "text-[#4edea3]" : "text-red-400 dark:text-[#ffb4ab]"}`}>
+                                {pct == null ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(3)}%`}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <button
+                                onClick={() => openCloseDialog(e)}
+                                disabled={!canManage}
+                                title={canManage ? undefined : "Only the assigned manager or Platform Controller can close this"}
+                                className="px-3 py-1 rounded text-[10px] font-bold border border-red-300/50 dark:border-[#ffb4ab]/30 text-red-500 dark:text-[#ffb4ab] hover:bg-red-50 dark:hover:bg-[#ffb4ab]/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                                Close
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -405,143 +695,85 @@ export default function TradingConsolePage() {
             {/* ── RIGHT ────────────────────────────────────────────────────── */}
             <div className="col-span-12 lg:col-span-4 space-y-6">
 
-              {/* Settled trades */}
+              {/* Closed trades */}
               <div className={`${card} overflow-hidden`}>
                 <div className="px-6 py-4 border-b border-slate-100 dark:border-[rgba(255,255,255,0.05)] bg-slate-50/80 dark:bg-[#080f18] flex justify-between items-center">
-                  <h3 className="text-[12px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase tracking-wider">Settled / Closed (24h)</h3>
+                  <h3 className="text-[12px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase tracking-wider">Settled / Closed</h3>
                   <span className="material-symbols-outlined text-slate-400 dark:text-[#99907c] text-[18px]">history</span>
                 </div>
                 <div className="p-4 space-y-3">
-                  {settled.map((s) => (
-                    <div key={s.id} className="p-3 bg-slate-50 dark:bg-[#080f18] rounded-lg border border-slate-100 dark:border-[#4d4635]">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="text-[11px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase">{s.asset}</p>
-                          <p className={`text-[10px] font-bold ${s.direction === "LONG" ? "text-[#4edea3]" : "text-red-400 dark:text-[#ffb4ab]"}`}>
-                            {s.direction} POSITION
-                          </p>
+                  {closedExecutions.length === 0 && (
+                    <p className="py-6 text-center text-[12px] text-slate-400 dark:text-[#99907c]">
+                      Closed positions appear here with their distributed P/L.
+                    </p>
+                  )}
+                  {closedExecutions.map((e) => {
+                    const pl = Number(e.realized_pl_usd ?? 0);
+                    const rr = formatRiskReward(
+                      computeRiskReward(
+                        Number(e.entry_price),
+                        e.take_profit_price != null ? Number(e.take_profit_price) : null,
+                        e.stop_loss_price != null ? Number(e.stop_loss_price) : null
+                      )
+                    );
+                    return (
+                      <div key={e.id} className="p-3 bg-slate-50 dark:bg-[#080f18] rounded-lg border border-slate-100 dark:border-[#4d4635]">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="text-[11px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase">{e.asset_pair}</p>
+                            <p className={`text-[10px] font-bold ${e.side === "LONG" ? "text-[#4edea3]" : "text-red-400 dark:text-[#ffb4ab]"}`}>
+                              {e.side} POSITION{e.target_investor_id ? ` · ${e.deposit_users?.full_name ?? "targeted"}` : ""}
+                            </p>
+                          </div>
+                          <span className={`px-2 py-1 rounded text-[11px] font-black ${pl >= 0 ? "bg-[#4edea3]/10 text-[#4edea3]" : "bg-red-500/10 text-red-400 dark:text-[#ffb4ab]"}`}>
+                            {pl >= 0 ? "+" : "-"}${Math.abs(pl).toFixed(2)} {pl >= 0 ? "PROFIT" : "LOSS"}
+                          </span>
                         </div>
-                        <span className={`px-2 py-1 rounded text-[11px] font-black ${s.pnl >= 0 ? "bg-[#4edea3]/10 text-[#4edea3]" : "bg-red-500/10 text-red-400 dark:text-[#ffb4ab]"}`}>
-                          {s.pnl >= 0 ? "+" : ""}${Math.abs(s.pnl).toFixed(2)} {s.pnl >= 0 ? "PROFIT" : "LOSS"}
-                        </span>
+                        <div className="grid grid-cols-2 gap-2 text-[10px] font-data-mono">
+                          <div className="flex justify-between border-r border-slate-200 dark:border-[#4d4635] pr-2">
+                            <span className="text-slate-500 dark:text-[#99907c]">ENTRY</span>
+                            <span className="text-slate-700 dark:text-[#dce3f0]">{e.entry_price}</span>
+                          </div>
+                          <div className="flex justify-between pl-1">
+                            <span className="text-slate-500 dark:text-[#99907c]">EXIT</span>
+                            <span className="text-slate-700 dark:text-[#dce3f0] font-bold">{e.current_price ?? "—"}</span>
+                          </div>
+                        </div>
+                        {rr !== "—" && (
+                          <div className="mt-2 text-[10px] font-data-mono text-slate-500 dark:text-[#99907c]">
+                            Risk:Reward <span className="text-slate-700 dark:text-[#dce3f0] font-bold">{rr}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-[10px] font-data-mono mb-3">
-                        <div className="flex justify-between border-r border-slate-200 dark:border-[#4d4635] pr-2">
-                          <span className="text-slate-500 dark:text-[#99907c]">ENTRY</span>
-                          <span className="text-slate-700 dark:text-[#dce3f0]">{s.entry}</span>
-                        </div>
-                        <div className="flex justify-between pl-1">
-                          <span className="text-slate-500 dark:text-[#99907c]">EXIT</span>
-                          <span className="text-slate-700 dark:text-[#dce3f0] font-bold">{s.exit}</span>
-                        </div>
-                      </div>
-                      <button type="button" onClick={() => !s.archived && handleArchive(s.id)} disabled={s.archived}
-                        className={`w-full py-1.5 rounded text-[10px] font-bold flex items-center justify-center gap-1 transition-colors ${
-                          s.archived
-                            ? "bg-[#4edea3]/10 text-[#4edea3] border border-[#4edea3]/20 cursor-default"
-                            : "bg-white dark:bg-[#19202a] border border-slate-200 dark:border-[#4d4635] text-slate-500 dark:text-[#d0c5af] hover:text-[#d4af37] hover:border-[#d4af37]"
-                        }`}>
-                        <span className="material-symbols-outlined text-[14px]">{s.archived ? "check_circle" : "archive"}</span>
-                        {s.archived ? "Archived" : "Archive to User History"}
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Global Metrics Override */}
+              <PoolAllocationsPanel canEdit={isSuperAdmin} onLog={addLog} onToast={showToast} />
+
+              {/* Still pending their own phases */}
               <div className={`${card} p-6`}>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-[12px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase tracking-wider">Global Metrics Override</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[12px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase tracking-wider">Platform Controls</h3>
                   <span className="material-symbols-outlined text-slate-400 dark:text-[#99907c]">tune</span>
                 </div>
-                <div className="space-y-4">
-                  <div className={metricRow}>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#4edea3]/10 rounded">
-                        <span className="material-symbols-outlined text-[#4edea3] text-[20px]">percent</span>
-                      </div>
-                      <span className="text-[14px] font-bold text-slate-700 dark:text-[#dce3f0]">Platform ROI %</span>
-                    </div>
-                    <input className="w-20 bg-transparent text-right font-data-mono text-[#d4af37] font-bold outline-none focus:underline"
-                      type="text" value={roi} onChange={(e) => setRoi(e.target.value)} />
-                  </div>
-                  <div className={metricRow}>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#d4af37]/10 rounded">
-                        <span className="material-symbols-outlined text-[#d4af37] text-[20px]">speed</span>
-                      </div>
-                      <span className="text-[14px] font-bold text-slate-700 dark:text-[#dce3f0]">Execution Latency</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input className="w-16 bg-transparent text-right font-data-mono text-[#d4af37] font-bold outline-none focus:underline"
-                        type="text" value={latency} onChange={(e) => setLatency(e.target.value)} />
-                      <span className="text-[10px] text-slate-400 dark:text-[#99907c] font-bold">MS</span>
-                    </div>
-                  </div>
-                  <div className={metricRow}>
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-[#ffb4ab]/10 rounded">
-                        <span className="material-symbols-outlined text-[#ffb4ab] text-[20px]">warning</span>
-                      </div>
-                      <span className="text-[14px] font-bold text-slate-700 dark:text-[#dce3f0]">Max Drawdown %</span>
-                    </div>
-                    <input className="w-20 bg-transparent text-right font-data-mono text-[#ffb4ab] font-bold outline-none focus:underline"
-                      type="text" value={drawdown} onChange={(e) => setDrawdown(e.target.value)} />
-                  </div>
+                <div className="space-y-3 text-[12px] text-slate-500 dark:text-[#d0c5af]">
+                  <p className="flex items-start gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-[#d4af37] mt-0.5">water_drop</span>
+                    <span><span className="font-bold text-slate-700 dark:text-[#dce3f0]">Pool health/rebalance targets</span> live in Asset Liquidity once that phase ships.</span>
+                  </p>
+                  <p className="flex items-start gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-[#d4af37] mt-0.5">settings</span>
+                    <span><span className="font-bold text-slate-700 dark:text-[#dce3f0]">Global metrics</span> (platform ROI, drawdown limits) become tunable in System Settings.</span>
+                  </p>
                 </div>
-                <button type="button" onClick={handleMetricsApply}
-                  className="w-full mt-5 py-2 rounded-lg bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] text-[11px] font-bold tracking-widest hover:bg-[#d4af37]/20 transition-colors uppercase">
-                  Apply & Broadcast Metrics
-                </button>
-              </div>
-
-              {/* Pool Allocations */}
-              <div className={`${card} p-6`}>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-[12px] font-bold text-slate-900 dark:text-[#dce3f0] uppercase tracking-wider">Pool Allocations</h3>
-                  <span className="text-[11px] font-data-mono text-slate-400 dark:text-[#99907c]">
-                    Total: {pools.reduce((s, p) => s + p.pct, 0)}%
-                  </span>
-                </div>
-                <div className="space-y-4">
-                  {pools.map((pool, idx) => (
-                    <div key={pool.name} className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <div className="flex justify-between text-[11px] font-bold uppercase mb-1">
-                          <span className="text-slate-500 dark:text-[#d0c5af]">{pool.name}</span>
-                          <span className="text-slate-900 dark:text-[#dce3f0]">{pool.pct}%</span>
-                        </div>
-                        {/* track: surface-container-highest = #2e353f */}
-                        <div className="h-1.5 bg-slate-100 dark:bg-[#2e353f] rounded-full overflow-hidden">
-                          <div className={`h-full ${pool.color} transition-all duration-300`} style={{ width: `${pool.pct}%` }} />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => adjustPool(idx, -5)}
-                          className="size-6 rounded flex items-center justify-center bg-slate-100 dark:bg-[#19202a] text-slate-500 dark:text-[#d0c5af] hover:text-[#d4af37] hover:bg-[#242a34] transition-colors text-[14px] font-bold">
-                          −
-                        </button>
-                        <span className="w-10 text-center font-data-mono text-[12px] text-slate-900 dark:text-[#dce3f0]">{pool.pct}</span>
-                        <button onClick={() => adjustPool(idx, +5)}
-                          className="size-6 rounded flex items-center justify-center bg-slate-100 dark:bg-[#19202a] text-slate-500 dark:text-[#d0c5af] hover:text-[#d4af37] hover:bg-[#242a34] transition-colors text-[14px] font-bold">
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {/* Update button: border-outline-variant, hover bg-surface-container-high */}
-                <button type="button" onClick={handlePoolUpdate}
-                  className="w-full mt-6 py-2 border border-slate-200 dark:border-[#4d4635] text-[11px] font-bold tracking-widest text-slate-600 dark:text-[#d0c5af] hover:bg-slate-50 dark:hover:bg-[#242a34] transition-colors rounded uppercase">
-                  Update Allocation Weights
-                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ── Terminal log footer — glass-panel ────────────────────────────── */}
+        {/* ── Terminal log footer ───────────────────────────────────────────── */}
         <div
           className="shrink-0 bg-white dark:bg-[rgba(13,20,29,0.85)] dark:[backdrop-filter:blur(12px)] border-t border-slate-200 dark:border-[rgba(255,255,255,0.1)] px-4 sm:px-8 py-3 transition-all duration-300 overflow-hidden"
           style={{ height: logOpen ? "7.5rem" : "2.75rem" }}
@@ -549,19 +781,13 @@ export default function TradingConsolePage() {
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-[10px] font-bold text-slate-500 dark:text-[#99907c] uppercase tracking-widest flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-[#4edea3] rounded-full animate-pulse" />
-              Recent Broadcast Terminal Logs
+              Console Action Log
             </h4>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-data-mono text-slate-400 dark:text-[#99907c]">
-                Terminal Session ID: TRX-992-KLA
-              </span>
-              <button onClick={() => setLogOpen((o) => !o)}
-                className="flex items-center justify-center size-6 rounded-full bg-slate-100 dark:bg-[#19202a] text-slate-400 dark:text-[#99907c] hover:bg-slate-200 dark:hover:bg-[#242a34] transition-colors">
-                <ChevronDown className="size-3.5 transition-transform duration-300" style={{ transform: logOpen ? "rotate(0deg)" : "rotate(180deg)" }} />
-              </button>
-            </div>
+            <button onClick={() => setLogOpen((o) => !o)}
+              className="flex items-center justify-center size-6 rounded-full bg-slate-100 dark:bg-[#19202a] text-slate-400 dark:text-[#99907c] hover:bg-slate-200 dark:hover:bg-[#242a34] transition-colors">
+              <ChevronDown className="size-3.5 transition-transform duration-300" style={{ transform: logOpen ? "rotate(0deg)" : "rotate(180deg)" }} />
+            </button>
           </div>
-          {/* log bg: surface-container-lowest/50 */}
           <div className="bg-slate-50 dark:bg-[rgba(8,15,24,0.5)] rounded p-2 h-16 overflow-y-auto border border-slate-100 dark:border-[rgba(255,255,255,0.05)]">
             <div className="space-y-1 font-data-mono text-[11px]">
               {logs.map((log, i) => (
