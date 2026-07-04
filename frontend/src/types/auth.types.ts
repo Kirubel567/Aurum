@@ -1,4 +1,4 @@
-export type UserRole = "investor" | "admin";
+export type UserRole = "investor" | "admin" | "super_admin";
 
 export interface LoginPayload {
   email: string;
