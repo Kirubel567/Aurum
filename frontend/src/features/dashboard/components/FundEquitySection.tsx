@@ -2,13 +2,21 @@
 
 import { PerformanceChart } from "@/src/shared/charts/PerformanceChart";
 import type { DashboardMetrics } from "@/src/types/dashboard.types";
+import type {
+  DashboardTrading,
+  EquityCurve,
+} from "@/src/features/dashboard/hooks/useDashboardData";
 
 interface FundEquitySectionProps {
-  metrics: DashboardMetrics;
+  metrics: DashboardMetrics; // mock — only risk metrics left on it (Phase 16)
+  curve: EquityCurve | null; // real (Phase 1)
+  trading: DashboardTrading | null; // real (Phase 2)
 }
 
-export function FundEquitySection({ metrics }: FundEquitySectionProps) {
-  const { equityDrawdown, gainerLoser, riskMetrics } = metrics;
+export function FundEquitySection({ metrics, curve, trading }: FundEquitySectionProps) {
+  const { riskMetrics } = metrics;
+  const gainerLoser = trading?.gainerLoser ?? { profitable: [], unprofitable: [] };
+  const equityDrawdown = curve?.points ?? [];
 
   return (
     <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-12">
@@ -46,6 +54,11 @@ export function FundEquitySection({ metrics }: FundEquitySectionProps) {
           <h3 className="mb-4 text-sm font-bold text-gray-900 dark:text-white">
             Top Gainer/Loser Assets
           </h3>
+          {gainerLoser.profitable.length === 0 && gainerLoser.unprofitable.length === 0 && (
+            <p className="py-4 text-center text-[11px] text-gray-400 dark:text-white/40">
+              Appears once trades close.
+            </p>
+          )}
           <div className="mb-4">
             <div className="mb-2 text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase">
               Top 3 profitable

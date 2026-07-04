@@ -5,80 +5,25 @@ import { ExternalLink } from "lucide-react";
 
 import { formatUSD } from "@/src/lib/formatters/currency";
 import { ROUTES } from "@/src/lib/constants/routes";
-import type { DashboardMetrics } from "@/src/types/dashboard.types";
+import type {
+  DashboardSummary,
+  DashboardTrading,
+  EquityCurve,
+} from "@/src/features/dashboard/hooks/useDashboardData";
 import { cn } from "@/lib/utils";
 
-// ── Per-period mock overrides ─────────────────────────────────────────────────
-const PERIOD_DATA: Record<
-  string,
-  {
-    label: string;
-    ytdPercent: number;
-    totalProfit: number;
-    netReturn: number;
-    gainLossLabel: string;
-    gainLoss: number;
-    positive: boolean;
-    sparkline: { value: number }[];
-  }
-> = {
-  day: {
-    label: "Today",
-    ytdPercent: 23.5,
-    totalProfit: 2840,
-    netReturn: 2240,
-    gainLossLabel: "Daily Gain/Loss",
-    gainLoss: 45.2,
-    positive: true,
-    sparkline: [
-      { value: 60 }, { value: 55 }, { value: 40 },
-      { value: 30 }, { value: 45 }, { value: 20 }, { value: 10 },
-    ],
-  },
-  week: {
-    label: "This Week",
-    ytdPercent: 5.8,
-    totalProfit: 680,
-    netReturn: 520,
-    gainLossLabel: "Weekly Gain/Loss",
-    gainLoss: 218.4,
-    positive: true,
-    sparkline: [
-      { value: 20 }, { value: 35 }, { value: 30 },
-      { value: 50 }, { value: 45 }, { value: 60 }, { value: 55 },
-    ],
-  },
-  month: {
-    label: "This Month",
-    ytdPercent: 11.2,
-    totalProfit: 1340,
-    netReturn: 1090,
-    gainLossLabel: "Monthly Gain/Loss",
-    gainLoss: 892.0,
-    positive: true,
-    sparkline: [
-      { value: 10 }, { value: 25 }, { value: 45 },
-      { value: 35 }, { value: 60 }, { value: 55 }, { value: 70 },
-    ],
-  },
-  year: {
-    label: "This Year",
-    ytdPercent: 23.5,
-    totalProfit: 2840,
-    netReturn: 2240,
-    gainLossLabel: "Annual Gain/Loss",
-    gainLoss: 2240,
-    positive: true,
-    sparkline: [
-      { value: 5 }, { value: 20 }, { value: 15 },
-      { value: 40 }, { value: 55 }, { value: 45 }, { value: 65 },
-    ],
-  },
+const PERIOD_LABELS: Record<string, { label: string; gainLossLabel: string }> = {
+  day: { label: "Today", gainLossLabel: "Daily Gain/Loss" },
+  week: { label: "This Week", gainLossLabel: "Weekly Gain/Loss" },
+  month: { label: "This Month", gainLossLabel: "Monthly Gain/Loss" },
+  year: { label: "This Year", gainLossLabel: "Annual Gain/Loss" },
 };
 
 interface MetricsRowProps {
-  metrics: DashboardMetrics;
   period: string;
+  summary: DashboardSummary; // real (Phase 1)
+  curve: EquityCurve | null; // real (Phase 1)
+  trading: DashboardTrading | null; // real (Phase 2)
 }
 
 function Sparkline({ points }: { points: { value: number }[] }) {
@@ -119,42 +64,57 @@ function Sparkline({ points }: { points: { value: number }[] }) {
 function DonutChart({
   segments,
 }: {
-  segments: DashboardMetrics["strategyAllocation"];
+  segments: DashboardTrading["allocation"];
 }) {
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
-  let offset = 0;
+
+  // Each segment's start offset = sum of the segments before it (n is tiny,
+  // so the quadratic prefix sum is fine and keeps the render pure).
+  const arcs = segments.map((segment, i) => ({
+    segment,
+    dash: (segment.percent / 100) * circumference,
+    offset: segments
+      .slice(0, i)
+      .reduce((sum, s) => sum + (s.percent / 100) * circumference, 0),
+  }));
 
   return (
     <div className="relative flex size-24 items-center justify-center">
       <svg className="size-full -rotate-90" viewBox="0 0 96 96">
         <circle cx="48" cy="48" r={radius} fill="none" className="stroke-gray-200 dark:stroke-white/10" strokeWidth="12" />
-        {segments.map((segment) => {
-          const dash = (segment.percent / 100) * circumference;
-          const circle = (
-            <circle
-              key={segment.name}
-              cx="48"
-              cy="48"
-              r={radius}
-              fill="none"
-              stroke={segment.color}
-              strokeWidth="12"
-              strokeDasharray={`${dash} ${circumference - dash}`}
-              strokeDashoffset={-offset}
-            />
-          );
-          offset += dash;
-          return circle;
-        })}
+        {arcs.map(({ segment, dash, offset }) => (
+          <circle
+            key={segment.name}
+            cx="48"
+            cy="48"
+            r={radius}
+            fill="none"
+            stroke={segment.color}
+            strokeWidth="12"
+            strokeDasharray={`${dash} ${circumference - dash}`}
+            strokeDashoffset={-offset}
+          />
+        ))}
       </svg>
     </div>
   );
 }
 
-export function MetricsRow({ metrics, period }: MetricsRowProps) {
-  const { accountOverview, strategyAllocation } = metrics;
-  const pd = PERIOD_DATA[period] ?? PERIOD_DATA.day;
+export function MetricsRow({ period, summary, curve, trading }: MetricsRowProps) {
+  const labels = PERIOD_LABELS[period] ?? PERIOD_LABELS.day;
+  const strategyAllocation = trading?.allocation ?? [];
+
+  // Real numbers (Phase 1).
+  const points = curve?.points ?? [];
+  const changePercent = curve?.changePercent ?? 0;
+  const gainLoss =
+    points.length > 0 ? points[points.length - 1].equity - points[0].equity : 0;
+  const positive = gainLoss >= 0;
+  const sparkline =
+    points.length > 1
+      ? points.map((p) => ({ value: p.equity }))
+      : [{ value: 0 }, { value: 0 }];
 
   return (
     <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -171,8 +131,9 @@ export function MetricsRow({ metrics, period }: MetricsRowProps) {
               <ExternalLink className="size-3 flex-shrink-0" />
             </Link>
             <div className="text-2xl font-bold text-[#c4a24d]">
-              +{pd.ytdPercent}%{" "}
-              <span className="text-xs font-medium opacity-50">{pd.label}</span>
+              {changePercent >= 0 ? "+" : ""}
+              {changePercent}%{" "}
+              <span className="text-xs font-medium opacity-50">{labels.label}</span>
             </div>
           </div>
           <Link
@@ -182,19 +143,19 @@ export function MetricsRow({ metrics, period }: MetricsRowProps) {
             Live Performance
           </Link>
         </div>
-        <Sparkline points={pd.sparkline} />
+        <Sparkline points={sparkline} />
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="mb-1 text-[10px] font-bold text-white/40 uppercase">
-              Total Profit
+              Profit (MTD)
             </div>
-            <div className="text-xl font-extrabold">{formatUSD(pd.totalProfit)}</div>
+            <div className="text-xl font-extrabold">{formatUSD(summary.monthToDateProfit)}</div>
           </div>
           <div>
             <div className="mb-1 text-[10px] font-bold text-white/40 uppercase">
-              Net Return
+              {labels.label} Return
             </div>
-            <div className="text-xl font-extrabold">{formatUSD(pd.netReturn)}</div>
+            <div className="text-xl font-extrabold">{formatUSD(gainLoss)}</div>
           </div>
         </div>
       </div>
@@ -207,7 +168,7 @@ export function MetricsRow({ metrics, period }: MetricsRowProps) {
             Available for Trading
           </div>
           <div className="text-3xl font-extrabold text-gray-900 dark:text-white">
-            {formatUSD(accountOverview.availableForTrading)}
+            {formatUSD(summary.availableForTrading)}
           </div>
         </div>
         <div className="mb-6 rounded-r-lg border-l-4 border-[#C5A059] bg-[#C5A059]/10 p-3 dark:bg-[#c4a24d]/10">
@@ -215,15 +176,15 @@ export function MetricsRow({ metrics, period }: MetricsRowProps) {
             Open Positions
           </div>
           <div className="text-lg font-bold text-gray-900 dark:text-white">
-            {formatUSD(accountOverview.openPositions)}
+            {trading?.openPositionsCount ?? 0}
           </div>
         </div>
         <div>
           <div className="mb-1 text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase">
-            {pd.gainLossLabel}
+            {labels.gainLossLabel}
           </div>
-          <div className={cn("text-xl font-bold", pd.positive ? "text-[#10b981]" : "text-red-500")}>
-            {pd.positive ? "+" : ""}{formatUSD(pd.gainLoss)}
+          <div className={cn("text-xl font-bold", positive ? "text-[#10b981]" : "text-red-500")}>
+            {positive ? "+" : ""}{formatUSD(gainLoss)}
           </div>
         </div>
       </div>
@@ -232,21 +193,29 @@ export function MetricsRow({ metrics, period }: MetricsRowProps) {
       <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)] dark:[backdrop-filter:blur(20px)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-none">
         <h3 className="mb-6 text-sm font-bold text-gray-900 dark:text-white">Active Investments</h3>
         <div className="flex flex-col items-center gap-6">
-          <DonutChart segments={strategyAllocation} />
-          <div className="w-full space-y-3">
-            <div className="text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase tracking-wider">
-              Strategy Allocation
-            </div>
-            {strategyAllocation.map((item) => (
-              <div key={item.name} className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-2 font-semibold text-gray-600 dark:text-white/80">
-                  <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  {item.name}
-                </span>
-                <span className="font-bold text-gray-900 dark:text-white">{item.percent}%</span>
+          {strategyAllocation.length === 0 ? (
+            <p className="py-6 text-center text-xs text-gray-400 dark:text-white/40">
+              Pool allocations appear after your first approved deposit.
+            </p>
+          ) : (
+            <>
+              <DonutChart segments={strategyAllocation} />
+              <div className="w-full space-y-3">
+                <div className="text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase tracking-wider">
+                  Strategy Allocation
+                </div>
+                {strategyAllocation.map((item) => (
+                  <div key={item.name} className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-2 font-semibold text-gray-600 dark:text-white/80">
+                      <span className="size-2 rounded-full" style={{ backgroundColor: item.color }} />
+                      {item.name}
+                    </span>
+                    <span className="font-bold text-gray-900 dark:text-white">{item.percent}%</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,12 +1,13 @@
 import { formatUSD } from "@/src/lib/formatters/currency";
-import type { DashboardMetrics } from "@/src/types/dashboard.types";
+import type { DashboardTrading } from "@/src/features/dashboard/hooks/useDashboardData";
 
 interface DashboardTablesProps {
-  metrics: DashboardMetrics;
+  trading: DashboardTrading | null; // real (Phase 2)
 }
 
-export function DashboardTables({ metrics }: DashboardTablesProps) {
-  const { bestTrades, investmentDistribution } = metrics;
+export function DashboardTables({ trading }: DashboardTablesProps) {
+  const bestTrades = trading?.bestTrades ?? [];
+  const investmentDistribution = trading?.distribution ?? [];
 
   return (
     <div className="mb-8 grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -25,6 +26,13 @@ export function DashboardTables({ metrics }: DashboardTablesProps) {
             </tr>
           </thead>
           <tbody className="text-xs">
+            {bestTrades.length === 0 && (
+              <tr>
+                <td colSpan={4} className="py-8 text-center text-[11px] text-gray-400 dark:text-white/40">
+                  Appears once trades close.
+                </td>
+              </tr>
+            )}
             {bestTrades.map((trade) => (
               <tr
                 key={`${trade.asset}-${trade.entryExit}`}
@@ -32,10 +40,8 @@ export function DashboardTables({ metrics }: DashboardTablesProps) {
               >
                 <td className="py-4 font-bold text-gray-900 dark:text-white">{trade.asset}</td>
                 <td className="py-4 text-gray-600 dark:text-white/60">{trade.entryExit}</td>
-                <td className="py-4 font-bold text-[#10b981]">
-                  {trade.profit >= 100
-                    ? formatUSD(trade.profit)
-                    : `+${formatUSD(trade.profit)}`}
+                <td className={`py-4 font-bold ${trade.profit >= 0 ? "text-[#10b981]" : "text-red-500"}`}>
+                  {trade.profit >= 0 ? `+${formatUSD(trade.profit)}` : formatUSD(trade.profit)}
                 </td>
                 <td className="py-4 font-bold text-gray-900 dark:text-white">
                   {trade.riskReward}
@@ -60,6 +66,13 @@ export function DashboardTables({ metrics }: DashboardTablesProps) {
             </tr>
           </thead>
           <tbody className="text-xs">
+            {investmentDistribution.length === 0 && (
+              <tr>
+                <td colSpan={3} className="py-8 text-center text-[11px] text-gray-400 dark:text-white/40">
+                  Pool allocations appear after your first approved deposit.
+                </td>
+              </tr>
+            )}
             {investmentDistribution.map((row, index) => (
               <tr
                 key={`${row.strategy}-${index}`}
