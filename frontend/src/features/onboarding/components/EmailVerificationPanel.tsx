@@ -1,14 +1,58 @@
 "use client";
 
-import { MailCheck } from "lucide-react";
+import { useState } from "react";
+import { Loader2, MailCheck } from "lucide-react";
 
 interface EmailVerificationPanelProps {
   investorEmail: string;
 }
 
+type ResendState =
+  | { status: "idle" }
+  | { status: "sending" }
+  | { status: "sent" }
+  | { status: "error"; message: string };
+
 export function EmailVerificationPanel({
   investorEmail,
 }: EmailVerificationPanelProps) {
+  const [resend, setResend] = useState<ResendState>({ status: "idle" });
+
+  const handleResend = async () => {
+    setResend({ status: "sending" });
+    try {
+      const response = await fetch("/api/onboarding/resend-verification", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as {
+        sent?: boolean;
+        alreadyVerified?: boolean;
+        error?: string;
+      };
+
+      if (payload.alreadyVerified) {
+        // Status is stale on this screen — a reload picks up the verified state.
+        window.location.reload();
+        return;
+      }
+
+      if (!response.ok || !payload.sent) {
+        setResend({
+          status: "error",
+          message: payload.error ?? "We couldn't send the email. Please try again.",
+        });
+        return;
+      }
+
+      setResend({ status: "sent" });
+    } catch {
+      setResend({
+        status: "error",
+        message: "We couldn't send the email. Please check your connection and try again.",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 text-center">
       <div className="mx-auto flex size-16 items-center justify-center rounded-full border border-[#C5A059]/30 bg-[#C5A059]/10">
@@ -29,6 +73,35 @@ export function EmailVerificationPanel({
         Click the confirmation link in your email to proceed with your deposit
         verification. Wire transfer instructions will be available once your
         email is confirmed.
+      </div>
+
+      <div className="space-y-2">
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resend.status === "sending"}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[#C5A059]/40 bg-[#C5A059]/10 px-5 text-sm font-semibold text-[#8a6d3b] transition-all hover:bg-[#C5A059]/20 active:scale-[0.98] disabled:opacity-60"
+        >
+          {resend.status === "sending" ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            "Resend verification email"
+          )}
+        </button>
+
+        {resend.status === "sent" && (
+          <p className="text-xs font-medium text-emerald-600" role="status">
+            A new verification email is on its way — the previous link no longer works.
+          </p>
+        )}
+        {resend.status === "error" && (
+          <p className="text-xs font-medium text-red-500" role="alert">
+            {resend.message}
+          </p>
+        )}
       </div>
 
       <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
