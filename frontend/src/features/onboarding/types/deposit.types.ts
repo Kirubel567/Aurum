@@ -16,12 +16,14 @@ export interface BankCoordinates {
 export interface StoredDepositUser {
   id: string;
   email: string;
-  password: string;
+  // Legacy scrypt hash from the pre-Supabase-Auth era; null once the account
+  // has been lazily upgraded at login (Supabase Auth owns the password then).
+  password: string | null;
   fullName: string;
   username: string;
   phoneNumber: string;
   country: string;
-  role: "investor" | "admin";
+  role: "investor" | "admin" | "super_admin";
   emailVerified: boolean;
   emailVerificationToken?: string;
   emailVerificationTokenExpiresAt?: string;
@@ -42,6 +44,9 @@ export interface DepositSession extends AuthSession {
 export interface RegisterApiResponse {
   session: DepositSession;
   userId: string;
+  // False when the account was created but the verification email failed to
+  // dispatch — the UI should point the user at the resend button.
+  verificationEmailSent?: boolean;
 }
 
 export interface LoginApiResponse {

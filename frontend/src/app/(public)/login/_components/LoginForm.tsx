@@ -91,7 +91,15 @@ export function LoginForm() {
               </div>
 
               <div className="space-y-1.5">
-                <FieldLabel required>Password</FieldLabel>
+                <div className="flex items-center justify-between">
+                  <FieldLabel required>Password</FieldLabel>
+                  <Link
+                    href={ROUTES.FORGOT_PASSWORD}
+                    className="text-xs font-semibold text-[#C5A059] hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <IconInput
                   type="password"
                   icon={<Lock className="size-4" />}

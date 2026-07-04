@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 
 import { createServerClient } from "@/src/lib/supabase/server";
-import { hashPassword } from "@/src/features/onboarding/lib/password-hash";
-import { getDepositUserByEmail } from "@/src/features/onboarding/lib/deposit-store";
+import {
+  getDepositUserByEmail,
+  updateDepositUser,
+} from "@/src/features/onboarding/lib/deposit-store";
 import { sendAdminWelcomeEmail } from "@/src/features/onboarding/lib/email";
 
 // One-time endpoint to bootstrap the first admin account.
@@ -38,31 +40,36 @@ export async function POST(request: Request) {
   // Generate a strong temporary password
   const suffix = randomBytes(3).toString("hex").toUpperCase();
   const temporaryPassword = `Aurum@2025!${suffix}`;
-  const hashedPassword = await hashPassword(temporaryPassword);
 
-  const db = createServerClient();
-  const now = new Date().toISOString();
+  // Real identity creation via Supabase Auth, not a direct deposit_users
+  // insert — a row here with no matching auth.users entry can never log in.
+  const admin = createServerClient();
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email,
+    password: temporaryPassword,
+    email_confirm: true,
+    user_metadata: { role: "admin" },
+  });
 
-  const { data, error } = await db
-    .from("deposit_users")
-    .insert({
-      id: crypto.randomUUID(),
-      email,
-      password: hashedPassword,
-      full_name: fullName,
-      role: "admin",
-      deposit_status: "approved",
-      email_verified: true,
-      created_at: now,
-      updated_at: now,
-    })
-    .select("id, email, role")
-    .single();
-
-  if (error) {
-    console.error("[create-admin]", error.message);
+  if (createError || !created?.user) {
+    console.error("[create-admin]", createError?.message);
     return NextResponse.json(
       { error: "Failed to create admin user." },
+      { status: 500 }
+    );
+  }
+
+  const data = await updateDepositUser(created.user.id, {
+    fullName,
+    role: "admin",
+    depositStatus: "approved",
+    emailVerified: true,
+  });
+
+  if (!data) {
+    console.error("[create-admin] auth user created but deposit_users profile update failed", created.user.id);
+    return NextResponse.json(
+      { error: "Failed to create admin profile." },
       { status: 500 }
     );
   }

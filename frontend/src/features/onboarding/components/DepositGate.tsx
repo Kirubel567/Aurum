@@ -107,7 +107,7 @@ export function DepositGate({ children }: DepositGateProps) {
   const emailVerified = session.emailVerified ?? false;
 
   if (depositStatus === "approved") {
-    return <ApprovedHoldingView investorName={session.user.name} />;
+    return <>{children}</>;
   }
 
   if (isDepositLocked(depositStatus)) {

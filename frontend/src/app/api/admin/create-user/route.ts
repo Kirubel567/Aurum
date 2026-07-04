@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 
 import { createServerClient } from "@/src/lib/supabase/server";
-import { hashPassword } from "@/src/features/onboarding/lib/password-hash";
-import { getDepositUserByEmail } from "@/src/features/onboarding/lib/deposit-store";
+import {
+  getDepositUserByEmail,
+  updateDepositUser,
+} from "@/src/features/onboarding/lib/deposit-store";
 import { sendAdminWelcomeEmail } from "@/src/features/onboarding/lib/email";
 
 // Authenticated admin endpoint to create investor or admin accounts.
@@ -15,7 +17,7 @@ export async function POST(request: Request) {
 
   const email: string      = (body.email ?? "").trim().toLowerCase();
   const fullName: string   = (body.fullName ?? "").trim();
-  const role: string       = body.role === "admin" ? "admin" : "investor";
+  const role: "admin" | "investor" = body.role === "admin" ? "admin" : "investor";
   const phone: string      = (body.phone ?? "").trim();
   const country: string    = (body.country ?? "").trim();
   const tier: string       = (body.tier ?? "Tier 1 - Retail").trim();
@@ -31,34 +33,37 @@ export async function POST(request: Request) {
 
   const suffix = randomBytes(3).toString("hex").toUpperCase();
   const temporaryPassword = `Aurum@2025!${suffix}`;
-  const hashedPassword = await hashPassword(temporaryPassword);
 
-  const db = createServerClient();
-  const now = new Date().toISOString();
+  // Real identity creation via Supabase Auth, not a direct deposit_users
+  // insert — a row here with no matching auth.users entry can never log in.
+  const admin = createServerClient();
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email,
+    password: temporaryPassword,
+    email_confirm: true,
+    user_metadata: { role },
+  });
 
-  const { data, error } = await db
-    .from("deposit_users")
-    .insert({
-      id: crypto.randomUUID(),
-      email,
-      password: hashedPassword,
-      full_name: fullName,
-      role,
-      deposit_status: role === "admin" ? "approved" : "pending",
-      email_verified: role === "admin",
-      phone_number: phone || null,
-      country: country || null,
-      // Store tier in the notes / country field or as a custom column.
-      // If you add a `tier` column to deposit_users later, include it here.
-      created_at: now,
-      updated_at: now,
-    })
-    .select("id, email, role")
-    .single();
+  if (createError || !created?.user) {
+    console.error("[create-user]", createError?.message);
+    return NextResponse.json(
+      { error: "Failed to create user: " + (createError?.message ?? "unknown error") },
+      { status: 500 }
+    );
+  }
 
-  if (error) {
-    console.error("[create-user]", error.message);
-    return NextResponse.json({ error: "Failed to create user: " + error.message }, { status: 500 });
+  const data = await updateDepositUser(created.user.id, {
+    fullName,
+    role,
+    depositStatus: role === "admin" ? "approved" : "pending",
+    emailVerified: role === "admin",
+    phoneNumber: phone || undefined,
+    country: country || undefined,
+  });
+
+  if (!data) {
+    console.error("[create-user] auth user created but deposit_users profile update failed", created.user.id);
+    return NextResponse.json({ error: "Failed to create user profile." }, { status: 500 });
   }
 
   const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/login`;

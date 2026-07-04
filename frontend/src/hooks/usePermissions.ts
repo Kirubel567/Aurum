@@ -8,6 +8,7 @@ type PermissionAction = "read" | "write" | "admin";
 const ROLE_PERMISSIONS: Record<UserRole, PermissionAction[]> = {
   investor: ["read"],
   admin: ["read", "write", "admin"],
+  super_admin: ["read", "write", "admin"],
 };
 
 export function usePermissions() {

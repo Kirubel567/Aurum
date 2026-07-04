@@ -126,16 +126,28 @@ export function OnboardingWizard() {
       setDepositStatus(result.session.depositStatus);
       setEmailVerified(result.session.emailVerified ?? false);
       setDepositHydrated(true);
-      addToast({
-        title: "Account created",
-        description: "Complete your deposit verification to access the portal.",
-        variant: "success",
-      });
+      if (result.verificationEmailSent === false) {
+        addToast({
+          title: "Account created",
+          description:
+            "We couldn't send the verification email — use the resend button on the next screen.",
+          variant: "warning",
+        });
+      } else {
+        addToast({
+          title: "Account created",
+          description: "Complete your deposit verification to access the portal.",
+          variant: "success",
+        });
+      }
       router.push(ROUTES.DASHBOARD);
-    } catch {
+    } catch (err) {
       addToast({
         title: "Registration failed",
-        description: "Please try again or contact support.",
+        description:
+          err instanceof Error && err.message
+            ? err.message
+            : "Please try again or contact support.",
         variant: "error",
       });
     } finally {

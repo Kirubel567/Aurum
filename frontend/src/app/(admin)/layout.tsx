@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Hanken_Grotesk } from "next/font/google";
 
 import { AdminShell } from "@/src/shared/layouts/AdminShell";
-import type { DepositSession } from "@/src/features/onboarding/types/deposit.types";
-import { SESSION_COOKIE } from "@/src/features/onboarding/lib/deposit-cookies";
+import { getDepositSessionCookie } from "@/src/features/onboarding/lib/deposit-cookies";
 import { ROUTES } from "@/src/lib/constants/routes";
 
 // Hanken Grotesk via next/font (build-time optimised).
@@ -23,15 +21,9 @@ export const metadata: Metadata = {
 };
 
 async function requireAdmin() {
-  const jar = await cookies();
-  const raw = jar.get(SESSION_COOKIE)?.value;
-  if (!raw) redirect(ROUTES.LOGIN);
-  try {
-    const session = JSON.parse(raw) as DepositSession;
-    if (session.user?.role !== "admin") redirect(ROUTES.DASHBOARD);
-  } catch {
-    redirect(ROUTES.LOGIN);
-  }
+  const session = await getDepositSessionCookie();
+  if (!session) redirect(ROUTES.LOGIN);
+  if (session.user.role === "investor") redirect(ROUTES.DASHBOARD);
 }
 
 export default async function AdminLayout({

@@ -1,30 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createServerClient } from "@/src/lib/supabase/server";
-import { SESSION_COOKIE } from "@/src/features/onboarding/lib/deposit-cookies";
-import type { DepositSession } from "@/src/features/onboarding/types/deposit.types";
+import { getDepositSessionCookie } from "@/src/features/onboarding/lib/deposit-cookies";
 
-async function getSession(): Promise<DepositSession | null> {
-  try {
-    const jar = await cookies();
-    const raw = jar.get(SESSION_COOKIE)?.value ?? null;
-    if (!raw) return null;
-    return JSON.parse(raw) as DepositSession;
-  } catch {
-    return null;
-  }
-}
-
-// GET /api/messages — fetch thread for current investor (or all threads if admin)
+// GET /api/messages — fetch thread for current investor (or all threads if staff)
 export async function GET(req: NextRequest) {
-  const session = await getSession();
+  const session = await getDepositSessionCookie();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = createServerClient();
   const { searchParams } = new URL(req.url);
 
   try {
-    if (session.user.role === "admin") {
+    if (session.user.role !== "investor") {
       // Admin: get distinct investor threads with latest message preview
       const investorId = searchParams.get("investor_id");
       if (investorId) {
@@ -96,7 +83,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/messages — send a message
 export async function POST(req: NextRequest) {
-  const session = await getSession();
+  const session = await getDepositSessionCookie();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { body, investor_id } = await req.json();
@@ -105,19 +92,19 @@ export async function POST(req: NextRequest) {
   const supabase = createServerClient();
 
   try {
-    const isAdmin = session.user.role === "admin";
-    const targetInvestorId = isAdmin ? investor_id : session.user.id;
+    const isStaff = session.user.role !== "investor";
+    const targetInvestorId = isStaff ? investor_id : session.user.id;
     if (!targetInvestorId) return NextResponse.json({ error: "Missing investor_id" }, { status: 400 });
 
     const { data, error } = await supabase
       .from("messages")
       .insert({
         investor_id: targetInvestorId,
-        investor_name: isAdmin ? (investor_id ?? "") : (session.user.fullName ?? session.user.email ?? "Investor"),
-        sender_role: isAdmin ? "admin" : "investor",
+        investor_name: isStaff ? (investor_id ?? "") : (session.user.name ?? session.user.email ?? "Investor"),
+        sender_role: isStaff ? "admin" : "investor",
         body: body.trim(),
-        read_by_investor: isAdmin ? false : true,
-        read_by_admin: isAdmin ? true : false,
+        read_by_investor: isStaff ? false : true,
+        read_by_admin: isStaff ? true : false,
       })
       .select()
       .single();

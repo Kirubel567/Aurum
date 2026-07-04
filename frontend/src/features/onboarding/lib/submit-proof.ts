@@ -1,7 +1,4 @@
-import {
-  getDepositSessionCookie,
-  setDepositSessionCookie,
-} from "@/src/features/onboarding/lib/deposit-cookies";
+import { getDepositSessionCookie } from "@/src/features/onboarding/lib/deposit-cookies";
 import {
   ALLOWED_PROOF_MIME_TYPES,
   MAX_PROOF_FILE_BYTES,
@@ -90,12 +87,6 @@ export async function processDepositProofSubmission(
       session.user.id
     );
   }
-
-  const nextSession: DepositSession = {
-    ...session,
-    depositStatus: "pending",
-  };
-  await setDepositSessionCookie(nextSession);
 
   return { depositStatus: "pending" };
 }

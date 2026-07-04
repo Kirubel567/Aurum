@@ -224,6 +224,28 @@ export async function sendEmailVerificationEmail(
 
 // ── Email 2: Email Confirmed ──────────────────────────────────────────────────
 
+export async function sendPasswordResetEmail(
+  investorEmail: string,
+  investorName: string,
+  resetUrl: string
+): Promise<void> {
+  await dispatchEmail({
+    to: investorEmail,
+    subject: "Reset your password — Aurum Sovereign Capital",
+    html: shell(
+      "A password reset was requested for your account.",
+      `
+      ${h1("Reset Your Password")}
+      ${p(`Hello, <strong style="color:#0f172a;">${investorName}</strong>.`)}
+      ${p("A password reset was requested for your Aurum Sovereign Capital account. Click the button below to choose a new password.")}
+      ${ctaButton("Reset Password", resetUrl)}
+      ${p("This link expires in <strong style=\"color:#0f172a;\">1 hour</strong> and can only be used once.")}
+      ${notice("If you did not request this reset, you can safely ignore this email — your password will remain unchanged. Aurum Sovereign Capital will never ask for your password.", "red")}
+      `
+    ),
+  });
+}
+
 export async function sendEmailConfirmedEmail(
   investorEmail: string,
   investorName: string

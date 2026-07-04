@@ -8,6 +8,7 @@ import {
   sendInvestorApprovalEmail,
   sendInvestorRejectionEmail,
 } from "@/src/features/onboarding/lib/email";
+import { insertNotification } from "@/src/features/notifications/lib/notifications.server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -38,6 +39,18 @@ export async function GET(request: Request) {
 
   const newStatus = action === "approve" ? "approved" : "rejected";
   await updateDepositStatus(userId, newStatus);
+
+  // Feeds the investor's nav-bar bell (Phase 0). Non-fatal by design.
+  await insertNotification({
+    userId,
+    type: "deposit_status",
+    title: action === "approve" ? "Deposit approved" : "Deposit rejected",
+    body:
+      action === "approve"
+        ? "Your deposit has been verified and approved. Your portal is now fully unlocked."
+        : "Your deposit proof could not be verified. Please resubmit your receipt.",
+    linkPath: action === "approve" ? "/wallet" : "/dashboard",
+  });
 
   if (action === "approve") {
     await sendInvestorApprovalEmail(user.email, user.fullName);

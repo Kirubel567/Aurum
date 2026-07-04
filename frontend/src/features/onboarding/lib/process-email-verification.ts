@@ -1,7 +1,3 @@
-import {
-  getDepositSessionCookie,
-  setDepositSessionCookie,
-} from "@/src/features/onboarding/lib/deposit-cookies";
 import { sendEmailConfirmedEmail } from "@/src/features/onboarding/lib/email";
 import { isVerificationTokenExpired } from "@/src/features/onboarding/lib/email-verification-token";
 import {
@@ -42,14 +38,6 @@ export async function processEmailVerificationToken(
   }
 
   await sendEmailConfirmedEmail(updated.email, updated.fullName);
-
-  const session = await getDepositSessionCookie();
-  if (session?.user.id === updated.id) {
-    await setDepositSessionCookie({
-      ...session,
-      emailVerified: true,
-    });
-  }
 
   return { status: "verified", userId: updated.id };
 }
