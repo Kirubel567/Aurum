@@ -43,19 +43,11 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Dashboard", href: ROUTES.ADMIN_DASHBOARD, icon: LayoutDashboard },
   { label: "Trading Console", href: ROUTES.ADMIN_CONSOLE, icon: Terminal },
   { label: "Asset Liquidity", href: ROUTES.ADMIN_LIQUIDITY, icon: Droplets },
-  {
-    label: "Deposit Verification",
-    href: ROUTES.ADMIN_DEPOSITS,
-    icon: ShieldCheck,
-    badge: 5,
-  },
+  // Deposit Verification and Client Messages get LIVE badge counts in
+  // AdminSidebar (from /api/admin/notifications/summary) — no static badge here.
+  { label: "Deposit Verification", href: ROUTES.ADMIN_DEPOSITS, icon: ShieldCheck },
   { label: "User Management", href: ROUTES.ADMIN_USERS, icon: Users },
-  {
-    label: "Client Messages",
-    href: ROUTES.ADMIN_INBOX,
-    icon: MessageSquare,
-    badge: 3,
-  },
+  { label: "Client Messages", href: ROUTES.ADMIN_INBOX, icon: MessageSquare },
   { label: "System Settings", href: ROUTES.ADMIN_SETTINGS, icon: Settings2 },
 ];
 

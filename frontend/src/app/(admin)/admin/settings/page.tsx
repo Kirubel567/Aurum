@@ -9,6 +9,8 @@
 
 import { useState } from "react";
 
+import { ChangePasswordCard } from "@/src/features/settings/components/ChangePasswordCard";
+
 // ── mock admin log entries (newest-first, live-appended on save) ──────────────
 const INITIAL_LOGS = [
   { time: "14:22:10", text: "IP 192.168.1.1 accessed Security" },
@@ -365,6 +367,8 @@ export default function SystemSettingsPage() {
                   <option>Never (Insecure)</option>
                 </select>
               </div>
+              {/* Change Password */}
+              <ChangePasswordCard />
             </div>
           </section>
 

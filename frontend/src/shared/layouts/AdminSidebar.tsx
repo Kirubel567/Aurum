@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogOut, X } from "lucide-react";
-import { useTheme } from "@/src/hooks/useTheme";
 
 import { cn } from "@/lib/utils";
 import { BrandLockup } from "@/src/app/(public)/_components/BrandLockup";
 import { ADMIN_NAV } from "@/src/lib/constants/navigation";
 import { ROUTES } from "@/src/lib/constants/routes";
+import { useAdminSummary } from "@/src/features/notifications/hooks/useNotifications";
 import { useAuthStore } from "@/src/store/auth.store";
 
 function isNavActive(pathname: string, href: string): boolean {
@@ -27,7 +27,7 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
   const pathname = usePathname();
   const router   = useRouter();
   const user     = useAuthStore((s) => s.session?.user);
-  const { isDark } = useTheme();
+  const { data: summary } = useAdminSummary();
 
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
@@ -77,8 +77,16 @@ export function AdminSidebar({ isOpen = false, onClose }: AdminSidebarProps) {
       {/* ── Navigation ─────────────────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto px-4 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="space-y-[2px]">
-          {ADMIN_NAV.map(({ href, label, icon: Icon, badge }) => {
+          {ADMIN_NAV.map(({ href, label, icon: Icon }) => {
             const active = isNavActive(pathname, href);
+            // Live counts from the summary endpoint (30s poll), replacing
+            // the hardcoded numbers that used to live in navigation.ts.
+            const badge =
+              href === ROUTES.ADMIN_DEPOSITS
+                ? summary?.pendingDeposits
+                : href === ROUTES.ADMIN_INBOX
+                  ? summary?.unreadMessages
+                  : undefined;
 
             return (
               <Link

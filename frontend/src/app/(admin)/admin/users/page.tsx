@@ -7,6 +7,7 @@
 // surface: #0d141d   surface-container: #19202a   surface-container-lowest: #080f18
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type UserStatus = "Verified" | "Pending" | "Suspended";
@@ -266,11 +267,13 @@ function AssignManagerModal({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function UserManagementPage() {
+  const searchParams = useSearchParams();
   const [users, setUsers]           = useState<User[]>(INITIAL_USERS);
   const [managers, setManagers]     = useState<Manager[]>(MOCK_MANAGERS);
   const [logs, setLogs]             = useState<LogEntry[]>(INITIAL_LOGS);
   const [activeSessions, setActiveSessions] = useState(1204);
-  const [search, setSearch]         = useState("");
+  // Seeded from ?q= so the navbar's investor search can deep-link here.
+  const [search, setSearch]         = useState(searchParams.get("q") ?? "");
   const [tierFilter, setTierFilter] = useState("All Tiers");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [page, setPage]             = useState(1);
