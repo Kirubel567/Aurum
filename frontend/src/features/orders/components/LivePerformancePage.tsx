@@ -1,8 +1,9 @@
 "use client";
 
 import { useLivePerformance } from "@/src/features/orders/hooks/useLivePerformance";
-import type { ActiveExecution, StrategyPool } from "@/src/types/trade.types";
+import type { ActiveExecution, LiveSessionStats, StrategyPool } from "@/src/types/trade.types";
 import { cn } from "@/lib/utils";
+import { formatUSD } from "@/src/lib/formatters/currency";
 
 // Stitch dark tokens: bg #050b14, glass rgba(255,255,255,0.03)+blur(12px)+border rgba(255,255,255,0.1)
 // tertiary/gold: #e9c349, table-thead bg: #161c22
@@ -30,69 +31,46 @@ function TimeSelector({ active, onChange }: { active: string; onChange: (v: stri
   );
 }
 
-// ── Session equity/balance data ───────────────────────────────────────────────
+// ── Live Chart — real 24h equity curve from /api/orders/live ─────────────────
 
-const Y_MIN = 1160;
-const Y_MAX = 1320;
 const CHART_H = 200;
 
-function toY(value: number) {
-  return CHART_H - ((value - Y_MIN) / (Y_MAX - Y_MIN)) * CHART_H;
+// Builds an SVG path from the API's { x, y } points (already scaled to the
+// 1200x160 space by the server) and rescales onto this component's 1200x200
+// viewBox to match the original design's proportions.
+function pathFromPoints(points: { x: number; y: number }[]): { line: string; area: string } {
+  if (points.length === 0) return { line: "", area: "" };
+  const scaled = points.map((p) => ({ x: p.x, y: (p.y / 160) * CHART_H }));
+  const line = scaled.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const last = scaled[scaled.length - 1];
+  const first = scaled[0];
+  const area = `${line} L${last.x},${CHART_H} L${first.x},${CHART_H} Z`;
+  return { line, area };
 }
 
-const Y_TICKS = [1320, 1280, 1240, 1200, 1160];
-
-const SESSION = {
-  balance: "$1,245.20",
-  equity: "$1,291.80",
-  floatingPL: "+$46.60",
-  floatingPositive: true,
-  drawdown: "—",
-  labels: ["Open", "10:00", "12:00", "14:00", "16:00", "18:00", "Now"],
-  balancePath: [
-    `M0,${toY(1200)}`,
-    `L300,${toY(1200)}`,
-    `L300,${toY(1218)}`,
-    `L700,${toY(1218)}`,
-    `L700,${toY(1232)}`,
-    `L1000,${toY(1232)}`,
-    `L1000,${toY(1245)}`,
-    `L1200,${toY(1245)}`,
-  ].join(" "),
-  equityPath: [
-    `M0,${toY(1200)}`,
-    `Q150,${toY(1212)} 300,${toY(1225)}`,
-    `T550,${toY(1248)}`,
-    `T700,${toY(1255)}`,
-    `T850,${toY(1270)}`,
-    `T1000,${toY(1278)}`,
-    `T1150,${toY(1287)}`,
-    `T1200,${toY(1292)}`,
-  ].join(" "),
-  equityAreaPath: [
-    `M0,${toY(1200)}`,
-    `Q150,${toY(1212)} 300,${toY(1225)}`,
-    `T550,${toY(1248)}`,
-    `T700,${toY(1255)}`,
-    `T850,${toY(1270)}`,
-    `T1000,${toY(1278)}`,
-    `T1150,${toY(1287)}`,
-    `T1200,${toY(1292)}`,
-    `L1200,${toY(1245)}`,
-    `L1000,${toY(1245)}`,
-    `L1000,${toY(1232)}`,
-    `L700,${toY(1232)}`,
-    `L700,${toY(1218)}`,
-    `L300,${toY(1218)}`,
-    `L300,${toY(1200)}`,
-    `L0,${toY(1200)} Z`,
-  ].join(" "),
-};
-
-// ── Live Chart ────────────────────────────────────────────────────────────────
-
-function LiveChart() {
-  const s = SESSION;
+function LiveChart({
+  points,
+  chartRange,
+  timeLabels,
+  session,
+}: {
+  points: { x: number; y: number }[];
+  chartRange: { min: number; max: number };
+  timeLabels: string[];
+  session: LiveSessionStats;
+}) {
+  const { line: equityPath, area: equityAreaPath } = pathFromPoints(points);
+  const yTicks = [chartRange.max, Math.round((chartRange.max + chartRange.min) / 2), chartRange.min];
+  const s = {
+    balance: formatUSD(session.balance),
+    equity: formatUSD(session.equity),
+    floatingPL: session.floatingPlKnown
+      ? `${session.floatingPl >= 0 ? "+" : ""}${formatUSD(session.floatingPl)}`
+      : "—",
+    floatingPositive: session.floatingPl >= 0,
+    drawdown: "—", // platform-wide drawdown arrives with Phase 16's risk metrics
+    labels: timeLabels,
+  };
 
   return (
     <section
@@ -107,7 +85,7 @@ function LiveChart() {
             <span className="w-2 h-2 rounded-full bg-[#947600] dark:bg-[#e9c349] animate-pulse" />
             Live Equity &amp; Balance — Current Session
           </h3>
-          <p className="mt-0.5 text-[11px] text-slate-400 dark:text-white/40">Floating exposure vs realised balance on open trades</p>
+          <p className="mt-0.5 text-[11px] text-slate-400 dark:text-white/40">Your wallet balance over the last 24 hours (realized gains only)</p>
         </div>
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <div>
@@ -138,18 +116,14 @@ function LiveChart() {
       <div className="flex items-center gap-5 mb-4">
         <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-white/60">
           <span className="inline-block h-0.5 w-5 bg-emerald-500 rounded-full" />
-          Equity
-        </span>
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-white/40">
-          <span className="inline-block h-[2px] w-5 border-t-2 border-dashed border-slate-400 dark:border-white/40" />
-          Balance
+          Equity (realized — deposits, yield, closed trades)
         </span>
       </div>
 
       {/* ── Chart ── */}
       <div className="flex gap-3">
         <div className="flex flex-col justify-between text-right shrink-0 pb-5" style={{ height: "180px" }}>
-          {Y_TICKS.map((v) => (
+          {yTicks.map((v) => (
             <span key={v} className="text-[9px] font-bold text-slate-400 dark:text-white/40 leading-none">
               ${v.toLocaleString()}
             </span>
@@ -167,18 +141,21 @@ function LiveChart() {
                 <stop offset="100%" stopColor="#e9c349" stopOpacity="0" />
               </linearGradient>
             </defs>
-            {Y_TICKS.map((v) => (
-              <line key={v} x1="0" y1={toY(v)} x2="1200" y2={toY(v)} stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
-            ))}
-            <path className="dark:hidden" d={s.equityAreaPath} fill="url(#equity-grad-light)" />
-            <path className="hidden dark:block" d={s.equityAreaPath} fill="url(#equity-grad-dark)" />
-            <path d={s.balancePath} fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="8 5" className="text-slate-400 dark:text-white/30" />
-            <path className="dark:hidden" d={s.equityPath} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path className="hidden dark:block" d={s.equityPath} fill="none" stroke="#e9c349" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: "drop-shadow(0 0 12px rgba(233,195,73,0.5))" }} />
+            <line x1="0" y1="0" x2="1200" y2="0" stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
+            <line x1="0" y1="100" x2="1200" y2="100" stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
+            <line x1="0" y1="200" x2="1200" y2="200" stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
+            {points.length > 0 && (
+              <>
+                <path className="dark:hidden" d={equityAreaPath} fill="url(#equity-grad-light)" />
+                <path className="hidden dark:block" d={equityAreaPath} fill="url(#equity-grad-dark)" />
+                <path className="dark:hidden" d={equityPath} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path className="hidden dark:block" d={equityPath} fill="none" stroke="#e9c349" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: "drop-shadow(0 0 12px rgba(233,195,73,0.5))" }} />
+              </>
+            )}
           </svg>
           <div className="absolute -bottom-5 left-0 right-0 flex justify-between text-[10px] text-slate-400 dark:text-white/40 tracking-wide">
-            {s.labels.map((t) => (
-              <span key={t}>{t}</span>
+            {s.labels.map((t, i) => (
+              <span key={`${t}-${i}`}>{t}</span>
             ))}
           </div>
         </div>
@@ -399,7 +376,7 @@ export function LivePerformancePage() {
       </div>
 
       {/* Hero chart */}
-      <LiveChart />
+      <LiveChart points={data.chartPoints} chartRange={data.chartRange} timeLabels={data.timeLabels} session={data.session} />
 
       {/* Split grid */}
       <div className="grid grid-cols-12 gap-8">

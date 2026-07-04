@@ -2,10 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { getLivePerformance } from "@/src/services/api/orders.api";
 import type { LivePerformanceData } from "@/src/types/trade.types";
 
 const SYNC_INTERVAL_MS = 5000;
+
+// Real endpoint (Phase 2) — one consolidated payload per poll tick.
+async function getLivePerformance(): Promise<LivePerformanceData> {
+  const res = await fetch("/api/orders/live", { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load live performance");
+  return res.json();
+}
 
 export function useLivePerformance() {
   const [data, setData] = useState<LivePerformanceData | null>(null);
@@ -14,18 +20,20 @@ export function useLivePerformance() {
   const [liveSync, setLiveSync] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const fetchData = useCallback((silent = false) => {
-    if (!silent) setLoading(true);
+  // `loading` starts true and is only cleared by the first fetch resolving —
+  // every setState here happens asynchronously (in .then/.finally), which
+  // keeps the effect body itself free of synchronous state updates.
+  const fetchData = useCallback((initial = false) => {
     return getLivePerformance()
       .then(setData)
       .catch(() => setError("Failed to load live performance data."))
       .finally(() => {
-        if (!silent) setLoading(false);
+        if (initial) setLoading(false);
       });
   }, []);
 
   useEffect(() => {
-    fetchData();
+    void fetchData(true);
   }, [fetchData]);
 
   useEffect(() => {
