@@ -81,11 +81,22 @@ export interface LiveMetric {
   iconColor: string;
 }
 
+export interface LiveSessionStats {
+  balance: number;
+  equity: number;
+  floatingPl: number;
+  // False until per-position notional/lot size is tracked (Phase 11
+  // follow-up) — the UI shows "—" instead of a misleading "$0.00".
+  floatingPlKnown: boolean;
+}
+
 export interface LivePerformanceData {
   liveVolume: string;
   totalLiquidity: string;
   chartPoints: { x: number; y: number }[];
+  chartRange: { min: number; max: number };
   timeLabels: string[];
+  session: LiveSessionStats;
   executions: ActiveExecution[];
   strategyPools: StrategyPool[];
   metrics: LiveMetric[];
