@@ -4,84 +4,54 @@ import type {
   WithdrawHistoryItem,
 } from "@/src/types/withdraw.types";
 
-export const MOCK_BANKS: SavedBankAccount[] = [
-  {
-    id: "cbe",
-    bankName: "Commercial Bank of Ethiopia",
-    accountHolder: "Abebe Kebede",
-    accountNumber: "1000 5497 1250 2",
-    swiftCode: "CBETETAA",
-    isPrimary: true,
-  },
-  {
-    id: "boa",
-    bankName: "Bank of Abyssinia",
-    accountHolder: "Abebe Kebede",
-    accountNumber: "162 435 388",
-    swiftCode: "ABYSETAA",
-    isPrimary: false,
-  },
-];
-
-export const MOCK_BALANCE: WithdrawBalanceSummary = {
-  totalBalance: 12450.0,
-  availableToWithdraw: 8200.0,
-  pendingWithdrawals: 0,
-  totalWithdrawn: 4250.0,
-  lockedUntil: null,
-  withdrawnThisMonth: 0,
-  monthlyLimit: 50000,
-  dailyLimit: 10000,
-  dailyUsed: 0,
-};
-
-export const MOCK_HISTORY: WithdrawHistoryItem[] = [
-  {
-    id: "WD-2025-001",
-    date: "May 12, 2025",
-    amount: 2500,
-    fee: 12.5,
-    netAmount: 2487.5,
-    destination: "1000 5497 1250 2",
-    bankName: "Commercial Bank of Ethiopia",
-    method: "standard",
-    status: "completed",
-    reference: "REF-48291",
-    estimatedArrival: "May 15, 2025",
-  },
-  {
-    id: "WD-2025-002",
-    date: "Apr 28, 2025",
-    amount: 1750,
-    fee: 17.5,
-    netAmount: 1732.5,
-    destination: "162 435 388",
-    bankName: "Bank of Abyssinia",
-    method: "express",
-    status: "completed",
-    reference: "REF-37104",
-    estimatedArrival: "Apr 29, 2025",
-  },
-];
-
+// Client-side fallbacks used before the summary API response arrives.
 export const FEE_RATE = { standard: 0.005, express: 0.01 };
 export const MIN_WITHDRAW = 500;
 export const PROCESSING_DAYS = { standard: "1–3 business days", express: "Within 24 hours" };
 
-export async function getWithdrawData() {
-  await new Promise((r) => setTimeout(r, 400));
-  return { balance: MOCK_BALANCE, banks: MOCK_BANKS, history: MOCK_HISTORY };
+export type WithdrawSummaryResponse = WithdrawBalanceSummary & {
+  minWithdrawal: number;
+  standardFeeRate: number;
+  expressFeeRate: number;
+};
+
+export async function fetchWithdrawSummary(): Promise<WithdrawSummaryResponse> {
+  const res = await fetch("/api/withdraw/summary");
+  if (!res.ok) throw new Error("Failed to load withdrawal summary.");
+  return res.json() as Promise<WithdrawSummaryResponse>;
 }
 
-export async function submitWithdrawal(_payload: {
+export async function fetchWithdrawBanks(): Promise<SavedBankAccount[]> {
+  const res = await fetch("/api/withdraw/banks");
+  if (!res.ok) throw new Error("Failed to load bank accounts.");
+  const json = (await res.json()) as { banks: SavedBankAccount[] };
+  return json.banks;
+}
+
+export async function fetchWithdrawHistory(): Promise<WithdrawHistoryItem[]> {
+  const res = await fetch("/api/withdraw/history");
+  if (!res.ok) throw new Error("Failed to load withdrawal history.");
+  const json = (await res.json()) as { history: WithdrawHistoryItem[] };
+  return json.history;
+}
+
+export async function submitWithdrawal(payload: {
   amount: number;
   bankId: string;
   method: string;
   note: string;
 }): Promise<{ id: string; reference: string }> {
-  await new Promise((r) => setTimeout(r, 1400));
-  return {
-    id: `WD-${Date.now()}`,
-    reference: `REF-${Math.floor(10000 + Math.random() * 90000)}`,
-  };
+  const res = await fetch("/api/withdraw/request", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount:        payload.amount,
+      bankAccountId: payload.bankId,
+      method:        payload.method,
+      note:          payload.note || undefined,
+    }),
+  });
+  const json = (await res.json()) as { id?: string; reference?: string; error?: string; code?: string };
+  if (!res.ok) throw Object.assign(new Error(json.error ?? "Withdrawal failed."), { code: json.code });
+  return { id: json.id!, reference: json.reference! };
 }
