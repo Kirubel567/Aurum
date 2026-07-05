@@ -1,20 +1,20 @@
 "use client";
 
 import { PerformanceChart } from "@/src/shared/charts/PerformanceChart";
-import type { DashboardMetrics } from "@/src/types/dashboard.types";
-import type {
-  DashboardTrading,
-  EquityCurve,
+import {
+  useRiskMetrics,
+  type DashboardTrading,
+  type EquityCurve,
 } from "@/src/features/dashboard/hooks/useDashboardData";
 
 interface FundEquitySectionProps {
-  metrics: DashboardMetrics; // mock — only risk metrics left on it (Phase 16)
   curve: EquityCurve | null; // real (Phase 1)
   trading: DashboardTrading | null; // real (Phase 2)
 }
 
-export function FundEquitySection({ metrics, curve, trading }: FundEquitySectionProps) {
-  const { riskMetrics } = metrics;
+export function FundEquitySection({ curve, trading }: FundEquitySectionProps) {
+  const riskQuery = useRiskMetrics();
+  const risk = riskQuery.data ?? null;
   const gainerLoser = trading?.gainerLoser ?? { profitable: [], unprofitable: [] };
   const equityDrawdown = curve?.points ?? [];
 
@@ -31,7 +31,7 @@ export function FundEquitySection({ metrics, curve, trading }: FundEquitySection
             </span>
             <span className="flex items-center gap-1">
               <span className="size-2 rounded bg-red-500" />
-              Max Drawdown
+              Drawdown (% below peak)
             </span>
           </div>
         </div>
@@ -43,7 +43,7 @@ export function FundEquitySection({ metrics, curve, trading }: FundEquitySection
           </span>
           <span className="flex items-center gap-2">
             <span className="h-1.5 w-3 rounded-sm bg-red-500" />
-            Max Drawdown
+            Underwater Drawdown
           </span>
         </div>
       </div>
@@ -92,35 +92,49 @@ export function FundEquitySection({ metrics, curve, trading }: FundEquitySection
         {/* Risk Metrics */}
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)] dark:[backdrop-filter:blur(20px)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-none">
           <h3 className="mb-4 text-sm font-bold text-gray-900 dark:text-white">Risk Metrics</h3>
-          <div className="space-y-4">
-            <div className="flex items-end justify-between border-b border-gray-50 dark:border-white/5 pb-2">
-              <div>
-                <div className="mb-1 text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase">
-                  Leverage Ratio
+          {!risk ? (
+            <p className="py-4 text-center text-[11px] text-gray-400 dark:text-white/40">
+              {riskQuery.isError ? "Unable to load risk metrics." : "Loading risk metrics…"}
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-end justify-between border-b border-gray-50 dark:border-white/5 pb-2">
+                <div>
+                  <div className="mb-1 text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase">
+                    Leverage Ratio
+                  </div>
+                  <div className="text-xs font-bold text-gray-800 dark:text-white/80">Effective exposure</div>
                 </div>
-                <div className="text-xs font-bold text-gray-800 dark:text-white/80">Leverage</div>
+                <div className="text-sm font-extrabold text-gray-900 dark:text-white">{risk.leverage}</div>
               </div>
-              <div className="text-sm font-extrabold text-gray-900 dark:text-white">{riskMetrics.leverage}</div>
-            </div>
-            <div className="flex items-end justify-between border-b border-gray-50 dark:border-white/5 pb-2">
-              <div>
-                <div className="mb-1 text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase">
-                  Volatility Index
+              <div className="flex items-end justify-between border-b border-gray-50 dark:border-white/5 pb-2">
+                <div>
+                  <div className="mb-1 text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase">
+                    Volatility Index
+                  </div>
+                  <div className="text-xs font-bold text-gray-800 dark:text-white/80">Equity volatility (24h)</div>
                 </div>
-                <div className="text-xs font-bold text-gray-800 dark:text-white/80">VIX at</div>
+                <div className="text-sm font-extrabold text-gray-900 dark:text-white">{risk.volatility}%</div>
               </div>
-              <div className="text-sm font-extrabold text-gray-900 dark:text-white">{riskMetrics.vix}</div>
+              <div>
+                <div className="mb-1 text-sm font-bold text-gray-900 dark:text-white">
+                  Drawdown Alert
+                </div>
+                <div className="mb-1 text-xs text-gray-500 dark:text-white/40">Current Drawdown:</div>
+                <div
+                  className={`text-sm font-bold ${
+                    risk.drawdownZone === "Safe Zone"
+                      ? "text-[#10b981]"
+                      : risk.drawdownZone === "Caution"
+                        ? "text-amber-500"
+                        : "text-red-500"
+                  }`}
+                >
+                  {risk.drawdownPercent}% ({risk.drawdownZone})
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="mb-1 text-sm font-bold text-gray-900 dark:text-white">
-                Drawdown Alert
-              </div>
-              <div className="mb-1 text-xs text-gray-500 dark:text-white/40">Current Drawdown:</div>
-              <div className="text-sm font-bold text-[#10b981]">
-                {riskMetrics.drawdownPercent}% ({riskMetrics.drawdownZone})
-              </div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

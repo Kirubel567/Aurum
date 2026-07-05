@@ -62,6 +62,26 @@ export function useDashboardTrading() {
   });
 }
 
+export interface RiskMetricsData {
+  leverage: string;
+  volatility: number;
+  drawdownPercent: number;
+  drawdownZone: string;
+}
+
+export function useRiskMetrics() {
+  return useQuery({
+    queryKey: ["risk-metrics"],
+    queryFn: async (): Promise<RiskMetricsData> => {
+      const res = await fetch("/api/dashboard/risk-metrics", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load risk metrics");
+      return res.json();
+    },
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  });
+}
+
 export function useEquityCurve(period: string) {
   return useQuery({
     queryKey: ["equity-curve", period],

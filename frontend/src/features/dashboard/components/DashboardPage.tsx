@@ -57,7 +57,7 @@ export function DashboardPage() {
       </div>
 
       <MetricsRow period={period} summary={summary} curve={curve} trading={trading} />
-      <FundEquitySection metrics={data} curve={curve} trading={trading} />
+      <FundEquitySection curve={curve} trading={trading} />
       <RecentTransactions transactions={summary.recentTransactions} />
       <DashboardTables trading={trading} />
       <DashboardFooterBadges badges={data.footerBadges} />

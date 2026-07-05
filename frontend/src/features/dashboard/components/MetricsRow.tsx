@@ -26,7 +26,10 @@ interface MetricsRowProps {
   trading: DashboardTrading | null; // real (Phase 2)
 }
 
-function Sparkline({ points }: { points: { value: number }[] }) {
+// Sparkline of the realized (closed) balance. Green while the balance is at
+// or above where the period started, red when it's below — a drawdown from
+// the period baseline is immediately visible by color alone.
+function Sparkline({ points, positive }: { points: { value: number }[]; positive: boolean }) {
   const max = Math.max(...points.map((p) => p.value));
   const min = Math.min(...points.map((p) => p.value));
   const range = max - min || 1;
@@ -40,23 +43,23 @@ function Sparkline({ points }: { points: { value: number }[] }) {
     .join(" ");
 
   const area = `${path} V80 H0 Z`;
+  const color = positive ? "#10b981" : "#ef4444";
+  const glow = positive ? "rgba(16,185,129,0.6)" : "rgba(239,68,68,0.6)";
 
   return (
     <svg className="mb-6 h-24 w-full" preserveAspectRatio="none" viewBox="0 0 200 80">
       <defs>
-        <linearGradient id="sparklineFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#c4a24d" stopOpacity={0.3} />
-          <stop offset="100%" stopColor="#c4a24d" stopOpacity={0} />
-        </linearGradient>
-        <linearGradient id="sparklineFillLight" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="sparklineFillUp" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
           <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
         </linearGradient>
+        <linearGradient id="sparklineFillDown" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+          <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
+        </linearGradient>
       </defs>
-      <path className="hidden dark:block" d={area} fill="url(#sparklineFill)" />
-      <path className="dark:hidden" d={area} fill="url(#sparklineFillLight)" />
-      <path className="dark:hidden" d={path} fill="none" stroke="#10b981" strokeWidth={3} />
-      <path className="hidden dark:block" d={path} fill="none" stroke="#c4a24d" strokeWidth={3} style={{ filter: "drop-shadow(0 0 4px rgba(196,162,77,0.6))" }} />
+      <path d={area} fill={positive ? "url(#sparklineFillUp)" : "url(#sparklineFillDown)"} />
+      <path d={path} fill="none" stroke={color} strokeWidth={3} style={{ filter: `drop-shadow(0 0 4px ${glow})` }} />
     </svg>
   );
 }
@@ -130,7 +133,7 @@ export function MetricsRow({ period, summary, curve, trading }: MetricsRowProps)
               Fund Performance
               <ExternalLink className="size-3 flex-shrink-0" />
             </Link>
-            <div className="text-2xl font-bold text-[#c4a24d]">
+            <div className={cn("text-2xl font-bold", changePercent >= 0 ? "text-[#c4a24d]" : "text-red-400")}>
               {changePercent >= 0 ? "+" : ""}
               {changePercent}%{" "}
               <span className="text-xs font-medium opacity-50">{labels.label}</span>
@@ -143,7 +146,7 @@ export function MetricsRow({ period, summary, curve, trading }: MetricsRowProps)
             Live Performance
           </Link>
         </div>
-        <Sparkline points={sparkline} />
+        <Sparkline points={sparkline} positive={positive} />
         <div className="grid grid-cols-2 gap-4">
           <div>
             <div className="mb-1 text-[10px] font-bold text-white/40 uppercase">
