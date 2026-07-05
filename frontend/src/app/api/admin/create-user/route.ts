@@ -2,22 +2,29 @@ import { NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 
 import { createServerClient } from "@/src/lib/supabase/server";
+import { getDepositSessionCookie } from "@/src/features/onboarding/lib/deposit-cookies";
 import {
   getDepositUserByEmail,
   updateDepositUser,
 } from "@/src/features/onboarding/lib/deposit-store";
 import { sendAdminWelcomeEmail } from "@/src/features/onboarding/lib/email";
 
-// Authenticated admin endpoint to create investor or admin accounts.
-// Used by the User Management UI. Caller must be logged-in admin (checked via
-// session cookie by createServerClient — add your own auth guard as needed).
-
 export async function POST(request: Request) {
+  const session = await getDepositSessionCookie();
+  if (!session || session.user.role === "investor") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => ({}));
 
   const email: string      = (body.email ?? "").trim().toLowerCase();
   const fullName: string   = (body.fullName ?? "").trim();
   const role: "admin" | "investor" = body.role === "admin" ? "admin" : "investor";
+
+  // Only super_admin can create admin accounts
+  if (role === "admin" && session.user.role !== "super_admin") {
+    return NextResponse.json({ error: "Forbidden: creating admin accounts requires super_admin." }, { status: 401 });
+  }
   const phone: string      = (body.phone ?? "").trim();
   const country: string    = (body.country ?? "").trim();
   const tier: string       = (body.tier ?? "Tier 1 - Retail").trim();
