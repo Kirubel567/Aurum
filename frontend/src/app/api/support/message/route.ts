@@ -146,57 +146,58 @@ export async function POST(req: NextRequest) {
     "gemini-2.0-flash-lite",
   ];
 
+  // Two configs per model: no-thinking first (fast), then default thinking as
+  // a retry — 2.5 models occasionally return an empty candidate with
+  // thinkingBudget: 0, and the default config recovers those cases.
+  const GEN_CONFIGS = [
+    { temperature: 0.7, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
+    { temperature: 0.7, maxOutputTokens: 2048 },
+  ];
+
   replyText = "";
-  for (const modelName of MODELS) {
-    try {
-      const endpoint =
-        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+  outer: for (const modelName of MODELS) {
+    const endpoint =
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-            // Gemini 2.5 models spend "thinking" tokens from the same budget —
-            // without this, thinking can eat the whole cap and return no text.
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      });
+    for (const generationConfig of GEN_CONFIGS) {
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents, generationConfig }),
+        });
 
-      if (res.status === 404 || res.status === 429) {
-        // 404 = model not available, 429 = quota hit — try the next model
-        if (res.status === 429) {
-          const errBody = await res.text();
-          console.warn(`[support/message] ${modelName} quota exceeded, trying next model. ${errBody.slice(0, 120)}`);
+        if (res.status === 404 || res.status === 429) {
+          // 404 = model not available, 429 = quota hit — skip to next model
+          if (res.status === 429) {
+            const errBody = await res.text();
+            console.warn(`[support/message] ${modelName} quota exceeded, trying next model. ${errBody.slice(0, 120)}`);
+          }
+          continue outer;
         }
-        continue;
-      }
 
-      if (!res.ok) {
-        const errBody = await res.text();
-        console.error(`[support/message] Gemini ${modelName} error ${res.status}:`, errBody);
-        break;
-      }
+        if (!res.ok) {
+          const errBody = await res.text();
+          console.error(`[support/message] Gemini ${modelName} error ${res.status}:`, errBody);
+          continue outer;
+        }
 
-      const data = await res.json() as {
-        candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
-      };
-      // Join every text part — replies aren't always in parts[0].
-      replyText = (data.candidates?.[0]?.content?.parts ?? [])
-        .map((p) => p.text ?? "")
-        .join("")
-        .trim();
-      if (replyText) break; // success
-      console.warn(
-        `[support/message] ${modelName} returned no text (finishReason: ${data.candidates?.[0]?.finishReason ?? "unknown"}) — trying next model`
-      );
-    } catch (err) {
-      console.error(`[support/message] Gemini ${modelName} fetch error:`, err);
-      break;
+        const data = await res.json() as {
+          candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
+        };
+        // Join every text part — replies aren't always in parts[0].
+        replyText = (data.candidates?.[0]?.content?.parts ?? [])
+          .map((p) => p.text ?? "")
+          .join("")
+          .trim();
+        if (replyText) break outer; // success
+        console.warn(
+          `[support/message] ${modelName} returned no text (finishReason: ${data.candidates?.[0]?.finishReason ?? "unknown"}) — retrying with default thinking`
+        );
+      } catch (err) {
+        console.error(`[support/message] Gemini ${modelName} fetch error:`, err);
+        continue outer;
+      }
     }
   }
 
