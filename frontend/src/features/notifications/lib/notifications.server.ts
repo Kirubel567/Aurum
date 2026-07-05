@@ -3,6 +3,7 @@ import { createServerClient } from "@/src/lib/supabase/server";
 export type NotificationType =
   | "deposit_status"
   | "withdrawal_status"
+  | "new_withdrawal"
   | "message"
   | "system_alert"
   | "manager_assigned";
