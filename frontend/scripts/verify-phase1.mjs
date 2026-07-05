@@ -3,7 +3,13 @@
 // ledger/log rows removed at the end).
 // Run from frontend/: node --experimental-websocket --env-file=.env.local scripts/verify-phase1.mjs
 // Requires the dev server on localhost:3000 (started AFTER CRON_SECRET was added).
-import { createClient } from "@supabase/supabase-js";
+import { createClient as _sbCreateClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+const __require = createRequire(import.meta.url);
+let __ws; try { __ws = __require("ws"); } catch { __ws = undefined; }
+// Node 20 lacks native WebSocket — inject ws transport so realtime-js does not crash at import.
+const createClient = (url, key, opts = {}) =>
+  _sbCreateClient(url, key, { ...opts, realtime: __ws ? { transport: __ws, ...(opts.realtime ?? {}) } : opts.realtime });
 
 const BASE = "http://localhost:3000";
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -72,7 +78,10 @@ async function main() {
   const { data: adjust, error: adjustErr } = await suClient.rpc("admin_adjust_balance", {
     p_user_id: investorId, p_amount: 5000, p_reason: "Phase 1 verification seed",
   });
-  check("super_admin can seed balance via admin_adjust_balance", !adjustErr && adjust?.success === true, adjustErr?.message ?? JSON.stringify(adjust));
+  // Migration 015 changed admin_adjust_balance to RETURNS void — success is
+  // simply the absence of an error (the balance/ledger checks below confirm).
+  void adjust;
+  check("super_admin can seed balance via admin_adjust_balance", !adjustErr, adjustErr?.message ?? "");
 
   // ── 2. Investor cannot call accrue_daily_yield ─────────────────────────────
   const { data: invSession } = await anon.auth.signInWithPassword({ email: investorEmail, password });
@@ -118,7 +127,7 @@ async function main() {
       summaryBody.monthToDateProfit === expectedYield &&
       summaryBody.recentTransactions.length === 2 &&
       summaryBody.recentTransactions[0].type === "interest_credit" &&
-      summaryBody.recentTransactions[1].type === "correction",
+      summaryBody.recentTransactions[1].type === "manual_adjustment",
     JSON.stringify(summaryBody).slice(0, 250)
   );
 

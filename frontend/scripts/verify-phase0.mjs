@@ -3,7 +3,13 @@
 // deletes both (and their cascade-linked notifications) at the end.
 // Run from frontend/: node --experimental-websocket --env-file=.env.local scripts/verify-phase0.mjs
 // Requires the dev server on localhost:3000.
-import { createClient } from "@supabase/supabase-js";
+import { createClient as _sbCreateClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+const __require = createRequire(import.meta.url);
+let __ws; try { __ws = __require("ws"); } catch { __ws = undefined; }
+// Node 20 lacks native WebSocket — inject ws transport so realtime-js does not crash at import.
+const createClient = (url, key, opts = {}) =>
+  _sbCreateClient(url, key, { ...opts, realtime: __ws ? { transport: __ws, ...(opts.realtime ?? {}) } : opts.realtime });
 
 const BASE = "http://localhost:3000";
 const admin = createClient(
@@ -77,10 +83,14 @@ async function main() {
   const emptyBody = await empty.json();
   check("investor notifications endpoint returns empty state", empty.status === 200 && emptyBody.unreadCount === 0 && emptyBody.notifications.length === 0, JSON.stringify(emptyBody).slice(0, 120));
 
-  // ── 2. Deposit decision creates a real notification ────────────────────────
-  // (Email dispatch may fail on this machine's flaky network — the decision
-  // route's page can 500 on the email step, but status + notification land first.)
-  await fetch(`${BASE}/api/admin/deposit-decision?action=approve&userId=${regBody.userId}`).catch(() => {});
+  // ── 2. System-generated notification is visible to the investor ────────────
+  // (The old unauthenticated deposit-decision link was retired in Phase 13;
+  // deposit approval notifications are covered by verify-phase4-13. Here we
+  // only care that the notifications API surface works, so insert directly.)
+  await admin.from("notifications").insert({
+    user_id: regBody.userId, type: "deposit_status",
+    title: "Deposit approved", body: "Phase 0 test notification", link_path: "/wallet",
+  });
   const after = await fetch(`${BASE}/api/notifications`, { headers: { Cookie: investorCookies } });
   const afterBody = await after.json();
   const note = afterBody.notifications?.[0];
@@ -94,7 +104,10 @@ async function main() {
   check("mark-read works", markRead.status === 200 && afterRead.unreadCount === 0 && afterRead.notifications[0]?.read === true, JSON.stringify(afterRead).slice(0, 120));
 
   // ── 4. Another notification, then read-all ─────────────────────────────────
-  await fetch(`${BASE}/api/admin/deposit-decision?action=reject&userId=${regBody.userId}`).catch(() => {});
+  await admin.from("notifications").insert({
+    user_id: regBody.userId, type: "deposit_status",
+    title: "Deposit rejected", body: "Phase 0 test notification", link_path: "/wallet",
+  });
   const readAll = await fetch(`${BASE}/api/notifications/read-all`, {
     method: "PATCH", headers: { Cookie: investorCookies },
   });

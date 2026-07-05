@@ -2,7 +2,13 @@
 // fan-out, live performance + dashboard trading endpoints, RLS.
 // Self-cleaning: throwaway investors/super_admin, trade rows, ledger rows.
 // Run from frontend/: node --experimental-websocket --env-file=.env.local scripts/verify-phase2-11.mjs
-import { createClient } from "@supabase/supabase-js";
+import { createClient as _sbCreateClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+const __require = createRequire(import.meta.url);
+let __ws; try { __ws = __require("ws"); } catch { __ws = undefined; }
+// Node 20 lacks native WebSocket — inject ws transport so realtime-js does not crash at import.
+const createClient = (url, key, opts = {}) =>
+  _sbCreateClient(url, key, { ...opts, realtime: __ws ? { transport: __ws, ...(opts.realtime ?? {}) } : opts.realtime });
 
 const BASE = "http://localhost:3000";
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;

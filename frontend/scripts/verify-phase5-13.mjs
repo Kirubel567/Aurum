@@ -14,7 +14,13 @@
  * Requires: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in env.
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient as _sbCreateClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+const __require = createRequire(import.meta.url);
+let __ws; try { __ws = __require("ws"); } catch { __ws = undefined; }
+// Node 20 lacks native WebSocket — inject ws transport so realtime-js does not crash at import.
+const createClient = (url, key, opts = {}) =>
+  _sbCreateClient(url, key, { ...opts, realtime: __ws ? { transport: __ws, ...(opts.realtime ?? {}) } : opts.realtime });
 import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -103,19 +109,27 @@ const investorId = await getOrCreateInvestor().catch((e) => { fail("find investo
 
 let testBankId = null;
 if (investorId) {
+  // Residue-proof: clear any prior test row, and only claim is_primary if the
+  // investor doesn't already have a primary account (one_primary_per_user index).
+  await db.from("saved_bank_accounts").delete().eq("user_id", investorId).eq("account_number", "VERIFY-001");
+  const { count: primaryCount } = await db.from("saved_bank_accounts")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", investorId).eq("is_primary", true);
+  const wantPrimary = (primaryCount ?? 0) === 0;
+
   const { data, error } = await db.from("saved_bank_accounts").insert({
     user_id:        investorId,
     bank_name:      "Test Bank",
     account_holder: "Test Investor",
     account_number: "VERIFY-001",
-    is_primary:     true,
+    is_primary:     wantPrimary,
   }).select("id").single();
   if (error) fail("insert saved_bank_account", error);
   else { ok("insert saved_bank_account"); testBankId = data.id; }
 
   if (testBankId) {
     const { data: row } = await db.from("saved_bank_accounts").select("is_primary").eq("id", testBankId).single();
-    if (row?.is_primary) ok("is_primary flag persisted");
+    if (row?.is_primary === wantPrimary) ok("is_primary flag persisted");
     else fail("is_primary flag persisted");
   }
 }
@@ -193,7 +207,7 @@ if (testWithdrawalId && adminId) {
     else fail("wallet balance should have decreased");
 
     // Ledger entries
-    const { data: ledger } = await db.from("ledger_entries").select("amount_usd, entry_type, account_id").eq("withdrawal_id", testWithdrawalId);
+    const { data: ledger } = await db.from("ledger_entries").select("amount, entry_type, account_id").eq("reference_id", testWithdrawalId);
     if (ledger?.length === 2) ok(`double-entry ledger: ${ledger.length} rows`);
     else fail("expected 2 ledger_entries for this withdrawal", new Error(`Got: ${ledger?.length ?? 0}`));
   }
@@ -205,12 +219,13 @@ console.log("\n── 5. reject_withdrawal RPC ───────────
 
 if (investorId && testBankId && adminId) {
   // Create a fresh withdrawal to reject
+  // (supabase-js v2 query builders are thenables without .catch — await directly)
   const { data: wId2 } = await db.rpc("request_withdrawal", {
     p_user_id:         investorId,
     p_amount_usd:      500,
     p_bank_account_id: testBankId,
     p_method:          "express",
-  }).catch(() => ({ data: null }));
+  });
 
   if (wId2) {
     const { data: wBefore } = await db.from("wallets").select("balance").eq("user_id", investorId).single();

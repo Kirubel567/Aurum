@@ -9,7 +9,13 @@
  *   SUPABASE_SERVICE_ROLE_KEY
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient as _sbCreateClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+const __require = createRequire(import.meta.url);
+let __ws; try { __ws = __require("ws"); } catch { __ws = undefined; }
+// Node 20 lacks native WebSocket — inject ws transport so realtime-js does not crash at import.
+const createClient = (url, key, opts = {}) =>
+  _sbCreateClient(url, key, { ...opts, realtime: __ws ? { transport: __ws, ...(opts.realtime ?? {}) } : opts.realtime });
 import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";

@@ -1,6 +1,12 @@
 // Verifies the trading-page fixes: risk:reward, TP/SL validation, active-vs-
 // closed separation, live chart data, pool allocation admin UI. Self-cleaning.
-import { createClient } from "@supabase/supabase-js";
+import { createClient as _sbCreateClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+const __require = createRequire(import.meta.url);
+let __ws; try { __ws = __require("ws"); } catch { __ws = undefined; }
+// Node 20 lacks native WebSocket — inject ws transport so realtime-js does not crash at import.
+const createClient = (url, key, opts = {}) =>
+  _sbCreateClient(url, key, { ...opts, realtime: __ws ? { transport: __ws, ...(opts.realtime ?? {}) } : opts.realtime });
 
 const BASE = "http://localhost:3000";
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;

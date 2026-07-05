@@ -9,7 +9,13 @@
  *   SUPABASE_SERVICE_ROLE_KEY
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient as _sbCreateClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+const __require = createRequire(import.meta.url);
+let __ws; try { __ws = __require("ws"); } catch { __ws = undefined; }
+// Node 20 lacks native WebSocket — inject ws transport so realtime-js does not crash at import.
+const createClient = (url, key, opts = {}) =>
+  _sbCreateClient(url, key, { ...opts, realtime: __ws ? { transport: __ws, ...(opts.realtime ?? {}) } : opts.realtime });
 import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -56,7 +62,7 @@ async function pickInvestor() {
 }
 
 async function getWallet(userId) {
-  const { data } = await db.from("wallets").select("balance,principal_locked").eq("user_id", userId).single();
+  const { data } = await db.from("wallets").select("balance,locked_principal").eq("user_id", userId).single();
   return data;
 }
 
@@ -168,8 +174,8 @@ if (!investor || !superAdmin) {
     user_id:           investor.id,
     amount_submitted:  5000,
     currency_submitted: "USD",
-    method:            "wire",
-    method_detail:     "wire",
+    method:            "bank",
+    method_detail:     "bank transfer",
     tx_reference:      `TEST-APPROVE-${Date.now()}`,
     status:            "pending",
   }).select("id").single();
@@ -247,8 +253,8 @@ if (investor && superAdmin) {
     user_id:           investor.id,
     amount_submitted:  100,
     currency_submitted: "USD",
-    method:            "wire",
-    method_detail:     "wire",
+    method:            "bank",
+    method_detail:     "bank transfer",
     tx_reference:      `TEST-REJECT-${Date.now()}`,
     status:            "pending",
   }).select("id").single();
@@ -299,8 +305,8 @@ if (investor && superAdmin) {
     user_id:           investor.id,
     amount_submitted:  100,  // way below minimum
     currency_submitted: "USD",
-    method:            "wire",
-    method_detail:     "wire",
+    method:            "bank",
+    method_detail:     "bank transfer",
     tx_reference:      `TEST-BELOW-MIN-${Date.now()}`,
     status:            "pending",
   }).select("id").single();

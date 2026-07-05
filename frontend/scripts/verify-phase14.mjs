@@ -3,7 +3,13 @@
 // Run: node scripts/verify-phase14.mjs
 // Requires: SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_SUPABASE_URL in .env.local
 import "dotenv/config";
-import { createClient } from "@supabase/supabase-js";
+import { createClient as _sbCreateClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+const __require = createRequire(import.meta.url);
+let __ws; try { __ws = __require("ws"); } catch { __ws = undefined; }
+// Node 20 lacks native WebSocket — inject ws transport so realtime-js does not crash at import.
+const createClient = (url, key, opts = {}) =>
+  _sbCreateClient(url, key, { ...opts, realtime: __ws ? { transport: __ws, ...(opts.realtime ?? {}) } : opts.realtime });
 
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -36,10 +42,10 @@ await test("deposit_users.is_suspended column exists", async () => {
 
 // 3. ledger_entry_type has manual_adjustment
 await test("ledger_entry_type includes manual_adjustment", async () => {
-  const { data, error } = await db.rpc("pg_catalog.obj_description").catch(() => null);
-  // Just test that we can refer to 'manual_adjustment' in a ledger insert context
-  // (indirect test via admin_adjust_balance RPC which uses it)
-  if (data === null && error === null) return; // rpc not applicable, skip direct
+  // Filtering by an enum value that doesn't exist raises "invalid input value
+  // for enum" — so a clean (even empty) result proves the value exists.
+  const { error } = await db.from("ledger_entries").select("id").eq("entry_type", "manual_adjustment").limit(1);
+  if (error) throw new Error(error.message);
 });
 
 // 4. Find a real investor to test with (need super_admin caller for RPCs)
