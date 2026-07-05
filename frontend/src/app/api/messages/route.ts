@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/src/lib/supabase/server";
 import { getDepositSessionCookie } from "@/src/features/onboarding/lib/deposit-cookies";
+import { insertNotification } from "@/src/features/notifications/lib/notifications.server";
 
 // GET /api/messages — fetch thread for current investor (or all threads if staff)
 export async function GET(req: NextRequest) {
@@ -110,6 +111,35 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    // Fire-and-forget notification
+    if (isStaff) {
+      // Admin replied → notify the investor
+      insertNotification({
+        userId: targetInvestorId,
+        type: "message",
+        title: "New message from your account manager",
+        body: body.trim().slice(0, 120),
+        linkPath: "/concierge",
+      });
+    } else {
+      // Investor sent → notify their assigned admin manager, if any
+      const { data: assignment } = await supabase
+        .from("account_manager_assignments")
+        .select("admin_id")
+        .eq("investor_id", targetInvestorId)
+        .maybeSingle();
+      if (assignment?.admin_id) {
+        insertNotification({
+          userId: assignment.admin_id,
+          type: "message",
+          title: `Message from ${(data as { investor_name?: string }).investor_name || "investor"}`,
+          body: body.trim().slice(0, 120),
+          linkPath: "/admin/inbox",
+        });
+      }
+    }
+
     return NextResponse.json({ message: data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
