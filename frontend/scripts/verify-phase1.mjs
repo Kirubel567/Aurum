@@ -127,8 +127,8 @@ async function main() {
   const curveBody = await curve.json();
   const lastPoint = curveBody.points?.[curveBody.points.length - 1];
   check(
-    "equity curve: correct shape, final point equals balance",
-    curve.status === 200 && curveBody.points?.length === 7 && lastPoint?.equity === 5000 + expectedYield && lastPoint?.drawdown >= lastPoint?.equity - 0.01,
+    "equity curve: correct shape, final point equals balance, drawdown is underwater pct (<= 0)",
+    curve.status === 200 && curveBody.points?.length === 7 && lastPoint?.equity === 5000 + expectedYield && lastPoint?.drawdown <= 0,
     JSON.stringify({ len: curveBody.points?.length, last: lastPoint })
   );
 

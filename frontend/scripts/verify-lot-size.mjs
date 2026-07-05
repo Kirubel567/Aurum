@@ -52,17 +52,23 @@ async function main() {
   const superCookies = await login(`ls-super-${stamp}@example.com`);
   const invACookies = await login(`ls-inv-${stamp}@example.com`);
 
+  // NOTE: the P/L math checks use ZZZ/USD — a pair that classifies as forex
+  // (so leverage/contract-size rules apply) but has NO live price feed. Since
+  // /api/orders/live now overrides DB marks with real market prices whenever
+  // a feed exists, a real pair like EUR/USD would make these assertions
+  // non-deterministic; ZZZ/USD keeps the DB mark authoritative.
+
   // ── 1. Open requires lotSize now, not leverage ─────────────────────────────
   const missingLot = await fetch(`${BASE}/api/admin/console/executions`, {
     method: "POST", headers: { "Content-Type": "application/json", Cookie: superCookies },
-    body: JSON.stringify({ strategyPoolId: testPoolId, assetPair: "EUR/USD", side: "LONG", entryPrice: 1.10 }),
+    body: JSON.stringify({ strategyPoolId: testPoolId, assetPair: "ZZZ/USD", side: "LONG", entryPrice: 1.10 }),
   });
   check("open rejects missing lotSize (400)", missingLot.status === 400, `status=${missingLot.status}`);
 
   // ── 2. Open with lot size auto-derives leverage label (forex = 1:100) ──────
   const open = await fetch(`${BASE}/api/admin/console/executions`, {
     method: "POST", headers: { "Content-Type": "application/json", Cookie: superCookies },
-    body: JSON.stringify({ strategyPoolId: testPoolId, assetPair: "EUR/USD", side: "LONG", entryPrice: 1.10, lotSize: 1.0 }),
+    body: JSON.stringify({ strategyPoolId: testPoolId, assetPair: "ZZZ/USD", side: "LONG", entryPrice: 1.10, lotSize: 1.0 }),
   });
   const openBody = await open.json();
   const executionId = openBody.execution?.id;
@@ -86,7 +92,7 @@ async function main() {
   const live = await fetch(`${BASE}/api/orders/live`, { headers: { Cookie: invACookies } });
   const liveBody = await live.json();
   check(
-    "orders/live computes real floating P/L from lot size (+$1000 on 1 lot EUR/USD)",
+    "orders/live computes real floating P/L from lot size (+$1000 on 1 lot ZZZ/USD)",
     liveBody.session?.floatingPlKnown === true && Math.abs(liveBody.session?.floatingPl - 1000) < 0.01,
     JSON.stringify(liveBody.session)
   );

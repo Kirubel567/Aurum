@@ -84,7 +84,7 @@ async function main() {
   const live1 = await fetch(`${BASE}/api/orders/live`, { headers: { Cookie: invACookies } });
   const live1Body = await live1.json();
   check("orders/live includes the open position", live1Body.executions?.some((e) => e.id === executionId), JSON.stringify(live1Body.executions?.length));
-  check("orders/live exposes session stats + chartRange", typeof live1Body.session?.balance === "number" && typeof live1Body.chartRange?.min === "number", JSON.stringify({ session: live1Body.session, range: live1Body.chartRange }));
+  check("orders/live exposes session stats + equity series", typeof live1Body.session?.balance === "number" && Array.isArray(live1Body.equitySeries), JSON.stringify({ session: live1Body.session, series: live1Body.equitySeries?.length }));
 
   // ── 5. Close auto-fills price from current_price when omitted ───────────────
   await admin.from("wallets").update({ balance: 1000 }).eq("user_id", invA);
