@@ -35,7 +35,7 @@ export function DashboardTables({ trading }: DashboardTablesProps) {
             )}
             {bestTrades.map((trade) => (
               <tr
-                key={`${trade.asset}-${trade.entryExit}`}
+                key={trade.id}
                 className="border-b border-gray-50 dark:border-white/5 last:border-0"
               >
                 <td className="py-4 font-bold text-gray-900 dark:text-white">{trade.asset}</td>

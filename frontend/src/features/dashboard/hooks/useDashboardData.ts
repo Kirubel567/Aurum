@@ -46,7 +46,7 @@ export interface DashboardTrading {
     profitable: { name: string; value: string }[];
     unprofitable: { name: string; value: string }[];
   };
-  bestTrades: { asset: string; entryExit: string; profit: number; riskReward: string }[];
+  bestTrades: { id: string; asset: string; entryExit: string; profit: number; riskReward: string }[];
   openPositionsCount: number;
 }
 

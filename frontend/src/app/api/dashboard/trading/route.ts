@@ -34,7 +34,7 @@ export async function GET() {
         .order("sort_order"),
       db
         .from("trade_executions")
-        .select("asset_pair, realized_pl_usd, entry_price, take_profit_price, stop_loss_price, opened_at, closed_at, strategy_pool_id")
+        .select("id, asset_pair, realized_pl_usd, entry_price, take_profit_price, stop_loss_price, opened_at, closed_at, strategy_pool_id")
         .eq("status", "closed")
         .not("realized_pl_usd", "is", null)
         .order("realized_pl_usd", { ascending: false }),
@@ -85,6 +85,7 @@ export async function GET() {
     };
 
     const bestTrades = closed.slice(0, 5).map((t) => ({
+      id: t.id,
       asset: t.asset_pair,
       entryExit: `${new Date(t.opened_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${t.closed_at ? new Date(t.closed_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}`,
       profit: Number(t.realized_pl_usd),
