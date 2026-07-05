@@ -27,7 +27,12 @@ import {
   MIN_WITHDRAW,
   PROCESSING_DAYS,
 } from "@/src/services/api/withdraw.api";
-import { useWithdraw } from "../hooks/useWithdraw";
+import {
+  useWithdrawSummary,
+  useWithdrawBanks,
+  useWithdrawHistory,
+  useInvalidateWithdraw,
+} from "../hooks/useWithdraw";
 import { ROUTES } from "@/src/lib/constants/routes";
 import type {
   WithdrawFormState,
@@ -254,7 +259,7 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
                     onClick={() => setExpanded(open ? null : item.id)}
                     className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors cursor-pointer dark:border-white/5 dark:hover:bg-white/5"
                   >
-                    <td className="px-6 py-4 text-[13px] font-semibold text-slate-800 dark:text-white/80">{item.id}</td>
+                    <td className="px-6 py-4 text-[13px] font-semibold text-slate-800 dark:text-white/80">{item.reference}</td>
                     <td className="px-6 py-4 text-[13px] text-slate-500 dark:text-white/40">{item.date}</td>
                     <td className="px-6 py-4 text-[13px] font-bold text-slate-900 dark:text-white">{fmt(item.amount)}</td>
                     <td className="px-6 py-4 text-[13px] text-slate-500 max-w-[160px] truncate dark:text-white/40">{item.bankName}</td>
@@ -308,7 +313,11 @@ function HistoryTable({ items }: { items: WithdrawHistoryItem[] }) {
 export function WithdrawPage() {
   const router = useRouter();
   const addToast = useNotificationStore((s) => s.addToast);
-  const { data, loading, addToHistory } = useWithdraw();
+
+  const { data: summary, isLoading: loadingSummary } = useWithdrawSummary();
+  const { data: banks = [], isLoading: loadingBanks }   = useWithdrawBanks();
+  const { data: history = [], isLoading: loadingHistory } = useWithdrawHistory();
+  const invalidate = useInvalidateWithdraw();
 
   const [form, setForm] = useState<WithdrawFormState>({
     amount: "",
@@ -321,22 +330,35 @@ export function WithdrawPage() {
   const [successRef, setSuccessRef]   = useState<string | null>(null);
   const [amountError, setAmountError] = useState("");
 
+  const loading = loadingSummary || loadingBanks || loadingHistory;
+
+  const minWithdraw  = summary?.minWithdrawal ?? MIN_WITHDRAW;
+  const feeRates     = {
+    standard: summary?.standardFeeRate ?? FEE_RATE.standard,
+    express:  summary?.expressFeeRate  ?? FEE_RATE.express,
+  };
+
   const parsedAmount = parseFloat(form.amount) || 0;
-  const feeRate  = FEE_RATE[form.method];
+  const feeRate  = feeRates[form.method];
   const fee      = parsedAmount * feeRate;
   const net      = parsedAmount - fee;
-  const selectedBank = data?.banks.find((b) => b.id === form.bankId) ?? data?.banks[0] ?? null;
+
+  const primaryBank  = banks.find((b) => b.isPrimary) ?? banks[0] ?? null;
+  const selectedBank = banks.find((b) => b.id === (form.bankId || primaryBank?.id)) ?? primaryBank;
+
+  const available = summary?.availableToWithdraw ?? 0;
 
   const validate = (): boolean => {
-    if (!parsedAmount || parsedAmount < MIN_WITHDRAW) {
-      setAmountError(`Minimum withdrawal is ${fmt(MIN_WITHDRAW)}`);
+    if (!parsedAmount || parsedAmount < minWithdraw) {
+      setAmountError(`Minimum withdrawal is ${fmt(minWithdraw)}`);
       return false;
     }
-    if (data && parsedAmount > data.balance.availableToWithdraw) {
-      setAmountError(`Exceeds available balance of ${fmt(data.balance.availableToWithdraw)}`);
+    if (parsedAmount > available) {
+      setAmountError(`Exceeds available balance of ${fmt(available)}`);
       return false;
     }
-    if (data && parsedAmount > data.balance.dailyLimit - data.balance.dailyUsed) {
+    const dailyRemaining = (summary?.dailyLimit ?? 10_000) - (summary?.dailyUsed ?? 0);
+    if (parsedAmount > dailyRemaining) {
       setAmountError("Exceeds daily withdrawal limit");
       return false;
     }
@@ -360,38 +382,23 @@ export function WithdrawPage() {
         amount: parsedAmount,
         bankId: selectedBank!.id,
         method: form.method,
-        note: form.note,
+        note:   form.note,
       });
 
-      const historyItem: WithdrawHistoryItem = {
-        id: res.id,
-        date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-        amount: parsedAmount,
-        fee,
-        netAmount: net,
-        destination: selectedBank!.accountNumber,
-        bankName: selectedBank!.bankName,
-        method: form.method,
-        status: "pending",
-        reference: res.reference,
-        estimatedArrival: form.method === "express"
-          ? new Date(Date.now() + 86400000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-          : new Date(Date.now() + 3 * 86400000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      };
-
-      addToHistory(historyItem);
+      invalidate();
       setConfirming(false);
       setSuccessRef(res.reference);
       setForm({ amount: "", bankId: form.bankId, method: "standard", note: "" });
       addToast({ title: "Withdrawal submitted", description: `Reference: ${res.reference}`, variant: "success" });
-    } catch {
-      addToast({ title: "Submission failed", description: "Please try again or contact support.", variant: "error" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Please try again or contact support.";
+      addToast({ title: "Submission failed", description: msg, variant: "error" });
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading || !data) {
+  if (loading || !summary) {
     return (
       <div className="flex items-center justify-center bg-[#F8FAFC]">
         <div className="flex flex-col items-center gap-3">
@@ -405,8 +412,7 @@ export function WithdrawPage() {
     );
   }
 
-  const { balance, banks, history } = data;
-  const activeBank = form.bankId ? banks.find((b) => b.id === form.bankId) ?? selectedBank : selectedBank;
+  const activeBank = selectedBank;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-[#F8FAFC] dark:bg-transparent">
@@ -437,10 +443,10 @@ export function WithdrawPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={Wallet}       label="Total Balance"         value={fmt(balance.totalBalance)}         highlight />
-        <StatCard icon={Banknote}     label="Available to Withdraw" value={fmt(balance.availableToWithdraw)} sub="After lock-up" />
-        <StatCard icon={Clock}        label="Pending Withdrawals"   value={fmt(balance.pendingWithdrawals)}  sub={balance.pendingWithdrawals > 0 ? "Processing" : "None active"} />
-        <StatCard icon={ArrowUpRight} label="Total Withdrawn"       value={fmt(balance.totalWithdrawn)}      sub="All time" />
+        <StatCard icon={Wallet}       label="Total Balance"         value={fmt(summary.totalBalance)}         highlight />
+        <StatCard icon={Banknote}     label="Available to Withdraw" value={fmt(summary.availableToWithdraw)} sub="After lock-up" />
+        <StatCard icon={Clock}        label="Pending Withdrawals"   value={fmt(summary.pendingWithdrawals)}  sub={summary.pendingWithdrawals > 0 ? "Processing" : "None active"} />
+        <StatCard icon={ArrowUpRight} label="Total Withdrawn"       value={fmt(summary.totalWithdrawn)}      sub="All time" />
       </div>
 
       {/* Main grid */}
@@ -462,15 +468,15 @@ export function WithdrawPage() {
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-[13px] font-semibold text-slate-800 dark:text-white/80">Withdrawal Amount</label>
                   <span className="text-[12px] text-slate-400 dark:text-white/40">
-                    Available: <span className="font-bold text-slate-700 dark:text-white/80">{fmt(balance.availableToWithdraw)}</span>
+                    Available: <span className="font-bold text-slate-700 dark:text-white/80">{fmt(available)}</span>
                   </span>
                 </div>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-lg dark:text-white/30">$</span>
                   <input
                     type="number"
-                    min={MIN_WITHDRAW}
-                    max={balance.availableToWithdraw}
+                    min={minWithdraw}
+                    max={available}
                     value={form.amount}
                     onChange={(e) => { setForm({ ...form, amount: e.target.value }); setAmountError(""); }}
                     placeholder="0.00"
@@ -479,7 +485,7 @@ export function WithdrawPage() {
                     }`}
                   />
                   <button
-                    onClick={() => setForm({ ...form, amount: String(balance.availableToWithdraw) })}
+                    onClick={() => setForm({ ...form, amount: String(available) })}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] font-bold text-[#D4AF37] hover:text-[#b8941a] transition-colors"
                   >
                     MAX
@@ -496,7 +502,7 @@ export function WithdrawPage() {
                     <button
                       key={p}
                       onClick={() => { setForm({ ...form, amount: String(p) }); setAmountError(""); }}
-                      disabled={p > balance.availableToWithdraw}
+                      disabled={p > available}
                       className={`flex-1 py-2 rounded-lg text-[12px] font-bold border transition-all disabled:opacity-40 ${
                         parsedAmount === p
                           ? "bg-[#D4AF37] text-[#0C1526] border-[#D4AF37]"
@@ -522,7 +528,8 @@ export function WithdrawPage() {
                 ) : (
                   <div className="space-y-3">
                     {banks.map((bank) => {
-                      const selected = (form.bankId || banks.find((b) => b.isPrimary)?.id || banks[0].id) === bank.id;
+                      const effectiveBankId = form.bankId || primaryBank?.id || banks[0].id;
+                      const selected = effectiveBankId === bank.id;
                       return (
                         <label
                           key={bank.id}
@@ -584,7 +591,7 @@ export function WithdrawPage() {
                           <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                             selected ? "bg-[#D4AF37]/20 text-[#b8941a] dark:bg-[#e9c349]/20 dark:text-[#e9c349]" : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
                           }`}>
-                            {m === "standard" ? "0.5% fee" : "1.0% fee"}
+                            {m === "standard" ? `${(feeRates.standard * 100).toFixed(1)}% fee` : `${(feeRates.express * 100).toFixed(1)}% fee`}
                           </span>
                         </div>
                         <p className={`text-[11px] ${selected ? "text-[#b8941a] dark:text-[#e9c349]/80" : "text-slate-400 dark:text-white/30"}`}>
@@ -616,7 +623,7 @@ export function WithdrawPage() {
                   <h4 className="text-[12px] font-bold text-slate-700 uppercase tracking-wider mb-3 dark:text-white/70">Fee Breakdown</h4>
                   {[
                     { label: "Withdrawal Amount", value: fmt(parsedAmount) },
-                    { label: `Processing Fee (${form.method === "express" ? "1%" : "0.5%"})`, value: `-${fmt(fee)}`, muted: true },
+                    { label: `Processing Fee (${form.method === "express" ? `${(feeRates.express * 100).toFixed(1)}%` : `${(feeRates.standard * 100).toFixed(1)}%`})`, value: `-${fmt(fee)}`, muted: true },
                   ].map(({ label, value, muted }) => (
                     <div key={label} className="flex justify-between text-[13px]">
                       <span className={muted ? "text-slate-400 dark:text-white/30" : "text-slate-700 dark:text-white/70"}>{label}</span>
@@ -655,8 +662,8 @@ export function WithdrawPage() {
             </div>
             <div className="space-y-4">
               {[
-                { label: "Daily Limit",   used: balance.dailyUsed,          total: balance.dailyLimit },
-                { label: "Monthly Limit", used: balance.withdrawnThisMonth, total: balance.monthlyLimit },
+                { label: "Daily Limit",   used: summary.dailyUsed,          total: summary.dailyLimit },
+                { label: "Monthly Limit", used: summary.withdrawnThisMonth, total: summary.monthlyLimit },
               ].map(({ label, used, total }) => {
                 const pct = Math.min((used / total) * 100, 100);
                 return (
@@ -708,8 +715,8 @@ export function WithdrawPage() {
             </div>
             <ul className="space-y-2.5">
               {[
-                `Minimum withdrawal: ${fmt(MIN_WITHDRAW)}`,
-                "Funds must complete the 30-day lock-up period before withdrawal.",
+                `Minimum withdrawal: ${fmt(minWithdraw)}`,
+                "Funds must complete the lock-up period before withdrawal.",
                 "Bank details must match your KYC-registered information.",
                 "Withdrawal requests cannot be cancelled after confirmation.",
                 "Large withdrawals (>$10,000) may require additional verification.",
