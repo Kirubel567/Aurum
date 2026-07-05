@@ -91,6 +91,26 @@ async function fetchMetalPrice(base: string, quote: string): Promise<LivePriceRe
   }
 }
 
+// Module-level TTL cache: one slot per asset pair, 10-second lifetime.
+// In a long-running Node process (dev) this persists across requests.
+// In a serverless function each cold start gets a fresh cache — that's
+// fine; the point is to prevent duplicate calls within the same hot
+// instance when many investors are polling simultaneously.
+const _cache = new Map<string, { result: LivePriceResult; expiresAt: number }>();
+const CACHE_TTL_MS = 10_000;
+
+async function cachedFetch(
+  key: string,
+  fn: () => Promise<LivePriceResult | null>
+): Promise<LivePriceResult | null> {
+  const now = Date.now();
+  const hit = _cache.get(key);
+  if (hit && hit.expiresAt > now) return hit.result;
+  const result = await fn();
+  if (result) _cache.set(key, { result, expiresAt: now + CACHE_TTL_MS });
+  return result;
+}
+
 // Returns null (never throws) when no live price is available for this
 // pair — the caller decides how to degrade (skip the auto-refresh, show
 // "unavailable", leave the field for manual entry).
@@ -98,8 +118,9 @@ export async function fetchLivePrice(assetPair: string): Promise<LivePriceResult
   const { base, quote } = splitPair(assetPair);
   const assetClass = classifyAssetPair(assetPair);
 
-  if (assetClass === "crypto") return fetchCryptoPrice(base, quote);
-  if (assetClass === "metal") return fetchMetalPrice(base, quote);
-  if (assetClass === "forex") return fetchForexRate(base, quote);
+  const key = assetPair.toUpperCase();
+  if (assetClass === "crypto") return cachedFetch(key, () => fetchCryptoPrice(base, quote));
+  if (assetClass === "metal") return cachedFetch(key, () => fetchMetalPrice(base, quote));
+  if (assetClass === "forex") return cachedFetch(key, () => fetchForexRate(base, quote));
   return null; // "other" (equities/indices) — explicitly out of scope
 }

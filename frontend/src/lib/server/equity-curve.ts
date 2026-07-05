@@ -26,14 +26,21 @@ function labelFor(date: Date, period: CurvePeriod): string {
 export interface CurvePoint {
   date: string;
   equity: number;
-  drawdown: number; // running peak equity
+  // Underwater drawdown, percent: 0 while equity is at its running peak,
+  // negative while below it (e.g. -3.2 = 3.2% below the high-water mark).
+  // This is the standard "underwater plot" series used in fund dashboards.
+  drawdown: number;
 }
 
 // Running-sum equity over a user's ledger entries, bucketed for the window.
 // Shared by /api/dashboard/equity-curve and /api/orders/live.
+// `walletBalance` is an optional fallback: if the ledger is empty (no deposit
+// recorded yet) the curve would be flat at 0, which looks broken — the wallet
+// balance provides a truthful starting point in that case.
 export async function buildEquityCurve(
   userId: string,
-  period: CurvePeriod
+  period: CurvePeriod,
+  walletBalance?: number
 ): Promise<{ points: CurvePoint[]; changePercent: number }> {
   const db = createServerClient();
   const { data: entries, error } = await db
@@ -49,7 +56,10 @@ export async function buildEquityCurve(
   const windowStart = now - windowMs;
   const bucketSize = windowMs / buckets;
 
-  let equity = 0;
+  // If there are no ledger entries at all but we have a wallet balance,
+  // seed the equity from the wallet so the chart doesn't show flat $0.
+  const hasLedger = (entries ?? []).length > 0;
+  let equity = !hasLedger && walletBalance != null ? walletBalance : 0;
   const inWindow: { at: number; amount: number }[] = [];
   for (const row of entries ?? []) {
     const at = new Date(row.created_at).getTime();
@@ -66,10 +76,11 @@ export async function buildEquityCurve(
       idx++;
     }
     peak = Math.max(peak, equity);
+    const underwaterPct = peak > 0 ? ((equity - peak) / peak) * 100 : 0;
     return {
       date: labelFor(new Date(bucketEnd), period),
       equity: Number(equity.toFixed(2)),
-      drawdown: Number(peak.toFixed(2)),
+      drawdown: Number(underwaterPct.toFixed(2)),
     };
   });
 

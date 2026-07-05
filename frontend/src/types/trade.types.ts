@@ -90,12 +90,19 @@ export interface LiveSessionStats {
   floatingPlKnown: boolean;
 }
 
+// One persisted equity snapshot — the chart's raw material. `equity` is
+// balance + floating P/L at that moment; `balance` is the realized wallet
+// balance the equity moves around (prop-firm style reference line).
+export interface EquitySnapshotPoint {
+  t: string; // ISO timestamp
+  equity: number;
+  balance: number;
+}
+
 export interface LivePerformanceData {
   liveVolume: string;
   totalLiquidity: string;
-  chartPoints: { x: number; y: number }[];
-  chartRange: { min: number; max: number };
-  timeLabels: string[];
+  equitySeries: EquitySnapshotPoint[];
   session: LiveSessionStats;
   executions: ActiveExecution[];
   strategyPools: StrategyPool[];

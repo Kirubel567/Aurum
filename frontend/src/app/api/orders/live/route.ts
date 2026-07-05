@@ -4,6 +4,7 @@ import { getDepositSessionCookie } from "@/src/features/onboarding/lib/deposit-c
 import { createServerClient } from "@/src/lib/supabase/server";
 import { buildEquityCurve } from "@/src/lib/server/equity-curve";
 import { computePositionPl } from "@/src/lib/trading/lot-size";
+import { fetchLivePrice } from "@/src/lib/trading/price-feed";
 
 // GET /api/orders/live — the Live Performance page's full payload in one
 // request (the page polls every 5s; one consolidated endpoint instead of
@@ -51,7 +52,12 @@ export async function GET() {
     const userId = session.user.id;
     const db = createServerClient();
 
-    const [allocations, pools, curve, wallet] = await Promise.all([
+    // Fetch wallet first (fast — single row) so we can pass the balance to
+    // buildEquityCurve as a fallback for users with no ledger entries yet.
+    const wallet = await db.from("wallets").select("balance").eq("user_id", userId).eq("currency", "USD").maybeSingle();
+    const walletBalance = wallet.data?.balance != null ? Number(wallet.data.balance) : undefined;
+
+    const [allocations, pools, curve] = await Promise.all([
       db
         .from("investor_pool_allocations")
         .select("strategy_pool_id, allocation_pct")
@@ -61,8 +67,7 @@ export async function GET() {
         .select("id, name, tag_color, tag, target_allocation_pct, sort_order")
         .eq("active", true)
         .order("sort_order"),
-      buildEquityCurve(userId, "day"),
-      db.from("wallets").select("balance").eq("user_id", userId).eq("currency", "USD").maybeSingle(),
+      buildEquityCurve(userId, "day", walletBalance),
     ]);
 
     const allocationByPool = new Map(
@@ -101,8 +106,23 @@ export async function GET() {
         .not("realized_pl_usd", "is", null),
     ]);
 
+    // Fetch live prices server-side for all unique open pairs (cached 10s).
+    // This means the investor sees real market prices on every 5s poll even
+    // when no admin is actively refreshing the console.
+    const uniquePairs = [...new Set((openExecutionsRes.data ?? []).map((r) => r.asset_pair))];
+    const livePriceMap = new Map<string, number>();
+    await Promise.all(
+      uniquePairs.map(async (pair) => {
+        const result = await fetchLivePrice(pair);
+        if (result) livePriceMap.set(pair, result.price);
+      })
+    );
+
     const executions = (openExecutionsRes.data ?? []).map((row) => {
-      const pct = movePercent(row);
+      const livePrice = livePriceMap.get(row.asset_pair);
+      const effectiveCurrentPrice = livePrice ?? (row.current_price != null ? Number(row.current_price) : null);
+      const enrichedRow = { ...row, current_price: effectiveCurrentPrice };
+      const pct = movePercent(enrichedRow);
       return {
         id: row.id,
         time: new Date(row.opened_at).toLocaleTimeString("en-US", { hour12: false }),
@@ -110,7 +130,7 @@ export async function GET() {
         type: row.side as "LONG" | "SHORT",
         leverage: row.leverage ?? "—",
         entry: formatPrice(Number(row.entry_price)),
-        current: row.current_price != null ? formatPrice(Number(row.current_price)) : "—",
+        current: effectiveCurrentPrice != null ? formatPrice(effectiveCurrentPrice) : "—",
         pl: pct == null ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`,
         plPositive: (pct ?? 0) >= 0,
       };
@@ -141,24 +161,7 @@ export async function GET() {
       { label: "Realized P/L", value: `${realizedTotal >= 0 ? "+" : ""}${formatUsd(realizedTotal)}`, icon: "warning" as const, iconBg: realizedTotal >= 0 ? "bg-emerald-50" : "bg-red-50", iconColor: realizedTotal >= 0 ? "text-emerald-600" : "text-red-600" },
     ];
 
-    // Chart: the caller's own 24h equity curve, mapped onto the page's SVG
-    // space. This still reflects REALIZED changes only (deposits, yield,
-    // closed trade P/L) — floating P/L on still-open positions (computed
-    // separately below via lot_size) isn't retroactively woven into past
-    // chart points, only into the current session.equity figure.
-    const equities = curve.points.map((p) => p.equity);
-    const min = Math.min(...equities);
-    const max = Math.max(...equities);
-    const range = max - min || 1;
-    const chartPoints = curve.points.map((p, i) => ({
-      x: Math.round((i / (curve.points.length - 1)) * 1200),
-      y: Math.round(160 - ((p.equity - min) / range) * 120),
-    }));
-    const timeLabels = curve.points
-      .filter((_, i) => i % 5 === 0 || i === curve.points.length - 1)
-      .map((p, i, arr) => (i === arr.length - 1 ? "Current" : p.date));
-
-    const currentBalance = Number(wallet.data?.balance ?? 0);
+    const currentBalance = walletBalance ?? 0;
 
     // Real floating P/L: for each open position this investor is exposed
     // to, their share is 100% if it's targeted directly at them, or their
@@ -178,28 +181,79 @@ export async function GET() {
             ? (allocationByPool.get(row.strategy_pool_id) ?? 0) / 100
             : null;
       if (share == null) continue;
+      // Prefer the live price fetched above over the DB snapshot
+      const effectivePrice = livePriceMap.get(row.asset_pair) ?? Number(row.current_price ?? row.entry_price);
       const positionPl = computePositionPl(
         row.asset_pair,
         row.side as "LONG" | "SHORT",
         Number(row.lot_size),
         Number(row.entry_price),
-        Number(row.current_price ?? row.entry_price)
+        effectivePrice
       );
       floatingPl += positionPl * share;
       accountedForAny = true;
     }
     floatingPl = Number(floatingPl.toFixed(2));
     const floatingPlKnown = executions.length === 0 || accountedForAny;
+    const currentEquity = Number((currentBalance + floatingPl).toFixed(2));
+
+    // ── Persist an equity snapshot (throttled) ─────────────────────────────
+    // The chart is built from these persisted rows — history survives page
+    // reloads, window changes, and server restarts. Throttle: at most one
+    // snapshot per 30 seconds per user, but always write immediately when
+    // the equity moved (so drawdowns and spikes are never lost).
+    const { data: lastSnap } = await db
+      .from("equity_snapshots")
+      .select("equity, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const lastSnapAge = lastSnap ? Date.now() - new Date(lastSnap.created_at).getTime() : Infinity;
+    const equityMoved = !lastSnap || Math.abs(Number(lastSnap.equity) - currentEquity) >= 0.01;
+    if (lastSnapAge > 30_000 || (equityMoved && lastSnapAge > 4_000)) {
+      await db.from("equity_snapshots").insert({
+        user_id: userId,
+        balance: currentBalance,
+        equity: currentEquity,
+        floating_pl: floatingPl,
+      });
+    }
+
+    // ── Read the persisted series for the chart ────────────────────────────
+    // Last 24 hours of snapshots (up to 1000 rows). If the user has fewer
+    // than 2 snapshots (brand-new account), fall back to the realized ledger
+    // curve so the chart is never empty.
+    const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString();
+    const { data: snaps } = await db
+      .from("equity_snapshots")
+      .select("equity, balance, created_at")
+      .eq("user_id", userId)
+      .gte("created_at", dayAgo)
+      .order("created_at", { ascending: true })
+      .limit(1000);
+
+    const equitySeries =
+      (snaps ?? []).length >= 2
+        ? (snaps ?? []).map((s) => ({
+            t: s.created_at,
+            equity: Number(s.equity),
+            balance: Number(s.balance),
+          }))
+        : curve.points.map((p) => ({
+            t: p.date,
+            equity: p.equity,
+            balance: p.equity,
+          }));
 
     return NextResponse.json({
       liveVolume: formatUsd(totalFundEquity),
       totalLiquidity: formatUsd(totalFundEquity),
-      chartPoints,
-      chartRange: { min: Math.round(min), max: Math.round(max) },
-      timeLabels,
+      equitySeries,
       session: {
         balance: currentBalance,
-        equity: Number((currentBalance + floatingPl).toFixed(2)),
+        equity: currentEquity,
         floatingPl,
         floatingPlKnown,
       },

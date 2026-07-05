@@ -15,11 +15,21 @@ const METAL_TICKERS = new Set(["XAU", "XAG"]); // gold, silver
 // Standard notional-per-lot conventions.
 const CONTRACT_SIZE: Record<AssetClass, number> = {
   forex: 100_000, // 1 standard lot = 100,000 units of base currency
-  metal: 100, // 1 lot = 100 troy oz (gold convention; silver commonly 5,000 but
-  // this platform only quotes XAU/USD today — revisit if XAG is added)
+  metal: 100, // 1 lot = 100 troy oz (gold convention; silver overridden below)
   crypto: 1, // 1 lot = 1 unit (BTC, ETH, ...) — common retail-broker default
   other: 1,
 };
+
+// Per-ticker overrides where the class convention doesn't apply:
+// silver trades at 5,000 oz per standard lot, not gold's 100.
+const CONTRACT_SIZE_OVERRIDES: Record<string, number> = {
+  XAG: 5_000,
+};
+
+function contractSizeFor(assetPair: string): number {
+  const base = assetPair.split("/")[0]?.trim().toUpperCase() ?? "";
+  return CONTRACT_SIZE_OVERRIDES[base] ?? CONTRACT_SIZE[classifyAssetPair(assetPair)];
+}
 
 // Nominal leverage shown to investors, per instrument class — matches the
 // ratios the UI already used for its per-asset presets (EUR/USD 1:100,
@@ -49,8 +59,7 @@ export function nominalLeverageLabel(assetPair: string): string {
 // a pool-level P/L on close and the real (not honestly-unavailable)
 // floating P/L shown on the dashboard/live-performance chart.
 export function computeNotionalUsd(assetPair: string, lotSize: number, price: number): number {
-  const assetClass = classifyAssetPair(assetPair);
-  return lotSize * CONTRACT_SIZE[assetClass] * price;
+  return lotSize * contractSizeFor(assetPair) * price;
 }
 
 // Unrealized/realized dollar P/L for one position, sign-adjusted for side.
@@ -65,8 +74,7 @@ export function computePositionPl(
   entryPrice: number,
   currentPrice: number
 ): number {
-  const assetClass = classifyAssetPair(assetPair);
-  const contractSize = CONTRACT_SIZE[assetClass];
+  const contractSize = contractSizeFor(assetPair);
   const priceDelta = side === "LONG" ? currentPrice - entryPrice : entryPrice - currentPrice;
   return Number((priceDelta * lotSize * contractSize).toFixed(2));
 }
