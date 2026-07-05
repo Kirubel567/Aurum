@@ -48,6 +48,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Deposit Verification", href: ROUTES.ADMIN_DEPOSITS, icon: ShieldCheck },
   { label: "User Management", href: ROUTES.ADMIN_USERS, icon: Users },
   { label: "Client Messages", href: ROUTES.ADMIN_INBOX, icon: MessageSquare },
+  { label: "Legal Documents", href: ROUTES.ADMIN_LEGAL, icon: FileText },
   { label: "System Settings", href: ROUTES.ADMIN_SETTINGS, icon: Settings2 },
 ];
 

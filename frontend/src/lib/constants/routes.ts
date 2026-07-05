@@ -21,6 +21,7 @@ export const ROUTES = {
   ADMIN_SETTINGS: "/admin/settings",
   ADMIN_CONSOLE: "/admin/console",
   ADMIN_INBOX: "/admin/inbox",
+  ADMIN_LEGAL: "/admin/legal",
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
