@@ -130,14 +130,14 @@ export async function POST(req: NextRequest) {
     parts: [{ text: i === 0 ? `${SYSTEM_PROMPT}\n\n${m.body}` : m.body }],
   }));
 
-  // Try models in order until one succeeds
+  // Try models in order until one succeeds. 2.5 models first — verified
+  // working with this key's quota; the 2.0 family returns 429 (limit: 0).
   const MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-flash-lite-latest",
     "gemini-2.0-flash",
     "gemini-2.0-flash-lite",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-pro-latest",
-    "gemini-1.0-pro",
-    "gemini-pro",
   ];
 
   replyText = "";
