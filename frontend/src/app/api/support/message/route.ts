@@ -120,6 +120,12 @@ export async function POST(req: NextRequest) {
 
   const historyChronological = (history ?? []).reverse();
 
+  // Gemini rejects contents that start with a 'model' turn — if the 20-message
+  // window begins mid-conversation on an assistant reply, drop it.
+  while (historyChronological.length > 0 && historyChronological[0].role === "assistant") {
+    historyChronological.shift();
+  }
+
   // ── Call Gemini via direct fetch (bypasses SDK version/model limitations) ─────
   let replyText: string;
 
