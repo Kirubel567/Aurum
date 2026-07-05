@@ -44,10 +44,22 @@ CREATE POLICY "staff_all_legal_docs"
   );
 
 -- ── Notifications: add document_assigned type ──────────────────────────────────
--- Drop and recreate the CHECK constraint to add 'document_assigned'
+-- Drop the old CHECK constraint, normalise any rows whose type is not in the
+-- new list (reclassify as 'general'), then recreate the constraint.
 
 ALTER TABLE notifications
   DROP CONSTRAINT IF EXISTS notifications_type_check;
+
+UPDATE notifications
+  SET type = 'general'
+  WHERE type NOT IN (
+    'deposit_approved','deposit_rejected',
+    'withdrawal_approved','withdrawal_rejected',
+    'new_withdrawal',
+    'profile_update',
+    'document_assigned',
+    'general'
+  );
 
 ALTER TABLE notifications
   ADD CONSTRAINT notifications_type_check
