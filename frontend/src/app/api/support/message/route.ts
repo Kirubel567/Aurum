@@ -151,7 +151,13 @@ export async function POST(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents,
-          generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+            // Gemini 2.5 models spend "thinking" tokens from the same budget —
+            // without this, thinking can eat the whole cap and return no text.
+            thinkingConfig: { thinkingBudget: 0 },
+          },
         }),
       });
 
@@ -171,10 +177,17 @@ export async function POST(req: NextRequest) {
       }
 
       const data = await res.json() as {
-        candidates?: { content?: { parts?: { text?: string }[] } }[];
+        candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
       };
-      replyText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+      // Join every text part — replies aren't always in parts[0].
+      replyText = (data.candidates?.[0]?.content?.parts ?? [])
+        .map((p) => p.text ?? "")
+        .join("")
+        .trim();
       if (replyText) break; // success
+      console.warn(
+        `[support/message] ${modelName} returned no text (finishReason: ${data.candidates?.[0]?.finishReason ?? "unknown"}) — trying next model`
+      );
     } catch (err) {
       console.error(`[support/message] Gemini ${modelName} fetch error:`, err);
       break;
