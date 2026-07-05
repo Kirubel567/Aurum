@@ -4,6 +4,13 @@ import { getDepositSessionCookie } from "@/src/features/onboarding/lib/deposit-c
 
 const DAILY_MESSAGE_LIMIT = 200;
 
+// Connection-failure fallback. Never stored in the DB and always filtered out
+// of the AI context — storing these poisons the conversation history and
+// trains the model to return empty replies.
+const FALLBACK_PREFIX = "I'm having trouble connecting right now.";
+const FALLBACK_MESSAGE =
+  "I'm having trouble connecting right now. Please try again in a moment, or contact your account manager directly via the Concierge section.";
+
 const SYSTEM_PROMPT = `You are Aurum Core AI, a professional 24/7 financial assistant for Aurum Sovereign Capital, an institutional investment management firm.
 
 Your role is to assist investors with clear, concise, and professional responses about:
@@ -118,7 +125,12 @@ export async function POST(req: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(20);
 
-  const historyChronological = (history ?? []).reverse();
+  // Exclude stored connection-failure fallbacks from the AI context — a
+  // history full of "question → error apology" pairs teaches the model to
+  // return empty replies (verified: 100% empty candidates on such sessions).
+  const historyChronological = (history ?? [])
+    .reverse()
+    .filter((m) => !(m.role === "assistant" && m.body.startsWith(FALLBACK_PREFIX)));
 
   // Gemini rejects contents that start with a 'model' turn — if the 20-message
   // window begins mid-conversation on an assistant reply, drop it.
@@ -201,9 +213,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── No reply from any model: return an EPHEMERAL fallback ─────────────────────
+  // Deliberately NOT stored — saving failure apologies into the session history
+  // poisons the AI context for every later message.
   if (!replyText) {
-    replyText =
-      "I'm having trouble connecting right now. Please try again in a moment, or contact your account manager directly via the Concierge section.";
+    return NextResponse.json({
+      sessionId: resolvedSessionId,
+      reply: {
+        id: `ephemeral-${Date.now()}`,
+        role: "assistant",
+        body: FALLBACK_MESSAGE,
+        created_at: new Date().toISOString(),
+      },
+    });
   }
 
   // ── Insert assistant reply ────────────────────────────────────────────────────
