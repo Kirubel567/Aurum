@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createServerClient } from "@/src/lib/supabase/server";
 import { getDepositSessionCookie } from "@/src/features/onboarding/lib/deposit-cookies";
 
@@ -121,40 +120,66 @@ export async function POST(req: NextRequest) {
 
   const historyChronological = (history ?? []).reverse();
 
-  // ── Call Gemini ───────────────────────────────────────────────────────────────
+  // ── Call Gemini via direct fetch (bypasses SDK version/model limitations) ─────
   let replyText: string;
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // systemInstruction must go on getGenerativeModel, not startChat (SDK v0.24)
-    const model = genAI.getGenerativeModel({
-      model: "gemini-pro",
-      systemInstruction: SYSTEM_PROMPT,
-    });
+  // Build contents array: system prompt prepended to first user message,
+  // then full conversation history in alternating user/model turns.
+  const contents = historyChronological.map((m, i) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: i === 0 ? `${SYSTEM_PROMPT}\n\n${m.body}` : m.body }],
+  }));
 
-    // Build Gemini chat history (all turns except the current user message at the end)
-    const chatHistory = historyChronological.slice(0, -1).map((m) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.body }],
-    }));
+  // Try models in order until one succeeds
+  const MODELS = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro-latest",
+    "gemini-1.0-pro",
+    "gemini-pro",
+  ];
 
-    const chat = model.startChat({ history: chatHistory });
-    const result = await chat.sendMessage(message.trim());
-    replyText = result.response.text().trim();
+  replyText = "";
+  for (const modelName of MODELS) {
+    try {
+      const endpoint =
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
-    if (!replyText) {
-      replyText = "I wasn't able to generate a response. Please rephrase your question.";
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
+        }),
+      });
+
+      if (res.status === 404) {
+        // This model isn't available — try the next one
+        continue;
+      }
+
+      if (!res.ok) {
+        const errBody = await res.text();
+        console.error(`[support/message] Gemini ${modelName} error ${res.status}:`, errBody);
+        break;
+      }
+
+      const data = await res.json() as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      replyText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+      if (replyText) break; // success
+    } catch (err) {
+      console.error(`[support/message] Gemini ${modelName} fetch error:`, err);
+      break;
     }
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err);
-    console.error("[support/message] Gemini error:", errMsg);
-    // Surface API key errors clearly during development
-    if (errMsg.includes("API_KEY") || errMsg.includes("401") || errMsg.includes("403")) {
-      replyText = "AI service configuration error. Please contact support.";
-    } else {
-      replyText =
-        "I'm having trouble connecting right now. Please try again in a moment, or contact your account manager directly via the Concierge section.";
-    }
+  }
+
+  if (!replyText) {
+    replyText =
+      "I'm having trouble connecting right now. Please try again in a moment, or contact your account manager directly via the Concierge section.";
   }
 
   // ── Insert assistant reply ────────────────────────────────────────────────────
