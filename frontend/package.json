@@ -37,5 +37,8 @@
     "typescript": "^5",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "ws": "^8.21.0"
   }
 }
