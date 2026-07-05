@@ -1,7 +1,7 @@
 "use client";
 
 import { useLivePerformance } from "@/src/features/orders/hooks/useLivePerformance";
-import type { ActiveExecution, LiveSessionStats, StrategyPool } from "@/src/types/trade.types";
+import type { ActiveExecution, EquitySnapshotPoint, LiveSessionStats, StrategyPool } from "@/src/types/trade.types";
 import { cn } from "@/lib/utils";
 import { formatUSD } from "@/src/lib/formatters/currency";
 
@@ -31,36 +31,107 @@ function TimeSelector({ active, onChange }: { active: string; onChange: (v: stri
   );
 }
 
-// ── Live Chart — real 24h equity curve from /api/orders/live ─────────────────
+// ── Live Chart — persisted prop-firm equity trace from /api/orders/live ──────
+// Renders the equity_snapshots series: a dashed balance reference line plus
+// the equity line, drawn segment-by-segment — green where equity ≥ balance
+// (in profit), red where it's below (in drawdown). Never "sticks at 0":
+// the y-domain is computed from the actual data with padding.
 
+const CHART_W = 1200;
 const CHART_H = 200;
 
-// Builds an SVG path from the API's { x, y } points (already scaled to the
-// 1200x160 space by the server) and rescales onto this component's 1200x200
-// viewBox to match the original design's proportions.
-function pathFromPoints(points: { x: number; y: number }[]): { line: string; area: string } {
-  if (points.length === 0) return { line: "", area: "" };
-  const scaled = points.map((p) => ({ x: p.x, y: (p.y / 160) * CHART_H }));
-  const line = scaled.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-  const last = scaled[scaled.length - 1];
-  const first = scaled[0];
-  const area = `${line} L${last.x},${CHART_H} L${first.x},${CHART_H} Z`;
-  return { line, area };
+interface ChartGeometry {
+  equityPts: { x: number; y: number; equity: number; balance: number }[];
+  balancePath: string;
+  yTicks: number[];
+  labels: string[];
+}
+
+function buildGeometry(series: EquitySnapshotPoint[]): ChartGeometry | null {
+  if (series.length < 2) return null;
+  const values = series.flatMap((p) => [p.equity, p.balance]);
+  const rawMin = Math.min(...values);
+  const rawMax = Math.max(...values);
+  const pad = Math.max((rawMax - rawMin) * 0.1, Math.abs(rawMax) * 0.002, 1);
+  const min = rawMin - pad;
+  const max = rawMax + pad;
+  const range = max - min;
+
+  const toX = (i: number) => (i / (series.length - 1)) * CHART_W;
+  const toY = (v: number) => CHART_H - ((v - min) / range) * CHART_H;
+
+  const equityPts = series.map((p, i) => ({
+    x: toX(i),
+    y: toY(p.equity),
+    equity: p.equity,
+    balance: p.balance,
+  }));
+  const balancePath = series
+    .map((p, i) => `${i === 0 ? "M" : "L"}${toX(i)},${toY(p.balance)}`)
+    .join(" ");
+
+  const yTicks = [max, (max + min) / 2, min].map((v) => Math.round(v));
+
+  // Up to 6 time labels from the snapshot timestamps.
+  const step = Math.max(1, Math.floor(series.length / 5));
+  const labels = series
+    .filter((_, i) => i % step === 0 || i === series.length - 1)
+    .map((p, i, arr) => {
+      if (i === arr.length - 1) return "Now";
+      const d = new Date(p.t);
+      return Number.isNaN(d.getTime())
+        ? p.t
+        : d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+    });
+
+  return { equityPts, balancePath, yTicks, labels };
+}
+
+// Splits the equity polyline into colored segments: green while equity ≥
+// balance, red while below. Inserts the exact crossing point so the color
+// flips precisely where the line crosses the balance reference.
+function coloredSegments(pts: ChartGeometry["equityPts"]): { d: string; inProfit: boolean }[] {
+  const segments: { d: string; inProfit: boolean }[] = [];
+  let currentPath = `M${pts[0].x},${pts[0].y}`;
+  let currentProfit = pts[0].equity >= pts[0].balance;
+
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1];
+    const next = pts[i];
+    const nextProfit = next.equity >= next.balance;
+    if (nextProfit === currentProfit) {
+      currentPath += ` L${next.x},${next.y}`;
+      continue;
+    }
+    // Interpolate the crossing where (equity - balance) hits zero.
+    const dPrev = prev.equity - prev.balance;
+    const dNext = next.equity - next.balance;
+    const tRatio = dPrev / (dPrev - dNext || 1);
+    const cx = prev.x + (next.x - prev.x) * tRatio;
+    const cy = prev.y + (next.y - prev.y) * tRatio;
+    currentPath += ` L${cx},${cy}`;
+    segments.push({ d: currentPath, inProfit: currentProfit });
+    currentPath = `M${cx},${cy} L${next.x},${next.y}`;
+    currentProfit = nextProfit;
+  }
+  segments.push({ d: currentPath, inProfit: currentProfit });
+  return segments;
 }
 
 function LiveChart({
-  points,
-  chartRange,
-  timeLabels,
+  series,
   session,
 }: {
-  points: { x: number; y: number }[];
-  chartRange: { min: number; max: number };
-  timeLabels: string[];
+  series: EquitySnapshotPoint[];
   session: LiveSessionStats;
 }) {
-  const { line: equityPath, area: equityAreaPath } = pathFromPoints(points);
-  const yTicks = [chartRange.max, Math.round((chartRange.max + chartRange.min) / 2), chartRange.min];
+  const geo = buildGeometry(series);
+  const segments = geo ? coloredSegments(geo.equityPts) : [];
+
+  // Current drawdown: % the live equity sits below the session's peak equity.
+  const peakEquity = series.length > 0 ? Math.max(...series.map((p) => p.equity), session.equity) : session.equity;
+  const drawdownPct = peakEquity > 0 ? Math.max(0, ((peakEquity - session.equity) / peakEquity) * 100) : 0;
+
   const s = {
     balance: formatUSD(session.balance),
     equity: formatUSD(session.equity),
@@ -68,9 +139,11 @@ function LiveChart({
       ? `${session.floatingPl >= 0 ? "+" : ""}${formatUSD(session.floatingPl)}`
       : "—",
     floatingPositive: session.floatingPl >= 0,
-    drawdown: "—", // platform-wide drawdown arrives with Phase 16's risk metrics
-    labels: timeLabels,
+    drawdown: `${drawdownPct.toFixed(2)}%`,
+    drawdownActive: drawdownPct > 0.01,
+    labels: geo?.labels ?? [],
   };
+  const yTicks = geo?.yTicks ?? [0, 0, 0];
 
   return (
     <section
@@ -85,7 +158,9 @@ function LiveChart({
             <span className="w-2 h-2 rounded-full bg-[#947600] dark:bg-[#e9c349] animate-pulse" />
             Live Equity &amp; Balance — Current Session
           </h3>
-          <p className="mt-0.5 text-[11px] text-slate-400 dark:text-white/40">Your wallet balance over the last 24 hours (realized gains only)</p>
+          <p className="mt-0.5 text-[11px] text-slate-400 dark:text-white/40">
+            Your live equity (balance + floating P&amp;L) over the last 24 hours — green in profit, red in drawdown
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <div>
@@ -107,50 +182,73 @@ function LiveChart({
           <div className="hidden sm:block w-px h-8 bg-gray-200 dark:bg-white/10" />
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-white/40">Drawdown</p>
-            <p className="text-base font-bold text-slate-900 dark:text-white">{s.drawdown}</p>
+            <p className={`text-base font-bold ${s.drawdownActive ? "text-red-500" : "text-slate-900 dark:text-white"}`}>{s.drawdown}</p>
           </div>
         </div>
       </div>
 
       {/* ── Legend ── */}
-      <div className="flex items-center gap-5 mb-4">
+      <div className="flex flex-wrap items-center gap-5 mb-4">
         <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-white/60">
           <span className="inline-block h-0.5 w-5 bg-emerald-500 rounded-full" />
-          Equity (realized — deposits, yield, closed trades)
+          Equity in profit
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-white/60">
+          <span className="inline-block h-0.5 w-5 bg-red-500 rounded-full" />
+          Equity in drawdown
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-white/60">
+          <span className="inline-block h-0.5 w-5 rounded-full border-t-2 border-dashed border-slate-400 dark:border-white/40" />
+          Balance (realized)
         </span>
       </div>
 
       {/* ── Chart ── */}
       <div className="flex gap-3">
         <div className="flex flex-col justify-between text-right shrink-0 pb-5" style={{ height: "180px" }}>
-          {yTicks.map((v) => (
-            <span key={v} className="text-[9px] font-bold text-slate-400 dark:text-white/40 leading-none">
+          {yTicks.map((v, i) => (
+            <span key={i} className="text-[9px] font-bold text-slate-400 dark:text-white/40 leading-none">
               ${v.toLocaleString()}
             </span>
           ))}
         </div>
         <div className="flex-1 relative" style={{ height: "180px" }}>
-          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox="0 0 1200 200">
-            <defs>
-              <linearGradient id="equity-grad-light" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.14" />
-                <stop offset="100%" stopColor="#10b981" stopOpacity="0.01" />
-              </linearGradient>
-              <linearGradient id="equity-grad-dark" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#e9c349" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#e9c349" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <line x1="0" y1="0" x2="1200" y2="0" stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
-            <line x1="0" y1="100" x2="1200" y2="100" stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
-            <line x1="0" y1="200" x2="1200" y2="200" stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
-            {points.length > 0 && (
+          <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none" viewBox={`0 0 ${CHART_W} ${CHART_H}`}>
+            <line x1="0" y1="0" x2={CHART_W} y2="0" stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
+            <line x1="0" y1={CHART_H / 2} x2={CHART_W} y2={CHART_H / 2} stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
+            <line x1="0" y1={CHART_H} x2={CHART_W} y2={CHART_H} stroke="currentColor" strokeWidth="1" className="text-gray-100 dark:text-white/5" />
+            {geo && (
               <>
-                <path className="dark:hidden" d={equityAreaPath} fill="url(#equity-grad-light)" />
-                <path className="hidden dark:block" d={equityAreaPath} fill="url(#equity-grad-dark)" />
-                <path className="dark:hidden" d={equityPath} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                <path className="hidden dark:block" d={equityPath} fill="none" stroke="#e9c349" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ filter: "drop-shadow(0 0 12px rgba(233,195,73,0.5))" }} />
+                {/* Balance reference line (dashed) */}
+                <path
+                  d={geo.balancePath}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeDasharray="6 5"
+                  className="text-slate-400 dark:text-white/40"
+                />
+                {/* Equity line — green segments in profit, red in drawdown */}
+                {segments.map((seg, i) => (
+                  <path
+                    key={i}
+                    d={seg.d}
+                    fill="none"
+                    stroke={seg.inProfit ? "#10b981" : "#ef4444"}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={seg.inProfit
+                      ? { filter: "drop-shadow(0 0 8px rgba(16,185,129,0.35))" }
+                      : { filter: "drop-shadow(0 0 8px rgba(239,68,68,0.35))" }}
+                  />
+                ))}
               </>
+            )}
+            {!geo && (
+              <text x={CHART_W / 2} y={CHART_H / 2} textAnchor="middle" className="fill-slate-400 dark:fill-white/40" fontSize="14">
+                Collecting equity history — check back in a minute
+              </text>
             )}
           </svg>
           <div className="absolute -bottom-5 left-0 right-0 flex justify-between text-[10px] text-slate-400 dark:text-white/40 tracking-wide">
@@ -376,7 +474,7 @@ export function LivePerformancePage() {
       </div>
 
       {/* Hero chart */}
-      <LiveChart points={data.chartPoints} chartRange={data.chartRange} timeLabels={data.timeLabels} session={data.session} />
+      <LiveChart series={data.equitySeries} session={data.session} />
 
       {/* Split grid */}
       <div className="grid grid-cols-12 gap-8">

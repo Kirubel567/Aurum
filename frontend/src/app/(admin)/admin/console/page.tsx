@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Loader2, RefreshCw, Search, X } from "lucide-react";
 
 import { useSessionHydration } from "@/src/hooks/useSessionHydration";
@@ -44,14 +44,28 @@ function ServerClock() {
 // on-surface:              #dce3f0  ← main text
 // primary-container:       #d4af37   secondary: #4edea3   error: #ffb4ab
 
-// Entry-price presets for common pairs — a convenience autofill only; the
-// admin can always type real numbers.
-const ASSET_PRESETS: Record<string, { entry: string }> = {
-  "EUR/USD": { entry: "1.08420" },
-  "XAU/USD": { entry: "2341.20" },
-  "BTC/USD": { entry: "64281.00" },
-  "GBP/JPY": { entry: "192.340" },
-};
+// All tradeable pairs — grouped by asset class. The console auto-fetches
+// the live price for every pair that has a feed; this list is just the
+// selection menu.
+const ASSET_PAIRS: { group: string; pairs: string[] }[] = [
+  {
+    group: "Forex Majors",
+    pairs: ["EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF", "AUD/USD", "USD/CAD", "NZD/USD"],
+  },
+  {
+    group: "Forex Crosses",
+    pairs: ["EUR/GBP", "EUR/JPY", "EUR/CHF", "EUR/AUD", "GBP/JPY", "GBP/AUD", "AUD/JPY", "USD/MXN", "USD/TRY"],
+  },
+  {
+    group: "Metals",
+    pairs: ["XAU/USD", "XAG/USD"],
+  },
+  {
+    group: "Crypto",
+    pairs: ["BTC/USD", "ETH/USD", "BNB/USD", "XRP/USD", "SOL/USD", "ADA/USD", "DOGE/USD", "LTC/USD"],
+  },
+];
+
 
 type LogEntry = { time: string; color: string; text: string };
 
@@ -240,7 +254,8 @@ export default function TradingConsolePage() {
   const [poolId, setPoolId] = useState("");
   const [direction, setDirection] = useState<"LONG" | "SHORT">("LONG");
   const [lotSize, setLotSize] = useState("0.5");
-  const [entry, setEntry] = useState(ASSET_PRESETS["EUR/USD"].entry);
+  const [entry, setEntry] = useState("");
+  const [fetchingEntry, setFetchingEntry] = useState(false);
   const [tp, setTp] = useState("");
   const [sl, setSl] = useState("");
   const [targetInvestorId, setTargetInvestorId] = useState<string | null>(null);
@@ -254,6 +269,11 @@ export default function TradingConsolePage() {
 
   // Per-row live-price refresh state
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
+
+  // Live prices for open positions (auto-polled every 5s, no DB write for display).
+  // When the admin explicitly refreshes, it also writes to DB so investors see it.
+  const [livePrices, setLivePrices] = useState<Map<string, number>>(new Map());
+  const autoPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [logs, setLogs] = useState<LogEntry[]>([
     makeLog("Trading console connected — live position data active.", "text-[#4edea3]"),
@@ -270,11 +290,72 @@ export default function TradingConsolePage() {
   const addLog = (text: string, color?: string) =>
     setLogs((prev) => [makeLog(text, color), ...prev.slice(0, 7)]);
 
-  function handleAssetChange(val: string) {
+  // Auto-fetch live price whenever the selected pair changes.
+  async function handleAssetChange(val: string) {
     setAsset(val);
-    const preset = ASSET_PRESETS[val];
-    if (preset) setEntry(preset.entry);
+    setEntry("");
+    setFetchingEntry(true);
+    try {
+      const result = await fetchMarketPrice(val);
+      if (result.available && result.price) {
+        setEntry(String(result.price));
+      }
+    } finally {
+      setFetchingEntry(false);
+    }
   }
+
+  // Fetch live entry price on first mount for the default pair.
+  useEffect(() => {
+    fetchMarketPrice("EUR/USD").then((r) => {
+      if (r.available && r.price) setEntry(String(r.price));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-poll live prices for open positions every 5s.
+  // Writes to DB so investors also see the updated current_price.
+  useEffect(() => {
+    if (!canOpen || openExecutions.length === 0) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      const uniquePairs = [...new Set(
+        openExecutions
+          .filter((e) => classifyAssetPair(e.asset_pair) !== "other")
+          .map((e) => e.asset_pair)
+      )];
+      const updates = new Map<string, number>();
+      await Promise.all(
+        uniquePairs.map(async (pair) => {
+          const r = await fetchMarketPrice(pair);
+          if (r.available && r.price && !cancelled) updates.set(pair, r.price);
+        })
+      );
+      if (cancelled || updates.size === 0) return;
+
+      // Update local live-price display
+      setLivePrices((prev) => new Map([...prev, ...updates]));
+
+      // Push to DB for each open position (so investors see the price too)
+      for (const e of openExecutions) {
+        const newPrice = updates.get(e.asset_pair);
+        if (!newPrice || cancelled) continue;
+        const current = Number(e.current_price ?? 0);
+        // Only write if price moved more than 0.001% (avoid noisy identical writes)
+        if (current > 0 && Math.abs((newPrice - current) / current) < 0.00001) continue;
+        priceMutation.mutate({ id: e.id, currentPrice: newPrice });
+      }
+    };
+
+    void poll();
+    autoPollRef.current = setInterval(() => void poll(), 5000);
+    return () => {
+      cancelled = true;
+      if (autoPollRef.current) clearInterval(autoPollRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canOpen, openExecutions.length]);
 
   const derivedLeverage = nominalLeverageLabel(asset);
   const parsedLotSize = Number(lotSize);
@@ -506,8 +587,12 @@ export default function TradingConsolePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className={label}>Asset Pair</label>
-                      <select value={asset} onChange={(e) => handleAssetChange(e.target.value)} className={input}>
-                        {Object.keys(ASSET_PRESETS).map((a) => <option key={a}>{a}</option>)}
+                      <select value={asset} onChange={(e) => void handleAssetChange(e.target.value)} className={input}>
+                        {ASSET_PAIRS.map((g) => (
+                          <optgroup key={g.group} label={g.group}>
+                            {g.pairs.map((p) => <option key={p} value={p}>{p}</option>)}
+                          </optgroup>
+                        ))}
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -551,12 +636,27 @@ export default function TradingConsolePage() {
                       <p className="text-[10px] text-slate-400 dark:text-[#99907c]">Leverage: <span className="font-bold text-slate-600 dark:text-[#d0c5af]">{derivedLeverage}</span></p>
                     </div>
                     <div className="space-y-2 col-span-2">
-                      <label className={label}>Entry Price</label>
+                      <label className={label}>
+                        Entry Price
+                        {fetchingEntry && <Loader2 className="inline size-3 animate-spin ml-1.5 text-[#d4af37]" />}
+                      </label>
                       <div className="relative">
-                        <input className={input} type="text" value={entry} onChange={(e) => setEntry(e.target.value)} placeholder="0.00000" />
-                        <button type="button" onClick={() => setEntry(ASSET_PRESETS[asset]?.entry ?? "")}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4edea3] text-[12px] font-bold hover:opacity-75">
-                          AUTO
+                        <input
+                          className={input}
+                          type="text"
+                          value={entry}
+                          onChange={(e) => setEntry(e.target.value)}
+                          placeholder={fetchingEntry ? "Fetching live price…" : "0.00000"}
+                          disabled={fetchingEntry}
+                        />
+                        <button
+                          type="button"
+                          disabled={fetchingEntry}
+                          onClick={() => void handleAssetChange(asset)}
+                          title="Refresh live price"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#4edea3] hover:opacity-75 disabled:opacity-40"
+                        >
+                          <RefreshCw className={`size-3.5 ${fetchingEntry ? "animate-spin" : ""}`} />
                         </button>
                       </div>
                       {notionalPreview != null && (
@@ -627,7 +727,12 @@ export default function TradingConsolePage() {
                         </tr>
                       )}
                       {openExecutions.map((e) => {
-                        const pct = unrealizedPct(e);
+                        // Prefer the auto-polled live price over the DB snapshot for display
+                        const livePrice = livePrices.get(e.asset_pair);
+                        const displayExecution = livePrice
+                          ? { ...e, current_price: livePrice }
+                          : e;
+                        const pct = unrealizedPct(displayExecution);
                         const canManage = isSuperAdmin || e.target_investor_id != null;
                         const hasLiveFeed = classifyAssetPair(e.asset_pair) !== "other";
                         return (
@@ -655,7 +760,7 @@ export default function TradingConsolePage() {
                               <div className="flex flex-col">
                                 <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-[#99907c]">E: {e.entry_price}</span>
                                 <span className={`flex items-center gap-1 ${e.side === "LONG" ? "text-[#4edea3]" : "text-red-400 dark:text-[#ffb4ab]"}`}>
-                                  C: <PriceCell execution={e} canEdit={canManage} onApply={(price) => handlePriceApply(e, price)} />
+                                  C: <PriceCell execution={displayExecution} canEdit={canManage} onApply={(price) => handlePriceApply(e, price)} />
                                   {canManage && hasLiveFeed && (
                                     <button
                                       onClick={() => handleRefreshLivePrice(e)}
