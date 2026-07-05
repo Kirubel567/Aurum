@@ -155,8 +155,12 @@ export async function POST(req: NextRequest) {
         }),
       });
 
-      if (res.status === 404) {
-        // This model isn't available — try the next one
+      if (res.status === 404 || res.status === 429) {
+        // 404 = model not available, 429 = quota hit — try the next model
+        if (res.status === 429) {
+          const errBody = await res.text();
+          console.warn(`[support/message] ${modelName} quota exceeded, trying next model. ${errBody.slice(0, 120)}`);
+        }
         continue;
       }
 
