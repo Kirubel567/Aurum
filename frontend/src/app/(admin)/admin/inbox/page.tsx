@@ -8,9 +8,11 @@
 // on-surface: #dce3f0  on-surface-variant: #d0c5af  outline-variant: #4d4635
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, MessageSquare, ArrowLeft, Phone, Video, MoreVertical,
-         ChevronRight, CheckCircle, Terminal, ShieldCheck,
-         Paperclip, Smile, Wallet, TrendingUp, ChevronLeft } from "lucide-react";
+import {
+  Loader2, MessageSquare, ArrowLeft, Phone, Video, MoreVertical,
+  ChevronRight, CheckCircle, Terminal, ShieldCheck,
+  Paperclip, Smile, Wallet, ChevronLeft, UserCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -24,12 +26,23 @@ interface Message {
   investor_id: string;
   investor_name: string;
 }
+
 interface Thread {
   investor_id: string;
   investor_name: string;
   last_message: string;
   last_at: string;
   unread: number;
+}
+
+interface InvestorDetail {
+  name: string;
+  email: string;
+  status: string;
+  tier: string;
+  volume: string;
+  balanceRaw: number;
+  uid: string;
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -79,7 +92,6 @@ function Bubble({ msg }: { msg: Message }) {
           <span className="text-[9px] font-bold text-slate-600 dark:text-[#d0c5af]">{initials(msg.investor_name)}</span>
         </div>
         <div className="flex flex-col gap-1">
-          {/* light: white bg / dark: rgba(255,255,255,0.05) */}
           <div className="bg-white dark:bg-[rgba(255,255,255,0.05)] border border-slate-100
                           dark:border-[rgba(255,255,255,0.05)] shadow-sm rounded-2xl rounded-tl-sm px-4 py-3">
             <p className="text-[13px] text-slate-700 dark:text-[#d0c5af] leading-relaxed">{msg.body}</p>
@@ -95,7 +107,6 @@ function Bubble({ msg }: { msg: Message }) {
         <span className="text-[9px] font-bold text-white dark:text-[#3c2f00]">A</span>
       </div>
       <div className="flex flex-col items-end gap-1">
-        {/* light: #0d141d / dark: rgba(242,202,80,0.1) + gold border */}
         <div className="bg-[#0d141d] dark:bg-[rgba(242,202,80,0.1)] border border-transparent
                         dark:border-[rgba(242,202,80,0.2)] rounded-2xl rounded-tr-sm px-4 py-3 shadow-md">
           <p className="text-[13px] text-white dark:text-[#dce3f0] leading-relaxed">{msg.body}</p>
@@ -112,50 +123,22 @@ function Bubble({ msg }: { msg: Message }) {
 // ── glass helper ──────────────────────────────────────────────────────────────
 const gc = "bg-white dark:bg-[rgba(255,255,255,0.03)] dark:[backdrop-filter:blur(12px)] border border-slate-200 dark:border-[rgba(255,255,255,0.1)]";
 
-// ── mock seed data (shown immediately, real API data overlays when available) ──
-const MOCK_THREADS: Thread[] = [
-  { investor_id: "mock-bekele",  investor_name: "Bekele",         last_message: "Thanks Abebe, saw the EUR/USD trade win update!", last_at: new Date().toISOString(),                             unread: 1 },
-  { investor_id: "mock-chala",   investor_name: "Chala",          last_message: "Can you review my account drawdown limit?",        last_at: new Date(Date.now()-3300000).toISOString(),            unread: 0 },
-  { investor_id: "mock-invesco", investor_name: "Invesco Cap Fund",last_message: "KYC verification documents attached.",            last_at: new Date(Date.now()-86400000).toISOString(),           unread: 2 },
-  { investor_id: "mock-sahle",   investor_name: "Sahle-Work Z.",  last_message: "Withdrawal request status update needed.",         last_at: new Date(Date.now()-86400000*6).toISOString(),         unread: 0 },
-];
-
-const now = new Date();
-const t = (minusMin: number) => new Date(now.getTime() - minusMin * 60000).toISOString();
-
-const MOCK_MESSAGES: Record<string, Message[]> = {
-  "mock-bekele": [
-    { id: "m1", sender_role: "investor", body: "Hello Abebe, I noticed the live MT5 trade entries are syncing on my user dashboard. Quick question about the leverage used for the EUR/USD position?", created_at: t(3), investor_id: "mock-bekele", investor_name: "Bekele" },
-    { id: "m2", sender_role: "admin",    body: "Hi Bekele! Yes, we safely executed that entry at 1:100 leverage to maximize the tight spread entry. It's performing perfectly within our risk management parameters.", created_at: t(1), investor_id: "mock-bekele", investor_name: "Bekele" },
-    { id: "m3", sender_role: "investor", body: "Thanks Abebe, saw the EUR/USD trade win update!", created_at: t(0), investor_id: "mock-bekele", investor_name: "Bekele" },
-  ],
-  "mock-chala": [
-    { id: "c1", sender_role: "investor", body: "Can you review my account drawdown limit? I want to increase it from 10% to 15% for the next quarter.", created_at: t(90), investor_id: "mock-chala", investor_name: "Chala" },
-    { id: "c2", sender_role: "admin",    body: "Hi Chala, I will review the risk parameters with the team and get back to you within 24 hours.", created_at: t(75), investor_id: "mock-chala", investor_name: "Chala" },
-  ],
-  "mock-invesco": [
-    { id: "i1", sender_role: "investor", body: "KYC verification documents attached. Please review at your earliest convenience.", created_at: t(60*24), investor_id: "mock-invesco", investor_name: "Invesco Cap Fund" },
-  ],
-  "mock-sahle": [
-    { id: "s1", sender_role: "investor", body: "Withdrawal request status update needed. Submitted 6 days ago, reference #WD-20241024.", created_at: t(60*24*6), investor_id: "mock-sahle", investor_name: "Sahle-Work Z." },
-  ],
-};
-
 // ── page ──────────────────────────────────────────────────────────────────────
 export default function AdminInboxPage() {
-  const [threads, setThreads]           = useState<Thread[]>(MOCK_THREADS);
-  const [activeId, setActiveId]         = useState<string | null>("mock-bekele");
-  const [messages, setMessages]         = useState<Message[]>(MOCK_MESSAGES["mock-bekele"]);
-  const [input, setInput]               = useState("");
-  const [sending, setSending]           = useState(false);
-  const [loadingThreads, setLoadingThreads] = useState(false);
-  const [loadingMsgs, setLoadingMsgs]   = useState(false);
-  const [mobilePanel, setMobilePanel]   = useState<MobilePanel>("inbox");
-  const [assignedOnly, setAssignedOnly] = useState(true);
-  const [rightOpen, setRightOpen]       = useState(true);
-  const [resolved, setResolved]         = useState<Set<string>>(new Set());
-  const [toastMsg, setToastMsg]         = useState<string | null>(null);
-  const [allPositionsOpen, setAllPositionsOpen] = useState(false);
+  const [threads, setThreads]                 = useState<Thread[]>([]);
+  const [activeId, setActiveId]               = useState<string | null>(null);
+  const [messages, setMessages]               = useState<Message[]>([]);
+  const [input, setInput]                     = useState("");
+  const [sending, setSending]                 = useState(false);
+  const [loadingThreads, setLoadingThreads]   = useState(true);
+  const [loadingMsgs, setLoadingMsgs]         = useState(false);
+  const [mobilePanel, setMobilePanel]         = useState<MobilePanel>("inbox");
+  const [assignedOnly, setAssignedOnly]       = useState(true);
+  const [rightOpen, setRightOpen]             = useState(true);
+  const [resolved, setResolved]               = useState<Set<string>>(new Set());
+  const [toastMsg, setToastMsg]               = useState<string | null>(null);
+  const [investorDetail, setInvestorDetail]   = useState<InvestorDetail | null>(null);
+  const [loadingDetail, setLoadingDetail]     = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -165,27 +148,46 @@ export default function AdminInboxPage() {
       const res = await fetch("/api/messages");
       if (!res.ok) return;
       const json = await res.json();
-      const real: Thread[] = json.threads ?? [];
-      if (real.length > 0) {
-        // Merge: real threads first, then mock threads that aren't duplicates
-        setThreads([...real, ...MOCK_THREADS.filter((m) => !real.find((r) => r.investor_id === m.investor_id))]);
-      }
-    } finally { setLoadingThreads(false); }
+      setThreads(json.threads ?? []);
+    } finally {
+      setLoadingThreads(false);
+    }
   }, []);
 
   const fetchMessages = useCallback(async (id: string, silent = false) => {
-    // Mock IDs — serve from local data, no API call needed
-    if (id.startsWith("mock-")) {
-      setMessages(MOCK_MESSAGES[id] ?? []);
-      return;
-    }
     if (!silent) setLoadingMsgs(true);
     try {
       const res = await fetch(`/api/messages?investor_id=${id}`);
       if (!res.ok) return;
       const json = await res.json();
       setMessages(json.messages ?? []);
-    } finally { setLoadingMsgs(false); }
+    } finally {
+      setLoadingMsgs(false);
+    }
+  }, []);
+
+  const fetchInvestorDetail = useCallback(async (id: string) => {
+    setLoadingDetail(true);
+    setInvestorDetail(null);
+    try {
+      const res = await fetch(`/api/admin/users/${id}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      const u = json.user;
+      if (u) {
+        setInvestorDetail({
+          name: u.name ?? u.email,
+          email: u.email,
+          status: u.status,
+          tier: u.tier,
+          volume: u.volume,
+          balanceRaw: u.balanceRaw,
+          uid: u.uid,
+        });
+      }
+    } finally {
+      setLoadingDetail(false);
+    }
   }, []);
 
   useEffect(() => { fetchThreads(); }, [fetchThreads]);
@@ -193,9 +195,11 @@ export default function AdminInboxPage() {
   useEffect(() => {
     if (!activeId) return;
     fetchMessages(activeId);
+    fetchInvestorDetail(activeId);
+    if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(() => { fetchMessages(activeId, true); fetchThreads(); }, 4000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [activeId, fetchMessages, fetchThreads]);
+  }, [activeId, fetchMessages, fetchThreads, fetchInvestorDetail]);
 
   useEffect(() => {
     if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
@@ -210,26 +214,19 @@ export default function AdminInboxPage() {
   const handleSend = async () => {
     const text = input.trim();
     if (!text || sending || !activeId) return;
-    setInput(""); setSending(true);
+    setInput("");
+    setSending(true);
     try {
-      if (activeId.startsWith("mock-")) {
-        // Append locally for mock threads
-        const newMsg: Message = {
-          id: `local-${Date.now()}`, sender_role: "admin", body: text,
-          created_at: new Date().toISOString(), investor_id: activeId,
-          investor_name: threads.find((t) => t.investor_id === activeId)?.investor_name ?? "",
-        };
-        setMessages((prev) => [...prev, newMsg]);
-        setThreads((prev) => prev.map((t) => t.investor_id === activeId ? { ...t, last_message: text, last_at: new Date().toISOString() } : t));
-      } else {
-        await fetch("/api/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ body: text, investor_id: activeId }),
-        });
-        await fetchMessages(activeId, true);
-      }
-    } finally { setSending(false); }
+      await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: text, investor_id: activeId }),
+      });
+      await fetchMessages(activeId, true);
+      await fetchThreads();
+    } finally {
+      setSending(false);
+    }
   };
 
   const toast = (msg: string) => {
@@ -245,9 +242,8 @@ export default function AdminInboxPage() {
 
   const activeThread = threads.find((t) => t.investor_id === activeId);
   const isResolved   = activeId ? resolved.has(activeId) : false;
-  const visibleThreads = threads; // assignedOnly filter — all threads from API are already "assigned"
-  const totalUnread = threads.reduce((a, t) => a + t.unread, 0);
-  const groups = groupByDate(messages);
+  const totalUnread  = threads.reduce((a, t) => a + t.unread, 0);
+  const groups       = groupByDate(messages);
 
   return (
     <div className="flex flex-col h-full bg-[#F8F9FA] dark:bg-[#050b14] text-slate-900 dark:text-[#dce3f0] overflow-hidden relative">
@@ -303,7 +299,7 @@ export default function AdminInboxPage() {
           {/* Header */}
           <div className="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
             <span className="text-[11px] font-bold text-slate-400 dark:text-[#d0c5af] uppercase tracking-wider">
-              Inbox ({visibleThreads.length})
+              Inbox ({threads.length})
             </span>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-slate-400 dark:text-[#d0c5af] uppercase tracking-tight font-semibold hidden md:block">Assigned</span>
@@ -322,13 +318,13 @@ export default function AdminInboxPage() {
               <div className="flex items-center justify-center h-24">
                 <Loader2 className="size-5 text-slate-300 dark:text-white/20 animate-spin" />
               </div>
-            ) : visibleThreads.length === 0 ? (
+            ) : threads.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 gap-2 text-center px-4">
                 <MessageSquare className="size-6 text-slate-300 dark:text-white/20" />
                 <p className="text-xs text-slate-400 dark:text-[#d0c5af]">No messages yet</p>
               </div>
             ) : (
-              visibleThreads.map((t) => {
+              threads.map((t) => {
                 const isActive = activeId === t.investor_id;
                 const isRes = resolved.has(t.investor_id);
                 return (
@@ -423,7 +419,6 @@ export default function AdminInboxPage() {
                     className="p-2 text-slate-400 dark:text-[#d0c5af] hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-all">
                     <MoreVertical className="size-4" />
                   </button>
-                  {/* Toggle right panel */}
                   <button onClick={() => setRightOpen((v) => !v)} title={rightOpen ? "Collapse overview" : "Expand overview"}
                     className="hidden lg:flex p-2 text-slate-400 dark:text-[#d0c5af] hover:text-[#d4af37] dark:hover:text-[#f2ca50] hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-all items-center gap-1 text-[11px] font-bold">
                     {rightOpen ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
@@ -495,7 +490,6 @@ export default function AdminInboxPage() {
         </div>
 
         {/* ── Panel 3: Contextual Investor Overview ─────────────────────── */}
-        {/* Collapse: hidden when rightOpen=false on large screens */}
         <aside className={cn(
           "hidden lg:flex flex-col gap-3 overflow-y-auto shrink-0 transition-all duration-300",
           "[scrollbar-width:thin] [scrollbar-color:rgba(212,175,55,0.2)_transparent]",
@@ -503,72 +497,57 @@ export default function AdminInboxPage() {
         )}>
           {activeId ? (
             <>
-              {/* Wallet Summary */}
+              {/* Investor Account Card */}
               <div className={cn("rounded-xl p-5 shadow-sm", gc)}>
                 <h4 className="text-[11px] font-bold text-slate-400 dark:text-[#d0c5af] uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Wallet className="size-4" /> Investor Wallet Summary
+                  <Wallet className="size-4" /> Investor Overview
                 </h4>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-body-sm text-slate-500 dark:text-[#d0c5af]">Total Capital</p>
-                    <p className="text-headline-md font-bold text-slate-900 dark:text-white font-data-mono">$450,000.00</p>
-                  </div>
-                  <div className="pt-3 border-t border-slate-100 dark:border-white/5">
-                    <p className="text-body-sm text-slate-500 dark:text-[#d0c5af] mb-2">Managed Allocation Pool</p>
-                    <div className="flex items-center gap-2">
-                      <span className="bg-[#d4af37]/10 dark:bg-[#f2ca50]/10 text-[#d4af37] dark:text-[#f2ca50] px-2 py-1 rounded text-[10px] font-bold border border-[#d4af37]/20 dark:border-[#f2ca50]/20">Forex Alpha</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-body-sm">+12.4% YTD</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Open Positions */}
-              <div className={cn("rounded-xl p-5 shadow-sm", gc)}>
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-[11px] font-bold text-slate-400 dark:text-[#d0c5af] uppercase tracking-wider flex items-center gap-2">
-                    <TrendingUp className="size-4" /> Open Positions
-                  </h4>
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 px-2 py-0.5 rounded font-data-mono">LIVE</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center p-2.5 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
+                {loadingDetail ? (
+                  <div className="flex items-center justify-center h-16">
+                    <Loader2 className="size-4 text-slate-300 dark:text-white/20 animate-spin" />
+                  </div>
+                ) : investorDetail ? (
+                  <div className="space-y-4">
+                    {/* Avatar + name */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-sm font-bold text-slate-700 dark:text-[#d0c5af] shrink-0">
+                        {initials(investorDetail.name)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-bold text-slate-900 dark:text-white truncate">{investorDetail.name}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-white/30 font-mono">{investorDetail.uid}</p>
+                      </div>
+                    </div>
+
+                    {/* Balance */}
                     <div>
-                      <p className="font-bold text-body-sm text-slate-900 dark:text-white">EUR/USD</p>
-                      <p className="text-[10px] text-slate-400 dark:text-[#d0c5af]">Buy @ 1.0845</p>
+                      <p className="text-body-sm text-slate-500 dark:text-[#d0c5af]">Total Balance</p>
+                      <p className="text-headline-md font-bold text-slate-900 dark:text-white font-data-mono">{investorDetail.volume}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-data-mono font-bold text-emerald-600 dark:text-emerald-400">+$2,450.00</p>
-                      <p className="text-[10px] text-slate-400 dark:text-[#d0c5af]">Lot: 2.50</p>
+
+                    {/* Tier + status chips */}
+                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-100 dark:border-white/5">
+                      <span className="bg-[#d4af37]/10 dark:bg-[#f2ca50]/10 text-[#d4af37] dark:text-[#f2ca50] px-2 py-1 rounded text-[10px] font-bold border border-[#d4af37]/20 dark:border-[#f2ca50]/20">
+                        {investorDetail.tier}
+                      </span>
+                      <span className={cn("px-2 py-1 rounded text-[10px] font-bold border",
+                        investorDetail.status === "Verified"
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20"
+                          : investorDetail.status === "Suspended"
+                          ? "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/20"
+                          : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20"
+                      )}>
+                        {investorDetail.status}
+                      </span>
                     </div>
                   </div>
-                  {allPositionsOpen && (
-                    <>
-                      {[
-                        { pair: "GBP/JPY", type: "Sell @ 186.20", pnl: "+$1,120.00", lot: "1.00" },
-                        { pair: "XAU/USD", type: "Buy @ 1928.4",  pnl: "+$3,800.00", lot: "0.50" },
-                        { pair: "BTC/USD", type: "Buy @ 42,100",  pnl: "-$290.00",    lot: "0.10" },
-                      ].map((p) => (
-                        <div key={p.pair} className="flex justify-between items-center p-2.5 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5">
-                          <div>
-                            <p className="font-bold text-body-sm text-slate-900 dark:text-white">{p.pair}</p>
-                            <p className="text-[10px] text-slate-400 dark:text-[#d0c5af]">{p.type}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className={cn("font-data-mono font-bold text-[13px]", p.pnl.startsWith("-") ? "text-red-500 dark:text-[#ffb4ab]" : "text-emerald-600 dark:text-emerald-400")}>{p.pnl}</p>
-                            <p className="text-[10px] text-slate-400 dark:text-[#d0c5af]">Lot: {p.lot}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                  <div className="p-2 rounded-lg border border-dashed border-slate-200 dark:border-white/10 text-center">
-                    <button onClick={() => setAllPositionsOpen((v) => !v)}
-                      className="text-[#d4af37] dark:text-[#f2ca50] text-[11px] font-bold hover:underline">
-                      {allPositionsOpen ? "Collapse Positions" : "View All Positions (4)"}
-                    </button>
+                ) : (
+                  <div className="flex flex-col items-center gap-2 py-4 text-center">
+                    <UserCircle className="size-8 text-slate-200 dark:text-white/10" />
+                    <p className="text-[11px] text-slate-400 dark:text-[#d0c5af]/60">Could not load investor data</p>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Action buttons */}
@@ -602,6 +581,12 @@ export default function AdminInboxPage() {
                   {isResolved ? "Ticket Resolved" : "Mark Ticket as Resolved"}
                 </button>
               </div>
+
+              {/* Collapse button */}
+              <button onClick={() => setRightOpen(false)}
+                className="text-[11px] text-slate-400 dark:text-[#d0c5af]/50 hover:text-slate-600 dark:hover:text-[#d0c5af] flex items-center gap-1 self-end pr-1 transition-colors">
+                <ChevronRight className="size-3.5" /> Collapse
+              </button>
             </>
           ) : (
             <div className={cn("rounded-xl p-6 flex flex-col items-center justify-center gap-3 text-center min-h-[200px]", gc)}>
@@ -609,12 +594,6 @@ export default function AdminInboxPage() {
               <p className="text-xs text-slate-400 dark:text-[#d0c5af]/60">Select a conversation to see investor details</p>
             </div>
           )}
-
-          {/* Re-open toggle at the bottom when panel is visible */}
-          <button onClick={() => setRightOpen(false)}
-            className="text-[11px] text-slate-400 dark:text-[#d0c5af]/50 hover:text-slate-600 dark:hover:text-[#d0c5af] flex items-center gap-1 self-end pr-1 transition-colors">
-            <ChevronRight className="size-3.5" /> Collapse
-          </button>
         </aside>
 
         {/* Re-open tab when right panel is collapsed */}
