@@ -62,20 +62,26 @@ export async function GET() {
     }));
 
     const closed = closedRes.data ?? [];
-    const fmtPct = (row: (typeof closed)[number]) => {
-      const pl = Number(row.realized_pl_usd);
-      return `${pl >= 0 ? "+" : ""}${pl.toLocaleString("en-US", { style: "currency", currency: "USD" })}`;
-    };
+
+    // Aggregate net realized P/L per asset pair — the card shows top
+    // gainer/loser ASSETS, so each pair appears once with its total.
+    const plByAsset = new Map<string, number>();
+    for (const t of closed) {
+      plByAsset.set(t.asset_pair, (plByAsset.get(t.asset_pair) ?? 0) + Number(t.realized_pl_usd ?? 0));
+    }
+    const fmtUsd = (pl: number) =>
+      `${pl >= 0 ? "+" : ""}${pl.toLocaleString("en-US", { style: "currency", currency: "USD" })}`;
+    const byNetPl = [...plByAsset.entries()].sort((a, b) => b[1] - a[1]);
     const gainerLoser = {
-      profitable: closed
-        .filter((t) => Number(t.realized_pl_usd) > 0)
+      profitable: byNetPl
+        .filter(([, pl]) => pl > 0)
         .slice(0, 3)
-        .map((t) => ({ name: t.asset_pair, value: fmtPct(t) })),
-      unprofitable: closed
-        .filter((t) => Number(t.realized_pl_usd) < 0)
+        .map(([name, pl]) => ({ name, value: fmtUsd(pl) })),
+      unprofitable: byNetPl
+        .filter(([, pl]) => pl < 0)
         .slice(-3)
         .reverse()
-        .map((t) => ({ name: t.asset_pair, value: fmtPct(t) })),
+        .map(([name, pl]) => ({ name, value: fmtUsd(pl) })),
     };
 
     const bestTrades = closed.slice(0, 5).map((t) => ({
