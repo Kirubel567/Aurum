@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { buildDepositSession } from "@/src/features/onboarding/lib/deposit-cookies";
 import {
@@ -12,6 +12,23 @@ import {
   createSupabaseSessionClient,
 } from "@/src/lib/supabase/server";
 import type { LoginPayload } from "@/src/types/auth.types";
+
+function parseDeviceLabel(ua: string): string {
+  const isMobile = /iPhone|Android|iPad/.test(ua);
+  const browser = /Chrome\//.test(ua) && !/Edg\//.test(ua)
+    ? "Chrome"
+    : /Firefox\//.test(ua) ? "Firefox"
+    : /Edg\//.test(ua) ? "Edge"
+    : /Safari\//.test(ua) ? "Safari"
+    : "Browser";
+  const os = /Windows/.test(ua) ? "Windows"
+    : /Mac OS X/.test(ua) && !isMobile ? "macOS"
+    : /iPhone/.test(ua) ? "iPhone"
+    : /iPad/.test(ua) ? "iPad"
+    : /Android/.test(ua) ? "Android"
+    : "";
+  return os ? `${browser} on ${os}` : browser;
+}
 
 // Accounts migrated from the pre-Supabase-Auth era have their real password
 // only as a legacy scrypt hash on deposit_users.password — the auth.users row
@@ -47,7 +64,7 @@ async function tryLegacyPasswordUpgrade(
   return true;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const payload = (await request.json()) as LoginPayload;
 
@@ -105,6 +122,26 @@ export async function POST(request: Request) {
       isStaff ? true : (profile.emailVerified ?? false),
       data.session?.access_token ?? ""
     );
+
+    // Fire-and-forget: record this login as an active session
+    const ua = request.headers.get("user-agent") ?? "";
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      ?? request.headers.get("x-real-ip")
+      ?? null;
+    const admin = createServerClient();
+    // Mark all previous sessions for this user as not current
+    admin.from("active_sessions")
+      .update({ is_current: false })
+      .eq("user_id", profile.id)
+      .then(() => {
+        admin.from("active_sessions").insert({
+          user_id: profile.id,
+          device_label: parseDeviceLabel(ua),
+          ip_address: ip,
+          is_current: true,
+          revoked: false,
+        });
+      });
 
     return NextResponse.json({ session });
   } catch {
