@@ -6,7 +6,6 @@ import { Check, Copy, ArrowLeft, Shield, Clock } from "lucide-react";
 
 import { broadcastDepositStatusChange } from "@/src/features/onboarding/lib/deposit-sync";
 import { validateProofFile, formatMaxProofSize } from "@/src/features/onboarding/lib/deposit-limits";
-import { submitProofViaApi } from "@/src/features/onboarding/services/deposit.service";
 import { useNotificationStore } from "@/src/store/notification.store";
 import { ROUTES } from "@/src/lib/constants/routes";
 import { ETHIOPIAN_BANK_ACCOUNTS } from "@/src/features/onboarding/lib/ethiopian-banks";
@@ -40,7 +39,7 @@ function getMethodLabel(method: string | null, id: string | null): { name: strin
 
 function formatAmount(raw: string | null): string {
   const n = parseFloat(raw ?? "0");
-  if (!n) return "$1,200.00";
+  if (!n) return "$1,350.00";
   return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 }
 
@@ -392,10 +391,11 @@ export function FundingUploadPage() {
   const router = useRouter();
   const params = useSearchParams();
 
-  const method   = params.get("method");
-  const bankId   = params.get("bankId") ?? params.get("walletId") ?? params.get("cryptoId") ?? params.get("otherId");
-  const amount   = params.get("amount");
-  const txId     = useRef(generateTxId()).current;
+  const method       = params.get("method");
+  const bankId       = params.get("bankId") ?? params.get("walletId") ?? params.get("cryptoId") ?? params.get("otherId");
+  const amount       = params.get("amount");
+  const currency     = params.get("currency") ?? "USD";
+  const txId         = useRef(generateTxId()).current;
 
   const { name: methodName, type: accountType } = getMethodLabel(method, bankId);
   const displayAmount = formatAmount(amount);
@@ -445,8 +445,18 @@ export function FundingUploadPage() {
     try {
       const formData = new FormData();
       formData.append("proof", file);
-      formData.append("depositAmount", amount ?? "1200");
-      await submitProofViaApi(formData);
+      formData.append("depositAmount", amount ?? "1350");
+      formData.append("currency", currency);
+      formData.append("method", method ?? "other");
+      formData.append("methodDetail", bankId ?? method ?? "other");
+      formData.append("paymentSource", paymentSource);
+
+      const res = await fetch("/api/funding/upload", { method: "POST", body: formData });
+      const payload = await res.json() as { txReference?: string; error?: string };
+      if (!res.ok) {
+        if (res.status === 413) throw new Error("File is too large. Maximum upload size is 10 MB.");
+        throw new Error(payload.error ?? "Submission failed.");
+      }
       broadcastDepositStatusChange();
       addToast({ title: "Proof submitted!", description: "Your receipt is under review.", variant: "success" });
       setSuccess(true);

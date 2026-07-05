@@ -180,7 +180,7 @@ function HowDepositsModal({ onClose }: { onClose: () => void }) {
     {
       num: "02",
       title: "Enter Deposit Amount",
-      body: "Enter the amount you wish to deposit. The minimum deposit is $1,200 USD or the equivalent in your local currency. You will see a live calculation with zero processing fees.",
+      body: "Enter the amount you wish to deposit. The minimum deposit is $1,350 USD or the equivalent in your local currency. You will see a live calculation with zero processing fees.",
     },
     {
       num: "03",
@@ -346,7 +346,7 @@ function OptionRow({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-const PRESET_AMOUNTS = ["$1,200", "$2,500", "$5,000", "$10,000"];
+const PRESET_AMOUNTS = ["$1,350", "$2,500", "$5,000", "$10,000"];
 
 export function FundingPage() {
   const router = useRouter();
@@ -373,11 +373,11 @@ export function FundingPage() {
   };
 
   const handleContinue = () => {
-    if (numericAmount < 1200) {
+    if (numericAmount < 1350) {
       setAmountError(
         currency.code === "USD"
-          ? "Minimum deposit is $1,200. Please enter a valid amount."
-          : "Minimum deposit equivalent is $1,200 USD. Please enter a valid amount."
+          ? "Minimum deposit is $1,350. Please enter a valid amount."
+          : "Minimum deposit equivalent is $1,350 USD. Please enter a valid amount."
       );
       return;
     }
@@ -456,7 +456,7 @@ export function FundingPage() {
         {/* Card 1 */}
         <div className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2E8F0] dark:bg-[rgba(255,255,255,0.05)] dark:[backdrop-filter:blur(20px)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-none" style={{ boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)" }}>
           <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2 dark:text-white/40">Minimum Deposit</p>
-          <h3 className="text-2xl font-bold text-slate-900 mb-1 dark:text-white">$1,200</h3>
+          <h3 className="text-2xl font-bold text-slate-900 mb-1 dark:text-white">$1,350</h3>
           <p className="text-xs text-slate-400 dark:text-white/30">Equivalent in your local currency</p>
         </div>
         {/* Card 2 */}
@@ -594,7 +594,7 @@ export function FundingPage() {
               <label className="block text-xs font-bold text-slate-700 mb-2 dark:text-white/70">
                 Deposit Amount{" "}
                 <span className="text-slate-400 font-normal dark:text-white/30">
-                  {currency.code === "USD" ? "(Min. $1,200)" : "(Min. $1,200 USD equivalent)"}
+                  {currency.code === "USD" ? "(Min. $1,350)" : "(Min. $1,350 USD equivalent)"}
                 </span>
               </label>
               <div className="flex">
