@@ -93,6 +93,9 @@ END;
 $$;
 
 -- ── 5. admin_adjust_balance RPC ───────────────────────────────────────────────
+-- Drop first: migration 004 created this with RETURNS jsonb (prototype).
+-- Phase 14 replaces it with RETURNS void + balance_overrides audit row.
+DROP FUNCTION IF EXISTS public.admin_adjust_balance(uuid, numeric, text);
 CREATE OR REPLACE FUNCTION public.admin_adjust_balance(
   p_user_id uuid,
   p_amount  numeric,
@@ -148,6 +151,8 @@ END;
 $$;
 
 -- ── 6. admin_adjust_yield RPC ─────────────────────────────────────────────────
+-- Drop first: migration 006 created a prototype with RETURNS jsonb.
+DROP FUNCTION IF EXISTS public.admin_adjust_yield(uuid, numeric);
 CREATE OR REPLACE FUNCTION public.admin_adjust_yield(
   p_user_id uuid,
   p_amount  numeric
