@@ -126,25 +126,35 @@ export async function POST(req: NextRequest) {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // systemInstruction must go on getGenerativeModel, not startChat (SDK v0.24)
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: SYSTEM_PROMPT,
+    });
 
-    // Build Gemini chat history (all messages except the last user one, which is the current turn)
+    // Build Gemini chat history (all turns except the current user message at the end)
     const chatHistory = historyChronological.slice(0, -1).map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.body }],
     }));
 
-    const chat = model.startChat({
-      history: chatHistory,
-      systemInstruction: SYSTEM_PROMPT,
-    });
-
+    const chat = model.startChat({ history: chatHistory });
     const result = await chat.sendMessage(message.trim());
     replyText = result.response.text().trim();
+
+    if (!replyText) {
+      replyText = "I wasn't able to generate a response. Please rephrase your question.";
+    }
   } catch (err) {
-    console.error("[support/message] Gemini error:", err);
-    replyText =
-      "I'm having trouble connecting right now. Please try again in a moment, or contact your account manager directly via the Concierge section.";
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[support/message] Gemini error:", errMsg);
+    // Surface API key errors clearly during development
+    if (errMsg.includes("API_KEY") || errMsg.includes("401") || errMsg.includes("403")) {
+      replyText = "AI service configuration error. Please contact support.";
+    } else {
+      replyText =
+        "I'm having trouble connecting right now. Please try again in a moment, or contact your account manager directly via the Concierge section.";
+    }
   }
 
   // ── Insert assistant reply ────────────────────────────────────────────────────
