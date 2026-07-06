@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type PaymentTab = "bank" | "ewallet" | "crypto" | "other";
+type PaymentTab = "bank" | "ewallet" | "crypto";
 
 // ── Currency data ─────────────────────────────────────────────────────────────
 
@@ -89,64 +89,25 @@ const EWALLETS = [
 
 const CRYPTOS = [
   {
-    id: "usdt",
+    id: "usdt-bep20",
+    name: "USDT (BEP-20)",
+    description: "Deposit via Tether on BNB Smart Chain",
+    address: "0x8d34ff8c9eca19a8f80065d625271a6353b42444",
+    network: "BNB Smart Chain (BEP-20)",
+    logoText: "₮",
+    logoColor: "text-yellow-600 dark:text-yellow-400",
+    logoBg: "bg-yellow-50 dark:bg-yellow-500/10",
+    recommended: true,
+  },
+  {
+    id: "usdt-trc20",
     name: "USDT (TRC-20)",
     description: "Deposit via Tether on TRON network",
-    address: "TQnGF3KsVQKYqNxgwm8fNWdmT7sJxzRkqP",
-    network: "TRON (TRC-20)",
+    address: "TGCLn1shT3H9hZJDdViFi2eFmZvD1wwxS",
+    network: "Tron (TRC-20)",
     logoText: "₮",
     logoColor: "text-green-600 dark:text-green-400",
     logoBg: "bg-green-50 dark:bg-green-500/10",
-  },
-  {
-    id: "btc",
-    name: "Bitcoin (BTC)",
-    description: "Deposit via Bitcoin network",
-    address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-    network: "Bitcoin Mainnet",
-    logoText: "₿",
-    logoColor: "text-orange-500 dark:text-orange-400",
-    logoBg: "bg-orange-50 dark:bg-orange-500/10",
-  },
-  {
-    id: "eth",
-    name: "Ethereum (ETH)",
-    description: "Deposit via Ethereum network",
-    address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-    network: "Ethereum Mainnet (ERC-20)",
-    logoText: "Ξ",
-    logoColor: "text-purple-600 dark:text-purple-400",
-    logoBg: "bg-purple-50 dark:bg-purple-500/10",
-  },
-];
-
-const OTHERS = [
-  {
-    id: "wire",
-    name: "International Wire Transfer",
-    description: "SWIFT/IBAN wire transfer for international investors",
-    note: "Processing time: 3–5 business days",
-    logoText: "SWIFT",
-    logoColor: "text-blue-700 dark:text-blue-400",
-    logoBg: "bg-blue-50 dark:bg-blue-500/10",
-  },
-  {
-    id: "westernunion",
-    name: "Western Union",
-    description: "Send funds via Western Union Money Transfer",
-    note: "Contact support for receiver details",
-    logoText: "WU",
-    logoColor: "text-yellow-700 dark:text-yellow-400",
-    logoBg: "bg-yellow-50 dark:bg-yellow-500/10",
-  },
-  {
-    id: "moneygram",
-    name: "MoneyGram",
-    description: "International money transfer via MoneyGram",
-    note: "Contact support for receiver details",
-    logoText: "MG",
-    logoColor: "text-red-600 dark:text-red-400",
-    logoBg: "bg-red-50 dark:bg-red-500/10",
   },
 ];
 
@@ -355,8 +316,7 @@ export function FundingPage() {
   const [activeTab, setActiveTab] = useState<PaymentTab>("bank");
   const [selectedBank, setSelectedBank] = useState("cbe");
   const [selectedEWallet, setSelectedEWallet] = useState("telebirr");
-  const [selectedCrypto, setSelectedCrypto] = useState("usdt");
-  const [selectedOther, setSelectedOther] = useState("wire");
+  const [selectedCrypto, setSelectedCrypto] = useState("usdt-bep20");
   const [amount, setAmount] = useState("");
   const [amountError, setAmountError] = useState("");
   const [currency, setCurrency] = useState(CURRENCIES[0]);
@@ -385,7 +345,6 @@ export function FundingPage() {
     if (activeTab === "bank") params.set("bankId", selectedBank);
     if (activeTab === "ewallet") params.set("walletId", selectedEWallet);
     if (activeTab === "crypto") params.set("cryptoId", selectedCrypto);
-    if (activeTab === "other") params.set("otherId", selectedOther);
     router.push(`${ROUTES.FUNDING_UPLOAD}?${params.toString()}`);
   };
 
@@ -414,15 +373,6 @@ export function FundingPage() {
       icon: (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-        </svg>
-      ),
-    },
-    {
-      id: "other",
-      label: "Other Methods",
-      icon: (
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-7 10V12" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
         </svg>
       ),
     },
@@ -542,11 +492,6 @@ export function FundingPage() {
                 <OptionRow key={c.id} logoText={c.logoText} logoColor={c.logoColor} logoBg={c.logoBg}
                   name={c.name} description={c.description} extra={c.address.slice(0, 20) + "..."}
                   selected={selectedCrypto === c.id} onClick={() => setSelectedCrypto(c.id)} />
-              ))}
-              {activeTab === "other" && OTHERS.map((o) => (
-                <OptionRow key={o.id} logoText={o.logoText} logoColor={o.logoColor} logoBg={o.logoBg}
-                  name={o.name} description={o.description} extra={o.note}
-                  selected={selectedOther === o.id} onClick={() => setSelectedOther(o.id)} />
               ))}
             </div>
 

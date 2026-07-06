@@ -23,16 +23,8 @@ function getMethodLabel(method: string | null, id: string | null): { name: strin
     return { name: labels[id ?? ""] ?? "E-Wallet", type: "E-Wallet" };
   }
   if (method === "crypto") {
-    const labels: Record<string, string> = { usdt: "USDT (TRC-20)", btc: "Bitcoin (BTC)", eth: "Ethereum (ETH)" };
+    const labels: Record<string, string> = { "usdt-bep20": "USDT (BEP-20)", "usdt-trc20": "USDT (TRC-20)" };
     return { name: labels[id ?? ""] ?? "Cryptocurrency", type: "Cryptocurrency" };
-  }
-  if (method === "other") {
-    const labels: Record<string, string> = {
-      wire: "International Wire Transfer",
-      westernunion: "Western Union",
-      moneygram: "MoneyGram",
-    };
-    return { name: labels[id ?? ""] ?? "Other", type: "Other Method" };
   }
   return { name: "Commercial Bank of Ethiopia", type: "Bank Transfer" };
 }
@@ -61,9 +53,8 @@ const EWALLET_ACCOUNTS: Record<string, { holder: string; number: string; label: 
 };
 
 const CRYPTO_ACCOUNTS: Record<string, { address: string; network: string; label: string }> = {
-  usdt: { address: "TQnGF3KsVQKYqNxgwm8fNWdmT7sJxzRkqP",        network: "TRON (TRC-20)",            label: "USDT" },
-  btc:  { address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh", network: "Bitcoin Mainnet",          label: "Bitcoin (BTC)" },
-  eth:  { address: "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",  network: "Ethereum Mainnet (ERC-20)", label: "Ethereum (ETH)" },
+  "usdt-bep20": { address: "0x8d34ff8c9eca19a8f80065d625271a6353b42444", network: "BNB Smart Chain (BEP-20)", label: "USDT" },
+  "usdt-trc20": { address: "TGCLn1shT3H9hZJDdViFi2eFmZvD1wwxS",          network: "Tron (TRC-20)",            label: "USDT" },
 };
 
 // ── Copy button ───────────────────────────────────────────────────────────────
@@ -179,7 +170,7 @@ function TransferDestinationStep({
 
   // Crypto
   if (method === "crypto") {
-    const crypto = CRYPTO_ACCOUNTS[id ?? "usdt"] ?? CRYPTO_ACCOUNTS.usdt;
+    const crypto = CRYPTO_ACCOUNTS[id ?? "usdt-bep20"] ?? CRYPTO_ACCOUNTS["usdt-bep20"];
     return (
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden dark:bg-[rgba(255,255,255,0.03)] dark:[backdrop-filter:blur(12px)] dark:border-[rgba(255,255,255,0.05)] dark:shadow-none">
         <div className="flex items-center gap-4 p-5 sm:p-6 border-b border-slate-100 dark:border-white/5">
