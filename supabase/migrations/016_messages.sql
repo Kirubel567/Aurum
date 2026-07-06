@@ -25,12 +25,14 @@ CREATE INDEX IF NOT EXISTS messages_investor_idx
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 -- Investors: read + insert their own thread only; cannot impersonate another user.
--- investor_id is text (pre-migration column), so cast auth.uid() to text.
+-- investor_id is text in dev (pre-migration column) but uuid in fresh
+-- environments where this migration's CREATE ran — cast both sides to text
+-- so the policy works against either column type.
 DROP POLICY IF EXISTS "messages_investor_own" ON public.messages;
 CREATE POLICY "messages_investor_own"
   ON public.messages
-  USING (investor_id = auth.uid()::text)
-  WITH CHECK (investor_id = auth.uid()::text AND sender_role = 'investor');
+  USING (investor_id::text = auth.uid()::text)
+  WITH CHECK (investor_id::text = auth.uid()::text AND sender_role = 'investor');
 
 -- Staff: full access to every thread (read + write as admin)
 DROP POLICY IF EXISTS "messages_staff_all" ON public.messages;
