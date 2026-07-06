@@ -46,9 +46,20 @@ export async function GET(req: NextRequest) {
       for (const msg of data ?? []) {
         if (!seen.has(msg.investor_id)) seen.set(msg.investor_id, msg);
       }
+
+      // Authoritative names from deposit_users — per-row investor_name can be
+      // stale or (for old admin-sent rows) hold the raw investor id.
+      const investorIds = [...seen.keys()];
+      const { data: nameRows } = investorIds.length
+        ? await supabase.from("deposit_users").select("id, full_name, email").in("id", investorIds)
+        : { data: [] as { id: string; full_name: string | null; email: string }[] };
+      const nameById = new Map(
+        (nameRows ?? []).map((u) => [String(u.id), u.full_name || u.email])
+      );
+
       const threads = [...seen.values()].map((msg) => ({
         investor_id: msg.investor_id,
-        investor_name: msg.investor_name,
+        investor_name: nameById.get(String(msg.investor_id)) ?? msg.investor_name ?? "Investor",
         last_message: msg.body,
         last_at: msg.created_at,
         unread: data?.filter(
@@ -101,7 +112,17 @@ export async function POST(req: NextRequest) {
       .from("messages")
       .insert({
         investor_id: targetInvestorId,
-        investor_name: isStaff ? (investor_id ?? "") : (session.user.name ?? session.user.email ?? "Investor"),
+        investor_name: isStaff
+          ? await (async () => {
+              // Store the investor's real name, never their id.
+              const { data: inv } = await supabase
+                .from("deposit_users")
+                .select("full_name, email")
+                .eq("id", targetInvestorId)
+                .maybeSingle();
+              return inv?.full_name || inv?.email || "Investor";
+            })()
+          : (session.user.name ?? session.user.email ?? "Investor"),
         sender_role: isStaff ? "admin" : "investor",
         body: body.trim(),
         read_by_investor: isStaff ? false : true,
