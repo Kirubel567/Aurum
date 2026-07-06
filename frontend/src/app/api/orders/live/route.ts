@@ -52,12 +52,18 @@ export async function GET() {
     const userId = session.user.id;
     const db = createServerClient();
 
-    // Fetch wallet first (fast — single row) so we can pass the balance to
-    // buildEquityCurve as a fallback for users with no ledger entries yet.
-    const wallet = await db.from("wallets").select("balance").eq("user_id", userId).eq("currency", "USD").maybeSingle();
-    const walletBalance = wallet.data?.balance != null ? Number(wallet.data.balance) : undefined;
+    // Trading capital (locked principal) is the money the traders work with —
+    // it's what the live-performance page reports on. The spendable wallet
+    // float is deliberately excluded from everything on this page.
+    const wallet = await db
+      .from("wallets")
+      .select("balance, locked_principal")
+      .eq("user_id", userId)
+      .eq("currency", "USD")
+      .maybeSingle();
+    const tradingCapital = Number(wallet.data?.locked_principal ?? 0);
 
-    const [allocations, pools, curve] = await Promise.all([
+    const [allocations, pools, curve, tradingLedger] = await Promise.all([
       db
         .from("investor_pool_allocations")
         .select("strategy_pool_id, allocation_pct")
@@ -67,8 +73,19 @@ export async function GET() {
         .select("id, name, tag_color, tag, target_allocation_pct, sort_order")
         .eq("active", true)
         .order("sort_order"),
-      buildEquityCurve(userId, "day", walletBalance),
+      buildEquityCurve(userId, "day"),
+      // Cumulative realized trading P/L (yield + closed trades) — never deposits.
+      db
+        .from("ledger_entries")
+        .select("amount")
+        .eq("account_id", userId)
+        .in("entry_type", ["interest_credit", "yield_credit", "trade_pl"]),
     ]);
+
+    const realizedTradingPl = (tradingLedger.data ?? []).reduce(
+      (s, r) => s + Number(r.amount),
+      0
+    );
 
     const allocationByPool = new Map(
       (allocations.data ?? []).map((a) => [a.strategy_pool_id, Number(a.allocation_pct)])
@@ -161,7 +178,8 @@ export async function GET() {
       { label: "Realized P/L", value: `${realizedTotal >= 0 ? "+" : ""}${formatUsd(realizedTotal)}`, icon: "warning" as const, iconBg: realizedTotal >= 0 ? "bg-emerald-50" : "bg-red-50", iconColor: realizedTotal >= 0 ? "text-emerald-600" : "text-red-600" },
     ];
 
-    const currentBalance = walletBalance ?? 0;
+    // The "balance" on this page is the trading capital, not the wallet.
+    const currentBalance = tradingCapital;
 
     // Real floating P/L: for each open position this investor is exposed
     // to, their share is 100% if it's targeted directly at them, or their
@@ -195,13 +213,21 @@ export async function GET() {
     }
     floatingPl = Number(floatingPl.toFixed(2));
     const floatingPlKnown = executions.length === 0 || accountedForAny;
-    const currentEquity = Number((currentBalance + floatingPl).toFixed(2));
+    // Trading equity: capital under management + realized + floating trading
+    // P/L. Deposits only change the capital line, never the P/L chart below.
+    const totalTradingPl = Number((realizedTradingPl + floatingPl).toFixed(2));
+    const currentEquity = Number((currentBalance + totalTradingPl).toFixed(2));
 
-    // ── Persist an equity snapshot (throttled) ─────────────────────────────
+    // ── Persist a trading-P/L snapshot (throttled) ─────────────────────────
     // The chart is built from these persisted rows — history survives page
-    // reloads, window changes, and server restarts. Throttle: at most one
-    // snapshot per 30 seconds per user, but always write immediately when
-    // the equity moved (so drawdowns and spikes are never lost).
+    // reloads, window changes, and server restarts. Snapshots record TRADING
+    // P/L (realized + floating), so depositing never moves the chart, and no
+    // snapshot exists until there is trading activity. Throttle: at most one
+    // snapshot per 30 seconds per user, but write immediately when the P/L
+    // moved (so drawdowns and spikes are never lost).
+    const hasTradingActivity =
+      realizedTradingPl !== 0 || (openExecutionsRes.data ?? []).length > 0;
+
     const { data: lastSnap } = await db
       .from("equity_snapshots")
       .select("equity, created_at")
@@ -210,21 +236,23 @@ export async function GET() {
       .limit(1)
       .maybeSingle();
 
-    const lastSnapAge = lastSnap ? Date.now() - new Date(lastSnap.created_at).getTime() : Infinity;
-    const equityMoved = !lastSnap || Math.abs(Number(lastSnap.equity) - currentEquity) >= 0.01;
-    if (lastSnapAge > 30_000 || (equityMoved && lastSnapAge > 4_000)) {
-      await db.from("equity_snapshots").insert({
-        user_id: userId,
-        balance: currentBalance,
-        equity: currentEquity,
-        floating_pl: floatingPl,
-      });
+    if (hasTradingActivity) {
+      const lastSnapAge = lastSnap ? Date.now() - new Date(lastSnap.created_at).getTime() : Infinity;
+      const plMoved = !lastSnap || Math.abs(Number(lastSnap.equity) - totalTradingPl) >= 0.01;
+      if (lastSnapAge > 30_000 || (plMoved && lastSnapAge > 4_000)) {
+        await db.from("equity_snapshots").insert({
+          user_id: userId,
+          balance: Number(realizedTradingPl.toFixed(2)), // realized trading P/L
+          equity: totalTradingPl,                        // realized + floating
+          floating_pl: floatingPl,
+        });
+      }
     }
 
     // ── Read the persisted series for the chart ────────────────────────────
-    // Last 24 hours of snapshots (up to 1000 rows). If the user has fewer
-    // than 2 snapshots (brand-new account), fall back to the realized ledger
-    // curve so the chart is never empty.
+    // Last 24 hours of trading-P/L snapshots. Brand-new accounts with no
+    // trading activity get an EMPTY series — the chart starts with the first
+    // trade, not the first deposit.
     const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString();
     const { data: snaps } = await db
       .from("equity_snapshots")
@@ -252,7 +280,7 @@ export async function GET() {
       totalLiquidity: formatUsd(totalFundEquity),
       equitySeries,
       session: {
-        balance: currentBalance,
+        balance: currentBalance, // trading capital under management
         equity: currentEquity,
         floatingPl,
         floatingPlKnown,

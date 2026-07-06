@@ -52,11 +52,15 @@ export async function GET(req: NextRequest) {
       ? new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
-    let snapshotQuery = db
-      .from("equity_snapshots")
-      .select("user_id, equity, created_at")
+    // AUM history comes from the ledger: every investor-account entry
+    // (deposits, withdrawals, yield, trade P/L) summed cumulatively per day.
+    // (equity_snapshots record per-investor TRADING P/L, not fund value.)
+    const PLATFORM_SENTINEL = "00000000-0000-0000-0000-000000000000";
+    const ledgerQuery = db
+      .from("ledger_entries")
+      .select("amount, created_at")
+      .neq("account_id", PLATFORM_SENTINEL)
       .order("created_at", { ascending: true });
-    if (rangeStart) snapshotQuery = snapshotQuery.gte("created_at", rangeStart);
 
     const [
       wallets,
@@ -67,7 +71,7 @@ export async function GET(req: NextRequest) {
       todayYield,
       todayClosedTrades,
       openTrades,
-      snapshots,
+      ledgerEntries,
     ] = await Promise.all([
       db.from("wallets").select("balance"),
       db
@@ -101,7 +105,7 @@ export async function GET(req: NextRequest) {
         .from("trade_executions")
         .select("id", { count: "exact", head: true })
         .eq("status", "open"),
-      snapshotQuery,
+      ledgerQuery,
     ]);
 
     const totalAum = (wallets.data ?? []).reduce(
@@ -119,31 +123,27 @@ export async function GET(req: NextRequest) {
     );
     const dailyPnl = yieldToday + tradePnlToday;
 
-    // ── AUM history: last snapshot per user per day, summed per day ──────────
-    // equity_snapshots are per-user; the platform AUM curve for a given day is
-    // the sum of each user's most recent snapshot on that day. Users without
-    // a snapshot on a given day carry their last known value forward.
-    const perUserPerDay = new Map<string, Map<string, number>>(); // day → (user → equity)
-    const lastKnown = new Map<string, number>(); // user → latest equity seen so far
-    const dayOrder: string[] = [];
+    // ── AUM history: cumulative ledger sum bucketed per day ──────────────────
+    const entries = ledgerEntries.data ?? [];
+    const rangeStartMs = rangeStart ? new Date(rangeStart).getTime() : 0;
 
-    for (const snap of snapshots.data ?? []) {
-      const day = String(snap.created_at).slice(0, 10);
-      if (!perUserPerDay.has(day)) {
-        perUserPerDay.set(day, new Map());
-        dayOrder.push(day);
+    // Baseline: everything before the window opens.
+    let running = 0;
+    const perDayDelta = new Map<string, number>();
+    for (const e of entries) {
+      const at = new Date(e.created_at).getTime();
+      if (at < rangeStartMs) {
+        running += Number(e.amount);
+      } else {
+        const day = String(e.created_at).slice(0, 10);
+        perDayDelta.set(day, (perDayDelta.get(day) ?? 0) + Number(e.amount));
       }
-      perUserPerDay.get(day)!.set(String(snap.user_id), Number(snap.equity ?? 0));
     }
 
     const chart: AumPoint[] = [];
-    for (const day of dayOrder) {
-      for (const [userId, equity] of perUserPerDay.get(day)!) {
-        lastKnown.set(userId, equity);
-      }
-      let dayAum = 0;
-      for (const equity of lastKnown.values()) dayAum += equity;
-      chart.push({ date: day, aum: Number(dayAum.toFixed(2)) });
+    for (const day of [...perDayDelta.keys()].sort()) {
+      running += perDayDelta.get(day)!;
+      chart.push({ date: day, aum: Number(running.toFixed(2)) });
     }
 
     // Always end the curve at the live AUM value so the chart matches the KPI.
