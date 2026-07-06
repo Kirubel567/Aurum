@@ -1,9 +1,10 @@
 export interface EthiopianBankAccount {
   id: string;
   label: string;
-  accountHolder: string;
-  accountNumber: string;
+  accountHolder: string; // for crypto entries this is the network name
+  accountNumber: string; // for crypto entries this is the wallet address
   badge?: string;
+  kind?: "bank" | "crypto"; // default "bank"
 }
 
 export const ETHIOPIAN_BANK_ACCOUNTS: EthiopianBankAccount[] = [
@@ -37,6 +38,20 @@ export const ETHIOPIAN_BANK_ACCOUNTS: EthiopianBankAccount[] = [
     label: "Cooperative Bank of Oromia",
     accountHolder: "Nathaniel Elias Misgane",
     accountNumber: "1026100366733",
+  },
+  {
+    id: "usdt-bep20",
+    label: "USDT — BNB Smart Chain (BEP-20)",
+    accountHolder: "BNB Smart Chain (BEP-20)",
+    accountNumber: "0x8d34ff8c9eca19a8f80065d625271a6353b42444",
+    kind: "crypto",
+  },
+  {
+    id: "usdt-trc20",
+    label: "USDT — Tron (TRC-20)",
+    accountHolder: "Tron (TRC-20)",
+    accountNumber: "TGCLn1shT3H9hZJDdViFi2eFmZvD1wwxS",
+    kind: "crypto",
   },
 ];
 

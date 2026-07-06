@@ -41,7 +41,7 @@ export function DepositCoordinates({
       setCopied(true);
       addToast({
         title: "Copied!",
-        description: "Account number copied to clipboard.",
+        description: "Copied to clipboard.",
         variant: "success",
       });
       window.setTimeout(() => setCopied(false), 1600);
@@ -75,9 +75,9 @@ export function DepositCoordinates({
           Sovereign Deposit Instructions
         </h2>
         <p className="mx-auto max-w-lg text-sm leading-6 text-slate-600">
-          Select your preferred Ethiopian banking institution and transfer your
-          capital allocation to the account details below. Upload your official
-          receipt once the transfer is complete.
+          Select your preferred payment method — Ethiopian bank transfer or USDT
+          crypto — and send your capital allocation to the details below. Upload
+          your official receipt or transaction screenshot once complete.
         </p>
       </div>
 
@@ -117,7 +117,7 @@ export function DepositCoordinates({
           htmlFor="bank-selector"
           className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500"
         >
-          Banking Institution
+          Payment Method
         </label>
         <div className="relative">
           <select
@@ -151,7 +151,7 @@ export function DepositCoordinates({
       <div className="grid gap-3">
         <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">
-            Account Holder Name
+            {selectedBank.kind === "crypto" ? "Network" : "Account Holder Name"}
           </p>
           <p className="mt-1 text-sm font-medium text-slate-900">
             {selectedBank.accountHolder}
@@ -161,7 +161,7 @@ export function DepositCoordinates({
         <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
           <div className="min-w-0">
             <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-slate-500">
-              Account Number
+              {selectedBank.kind === "crypto" ? "Wallet Address" : "Account Number"}
             </p>
             <p className="truncate text-sm font-medium text-slate-900">
               {selectedBank.accountNumber}
@@ -197,8 +197,18 @@ export function DepositCoordinates({
       </div>
 
       <div className="rounded-xl border border-[#C5A059]/20 bg-[#C5A059]/5 px-4 py-3 text-xs leading-5 text-slate-600">
-        Transfers must originate from an account in the investor&apos;s legal
-        name. Third-party transfers will be rejected during audit.
+        {selectedBank.kind === "crypto" ? (
+          <>
+            <span className="font-semibold">Critical:</span> only send USDT on the{" "}
+            <span className="font-semibold">{selectedBank.accountHolder}</span> network.
+            Sending on the wrong network results in permanent loss of funds.
+          </>
+        ) : (
+          <>
+            Transfers must originate from an account in the investor&apos;s legal
+            name. Third-party transfers will be rejected during audit.
+          </>
+        )}
       </div>
 
       <button
