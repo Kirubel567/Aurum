@@ -9,6 +9,11 @@ const PERIODS: Record<CurvePeriod, { windowMs: number; buckets: number }> = {
   year: { windowMs: 365 * 86400_000, buckets: 12 }, // monthly
 };
 
+// Only these ledger entry types are TRADING performance. Deposits,
+// withdrawals and admin adjustments move money in/out of the account but are
+// not returns — they must never move the performance charts.
+const TRADING_ENTRY_TYPES = ["interest_credit", "yield_credit", "trade_pl"];
+
 export function isCurvePeriod(value: string): value is CurvePeriod {
   return value === "day" || value === "week" || value === "month" || value === "year";
 }
@@ -32,36 +37,41 @@ export interface CurvePoint {
   drawdown: number;
 }
 
-// Running-sum equity over a user's ledger entries, bucketed for the window.
+// Cumulative TRADING P/L over the user's ledger, bucketed for the window.
 // Shared by /api/dashboard/equity-curve and /api/orders/live.
-// `walletBalance` is an optional fallback: if the ledger is empty (no deposit
-// recorded yet) the curve would be flat at 0, which looks broken — the wallet
-// balance provides a truthful starting point in that case.
+//
+// Depositing or withdrawing never moves this curve — it only reflects yield
+// accruals and trade P/L. Before the first trading event exists the curve is
+// EMPTY (points: []), so charts honestly show "no data yet" instead of a
+// line that jumps whenever money is deposited.
 export async function buildEquityCurve(
   userId: string,
-  period: CurvePeriod,
-  walletBalance?: number
+  period: CurvePeriod
 ): Promise<{ points: CurvePoint[]; changePercent: number }> {
   const db = createServerClient();
   const { data: entries, error } = await db
     .from("ledger_entries")
     .select("amount, created_at")
     .eq("account_id", userId)
+    .in("entry_type", TRADING_ENTRY_TYPES)
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(`[equity-curve] ${error.message}`);
+
+  // No trading activity yet — charts stay empty until the first trade/yield.
+  if (!entries || entries.length === 0) {
+    return { points: [], changePercent: 0 };
+  }
 
   const { windowMs, buckets } = PERIODS[period];
   const now = Date.now();
   const windowStart = now - windowMs;
   const bucketSize = windowMs / buckets;
 
-  // If there are no ledger entries at all but we have a wallet balance,
-  // seed the equity from the wallet so the chart doesn't show flat $0.
-  const hasLedger = (entries ?? []).length > 0;
-  let equity = !hasLedger && walletBalance != null ? walletBalance : 0;
+  // Baseline: trading P/L accumulated before the window opens.
+  let equity = 0;
   const inWindow: { at: number; amount: number }[] = [];
-  for (const row of entries ?? []) {
+  for (const row of entries) {
     const at = new Date(row.created_at).getTime();
     if (at < windowStart) equity += Number(row.amount);
     else inWindow.push({ at, amount: Number(row.amount) });

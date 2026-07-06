@@ -50,7 +50,9 @@ export async function GET() {
     return NextResponse.json({
       balance,
       lockedPrincipal,
-      availableForTrading: balance - lockedPrincipal,
+      // The trading amount IS the locked capital — the money the traders work
+      // with. The unlocked remainder is the investor's spendable wallet float.
+      availableForTrading: lockedPrincipal,
       monthToDateProfit: Number(monthToDateProfit.toFixed(2)),
       recentTransactions: (recent.data ?? []).map((row) => ({
         id: row.id,

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { getDepositSessionCookie } from "@/src/features/onboarding/lib/deposit-cookies";
-import { createServerClient } from "@/src/lib/supabase/server";
 import { buildEquityCurve, isCurvePeriod } from "@/src/lib/server/equity-curve";
 
 // GET /api/dashboard/equity-curve?period=day|week|month|year
+// Trading performance only — deposits/withdrawals never move this curve.
 export async function GET(request: NextRequest) {
   try {
     const session = await getDepositSessionCookie();
@@ -15,16 +15,7 @@ export async function GET(request: NextRequest) {
     const periodParam = request.nextUrl.searchParams.get("period") ?? "week";
     const period = isCurvePeriod(periodParam) ? periodParam : "week";
 
-    const db = createServerClient();
-    const { data: wallet } = await db
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", session.user.id)
-      .eq("currency", "USD")
-      .maybeSingle();
-
-    const walletBalance = wallet?.balance != null ? Number(wallet.balance) : undefined;
-    const { points, changePercent } = await buildEquityCurve(session.user.id, period, walletBalance);
+    const { points, changePercent } = await buildEquityCurve(session.user.id, period);
     return NextResponse.json({ period, points, changePercent });
   } catch (error) {
     console.error("[equity-curve] crashed:", error);
