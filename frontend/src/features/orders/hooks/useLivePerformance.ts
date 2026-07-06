@@ -17,7 +17,6 @@ export function useLivePerformance() {
   const [data, setData] = useState<LivePerformanceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [liveSync, setLiveSync] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // `loading` starts true and is only cleared by the first fetch resolving —
@@ -36,20 +35,13 @@ export function useLivePerformance() {
     void fetchData(true);
   }, [fetchData]);
 
+  // Always live: trades appear in real time, no pause toggle.
   useEffect(() => {
-    if (!liveSync) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      return;
-    }
     intervalRef.current = setInterval(() => fetchData(true), SYNC_INTERVAL_MS);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [liveSync, fetchData]);
+  }, [fetchData]);
 
-  const toggleLiveSync = useCallback(() => {
-    setLiveSync((prev) => !prev);
-  }, []);
-
-  return { data, loading, error, liveSync, toggleLiveSync, refetch: () => fetchData(true) };
+  return { data, loading, error, refetch: () => fetchData(true) };
 }

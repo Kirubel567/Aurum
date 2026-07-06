@@ -264,15 +264,7 @@ function LiveChart({
 
 // ── Executions table ──────────────────────────────────────────────────────────
 
-function ExecutionsTable({
-  rows,
-  liveSync,
-  onToggleLiveSync,
-}: {
-  rows: ActiveExecution[];
-  liveSync: boolean;
-  onToggleLiveSync: () => void;
-}) {
+function ExecutionsTable({ rows }: { rows: ActiveExecution[] }) {
   return (
     <div
       className="rounded-2xl overflow-hidden h-full flex flex-col
@@ -281,20 +273,13 @@ function ExecutionsTable({
     >
       <div className="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
         <h3 className="text-base font-bold text-slate-900 dark:text-white">Active Orders &amp; Executions</h3>
-        <button
-          type="button"
-          onClick={onToggleLiveSync}
-          title={liveSync ? "Live sync active — click to pause" : "Live sync paused — click to resume"}
-          className={cn(
-            "text-xs px-3 py-1 rounded-full flex items-center gap-1 border transition-colors",
-            liveSync
-              ? "text-[#947600] dark:text-[#e9c349] bg-[#e9c349]/10 border-[#e9c349]/20 hover:bg-[#e9c349]/20"
-              : "text-slate-400 dark:text-white/30 bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-white/10"
-          )}
+        <span
+          title="Trades sync automatically in real time"
+          className="text-xs px-3 py-1 rounded-full flex items-center gap-1 border text-[#947600] dark:text-[#e9c349] bg-[#e9c349]/10 border-[#e9c349]/20"
         >
-          <span className={cn("material-symbols-outlined text-[14px]", liveSync && "animate-spin")}>sync</span>
-          {liveSync ? "Real-time Sync" : "Sync Paused"}
-        </button>
+          <span className="material-symbols-outlined text-[14px] animate-spin">sync</span>
+          Live
+        </span>
       </div>
       <div
         className="flex-1 overflow-x-auto [scrollbar-width:thin] [scrollbar-color:#e2e8f0_transparent]
@@ -444,7 +429,7 @@ const METRIC_ICON_STYLES: Record<MetricIconType, { bg: string; darkBg: string; c
 // ── Page root ─────────────────────────────────────────────────────────────────
 
 export function LivePerformancePage() {
-  const { data, loading, error, liveSync, toggleLiveSync } = useLivePerformance();
+  const { data, loading, error } = useLivePerformance();
 
   if (loading) {
     return (
@@ -479,7 +464,7 @@ export function LivePerformancePage() {
       {/* Split grid */}
       <div className="grid grid-cols-12 gap-8">
         <div className="col-span-12 lg:col-span-8">
-          <ExecutionsTable rows={data.executions} liveSync={liveSync} onToggleLiveSync={toggleLiveSync} />
+          <ExecutionsTable rows={data.executions} />
         </div>
         <div className="col-span-12 lg:col-span-4 space-y-6">
           {data.strategyPools.map((pool) => (
