@@ -126,7 +126,7 @@ function shell(previewText: string, body: string): string {
               <tr>
                 <td style="padding:20px 36px 28px;border-top:1px solid #f1f5f9;background-color:#f8fafc;">
                   <p style="margin:0;font-size:11px;color:#94a3b8;line-height:1.6;">
-                    You received this email because you registered for the Aurum Sovereign Capital Early Access Programme.
+                    You received this email because you registered with Aurum Sovereign Capital.
                     This is an automated message — please do not reply directly to this email.
                   </p>
                 </td>
@@ -388,11 +388,11 @@ export async function sendInvestorApprovalEmail(
       ${p("Your early-stage capital allocation in Aurum Sovereign Capital is now officially secured.")}
       ${infoTable(
         infoRow("Verification Status", "✓ Approved") +
-        infoRow("Allocation Status", "Secured — Early Access") +
+        infoRow("Allocation Status", "Secured") +
         infoRow("Platform Status", "Pre-launch")
       )}
       ${p("The Aurum trading terminal is completing final pre-launch configurations. You will receive a direct email notification the moment the platform opens for live capital execution.")}
-      ${notice("Keep this email as your official confirmation of participation in the Aurum Sovereign Capital Early Access Programme.", "green")}
+      ${notice("Keep this email as your official confirmation of your investment with Aurum Sovereign Capital.", "green")}
       `
     ),
   });

@@ -62,7 +62,7 @@ export function BrandSidebar() {
           {/* Headline block */}
           <div className="space-y-3 pt-6">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#e9c349]/70">
-              Early Access Programme
+              Investor Programme
             </p>
             <p className="text-2xl font-medium leading-snug tracking-tight text-white/80 xl:text-[1.65rem]">
               Welcome to

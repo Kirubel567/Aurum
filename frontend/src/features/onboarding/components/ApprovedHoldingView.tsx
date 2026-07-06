@@ -19,7 +19,7 @@ export function ApprovedHoldingView({ investorName }: ApprovedHoldingViewProps) 
       >
         <div className="border-b border-slate-100 px-6 py-5 sm:px-8">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#C5A059]">
-            Early Access Capital Raise
+            Sovereign Capital Investment
           </p>
           <h1 className="mt-1 text-xl font-semibold text-slate-900 sm:text-2xl">
             Account Verified &amp; Allocation Locked
