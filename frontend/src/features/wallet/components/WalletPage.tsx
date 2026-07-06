@@ -293,24 +293,24 @@ function BalanceCard({ summary, loading }: { summary?: WalletSummary; loading: b
         </div>
         <div className="flex items-baseline gap-2">
           <span className="text-3xl font-bold">
-            {loading ? "—" : hidden ? "••••••" : fmtUsd(summary?.balance ?? 0)}
+            {loading ? "—" : hidden ? "••••••" : fmtUsd(summary?.availableBalance ?? 0)}
           </span>
           <span className="text-xs font-medium text-gray-500 bg-gray-800 px-2 py-0.5 rounded">USD</span>
         </div>
-        <div className="mt-4">
-          <p className="text-[10px] text-gray-400">Available Balance</p>
-          <p className="text-sm font-bold text-green-400 mt-0.5">
-            {loading ? "—" : hidden ? "••••" : fmtUsd(summary?.availableBalance ?? 0)}
-          </p>
-        </div>
         {!loading && summary && summary.lockedPrincipal > 0 && (
-          <div className="mt-2">
-            <p className="text-[10px] text-gray-500">Locked Principal</p>
+          <div className="mt-4">
+            <p className="text-[10px] text-gray-500">Trading Capital · releases when the trading period ends</p>
             <p className="text-sm font-semibold text-amber-500 mt-0.5">
               {hidden ? "••••" : fmtUsd(summary.lockedPrincipal)}
             </p>
           </div>
         )}
+        <div className="mt-2">
+          <p className="text-[10px] text-gray-400">Total Balance</p>
+          <p className="text-sm font-bold text-green-400 mt-0.5">
+            {loading ? "—" : hidden ? "••••" : fmtUsd(summary?.balance ?? 0)}
+          </p>
+        </div>
       </div>
 
       <div className="absolute right-[-16px] top-4 opacity-[0.07] pointer-events-none">

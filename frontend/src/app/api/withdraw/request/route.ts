@@ -32,6 +32,10 @@ export async function POST(request: Request) {
   const db     = createServerClient();
   const userId = session.user.id;
 
+  // Release any matured trading-capital locks first so funds whose lock-up
+  // has ended are withdrawable without waiting for a wallet-page visit.
+  await db.rpc("release_matured_locks", { p_user_id: userId });
+
   // Call the RPC — it does all validation and locking
   const { data: withdrawalId, error: rpcErr } = await db.rpc("request_withdrawal", {
     p_user_id:         userId,

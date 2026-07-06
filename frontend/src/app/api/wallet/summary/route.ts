@@ -12,6 +12,10 @@ export async function GET() {
   const userId = session.user.id;
   const db = createServerClient();
 
+  // Release any matured trading-capital locks before reading balances, so the
+  // wallet reflects funds that became withdrawable since the last visit.
+  await db.rpc("release_matured_locks", { p_user_id: userId });
+
   // ── Parallel fetches ──────────────────────────────────────────────────────
   const [walletRes, depositsRes, withdrawalsRes, userRes] = await Promise.all([
     db.from("wallets").select("balance, locked_principal").eq("user_id", userId).single(),
@@ -48,7 +52,10 @@ export async function GET() {
     .filter((w) => w.status === "pending")
     .reduce((s, w) => s + Number(w.amount_usd ?? 0), 0);
 
-  const availableBalance = Math.max(0, balance - pendingWithdrawals);
+  // Spendable wallet money: total balance minus locked trading capital minus
+  // withdrawals already in flight. Trading capital unlocks when its deposit's
+  // lock-up matures (released above).
+  const availableBalance = Math.max(0, balance - lockedPrincipal - pendingWithdrawals);
 
   // First approved deposit date = "Activated On"
   const firstApproved  = approvedDeposits[0];
