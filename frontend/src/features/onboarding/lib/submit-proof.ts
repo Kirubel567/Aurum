@@ -13,6 +13,7 @@ import {
   updateDepositUser,
 } from "@/src/features/onboarding/lib/deposit-store";
 import { createServerClient } from "@/src/lib/supabase/server";
+import { insertNotification } from "@/src/features/notifications/lib/notifications.server";
 import type {
   DepositSession,
   SubmitProofResult,
@@ -122,8 +123,27 @@ export async function processDepositProofSubmission(
     );
   }
 
-  // ── Emails: best-effort audit trail, never fail the submission ──────────────
+  // ── Notifications + emails: best-effort, never fail the submission ──────────
   const results = await Promise.allSettled([
+    // Bell notification for every staff member — this is the first-deposit
+    // flow, so the admin portal must light up the moment a proof lands.
+    (async () => {
+      const { data: staff } = await db
+        .from("deposit_users")
+        .select("id")
+        .in("role", ["admin", "super_admin"]);
+      await Promise.allSettled(
+        (staff ?? []).map((s) =>
+          insertNotification({
+            userId:   s.id as string,
+            type:     "deposit_status",
+            title:    "New deposit proof submitted",
+            body:     `${session.user.name} submitted an onboarding deposit proof of $${intendedDepositAmount.toLocaleString()} (ref: ${txReference}).`,
+            linkPath: "/admin/deposits",
+          })
+        )
+      );
+    })(),
     sendInvestorProofReceivedEmail(session.user.email, session.user.name),
     sendAdminProofNotificationEmail({
       investorEmail: session.user.email,
