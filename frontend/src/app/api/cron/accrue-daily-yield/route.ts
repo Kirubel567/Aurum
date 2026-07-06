@@ -11,6 +11,17 @@ import { createServerClient } from "@/src/lib/supabase/server";
 // DAILY_YIELD_RATE env (e.g. "0.0032" = 0.32%/day) is a stopgap until
 // Phase 16's system_settings and Phase 2's per-pool rates exist.
 export async function POST(request: NextRequest) {
+  // ── Kill switch ──────────────────────────────────────────────────────────
+  // Yield accrual is disabled until the payout policy is finalised. To
+  // re-enable, set YIELD_ACCRUAL_ENABLED=true in the environment and
+  // redeploy — no code change needed.
+  if (process.env.YIELD_ACCRUAL_ENABLED !== "true") {
+    return NextResponse.json(
+      { disabled: true, message: "Yield accrual is currently disabled (YIELD_ACCRUAL_ENABLED is not 'true')." },
+      { status: 200 }
+    );
+  }
+
   const expected = process.env.CRON_SECRET;
   if (!expected) {
     console.error("[accrue-daily-yield] CRON_SECRET is not configured");
