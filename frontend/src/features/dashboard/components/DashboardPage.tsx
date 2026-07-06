@@ -53,7 +53,7 @@ export function DashboardPage() {
           My Dashboard
         </h2>
         <PeriodSelector active={period} onChange={setPeriod} />
-        <DashboardInfoBanner allocatedBalance={summary.balance} />
+        <DashboardInfoBanner allocatedBalance={Math.max(0, summary.balance - summary.lockedPrincipal)} />
       </div>
 
       <MetricsRow period={period} summary={summary} curve={curve} trading={trading} />
