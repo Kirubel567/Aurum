@@ -273,13 +273,6 @@ function ExecutionsTable({ rows }: { rows: ActiveExecution[] }) {
     >
       <div className="p-6 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
         <h3 className="text-base font-bold text-slate-900 dark:text-white">Active Orders &amp; Executions</h3>
-        <span
-          title="Trades sync automatically in real time"
-          className="text-xs px-3 py-1 rounded-full flex items-center gap-1 border text-[#947600] dark:text-[#e9c349] bg-[#e9c349]/10 border-[#e9c349]/20"
-        >
-          <span className="material-symbols-outlined text-[14px] animate-spin">sync</span>
-          Live
-        </span>
       </div>
       <div
         className="flex-1 overflow-x-auto [scrollbar-width:thin] [scrollbar-color:#e2e8f0_transparent]
