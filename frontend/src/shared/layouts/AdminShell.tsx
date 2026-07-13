@@ -8,7 +8,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ fontFamily: "inherit" }}>
+    <div className="flex h-[100dvh] overflow-hidden" style={{ fontFamily: "inherit" }}>
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div

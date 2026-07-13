@@ -16,7 +16,7 @@ export function InvestorShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="flex h-screen overflow-hidden w-full bg-[#F3F4F6] dark:bg-[#050b14]">
+    <div className="flex h-[100dvh] overflow-hidden w-full bg-[#F3F4F6] dark:bg-[#050b14]">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -30,7 +30,7 @@ export function InvestorShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <InvestorNavbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 min-h-0 overflow-y-auto">{children}</main>
       </div>
     </div>
   );
