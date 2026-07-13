@@ -40,8 +40,9 @@ export function LoginForm() {
       useDepositStore.getState().reset();
       const { session } = await loginViaApi({ email, password });
       setSession(session);
+      // Any staff role (admin or super_admin) lands in the admin portal.
       router.push(
-        session.user.role === "admin" ? ROUTES.ADMIN_DASHBOARD : ROUTES.DASHBOARD
+        session.user.role !== "investor" ? ROUTES.ADMIN_DASHBOARD : ROUTES.DASHBOARD
       );
     } catch {
       setError("Invalid credentials. Please try again.");
