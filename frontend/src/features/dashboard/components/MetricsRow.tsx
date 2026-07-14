@@ -147,19 +147,11 @@ export function MetricsRow({ period, summary, curve, trading }: MetricsRowProps)
           </Link>
         </div>
         <Sparkline points={sparkline} positive={positive} />
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="mb-1 text-[10px] font-bold text-white/40 uppercase">
-              Profit (MTD)
-            </div>
-            <div className="text-xl font-extrabold">{formatUSD(summary.monthToDateProfit)}</div>
+        <div>
+          <div className="mb-1 text-[10px] font-bold text-white/40 uppercase">
+            {labels.label} Return
           </div>
-          <div>
-            <div className="mb-1 text-[10px] font-bold text-white/40 uppercase">
-              {labels.label} Return
-            </div>
-            <div className="text-xl font-extrabold">{formatUSD(gainLoss)}</div>
-          </div>
+          <div className="text-xl font-extrabold">{formatUSD(gainLoss)}</div>
         </div>
       </div>
 

@@ -5,8 +5,8 @@ import { createServerClient } from "@/src/lib/supabase/server";
 
 // GET /api/dashboard/summary — the investor dashboard's real money numbers:
 // cached wallet balance (fast path — this is why wallets exists separately
-// from the append-only ledger), month-to-date yield, and the latest 5
-// ledger entries as "recent transactions".
+// from the append-only ledger) and the latest 5 ledger entries as "recent
+// transactions".
 export async function GET() {
   try {
     const session = await getDepositSessionCookie();
@@ -16,22 +16,14 @@ export async function GET() {
     const userId = session.user.id;
 
     const db = createServerClient();
-    const monthStart = new Date();
-    monthStart.setUTCDate(1);
-    const monthStartISO = monthStart.toISOString().slice(0, 10);
 
-    const [wallet, mtdYield, recent] = await Promise.all([
+    const [wallet, recent] = await Promise.all([
       db
         .from("wallets")
         .select("balance, locked_principal, updated_at")
         .eq("user_id", userId)
         .eq("currency", "USD")
         .maybeSingle(),
-      db
-        .from("yield_accrual_log")
-        .select("yield_amount_usd")
-        .eq("user_id", userId)
-        .gte("period_date", monthStartISO),
       db
         .from("ledger_entries")
         .select("id, entry_type, amount, currency, note, created_at")
@@ -42,10 +34,6 @@ export async function GET() {
 
     const balance = Number(wallet.data?.balance ?? 0);
     const lockedPrincipal = Number(wallet.data?.locked_principal ?? 0);
-    const monthToDateProfit = (mtdYield.data ?? []).reduce(
-      (sum, row) => sum + Number(row.yield_amount_usd),
-      0
-    );
 
     return NextResponse.json({
       balance,
@@ -53,7 +41,6 @@ export async function GET() {
       // The trading amount IS the locked capital — the money the traders work
       // with. The unlocked remainder is the investor's spendable wallet float.
       availableForTrading: lockedPrincipal,
-      monthToDateProfit: Number(monthToDateProfit.toFixed(2)),
       recentTransactions: (recent.data ?? []).map((row) => ({
         id: row.id,
         type: row.entry_type,

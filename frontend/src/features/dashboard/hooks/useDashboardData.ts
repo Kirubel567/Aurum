@@ -10,7 +10,6 @@ export interface DashboardSummary {
   balance: number;
   lockedPrincipal: number;
   availableForTrading: number;
-  monthToDateProfit: number;
   recentTransactions: {
     id: string;
     type: string;
