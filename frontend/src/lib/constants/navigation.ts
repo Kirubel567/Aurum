@@ -3,13 +3,13 @@ import {
   ArrowUpCircle,
   BarChart3,
   CreditCard,
-  Droplets,
   FileText,
   Home,
   LayoutDashboard,
   LogOut,
   MessageCircle,
   MessageSquare,
+  PieChart,
   Settings,
   Settings2,
   ShieldCheck,
@@ -42,7 +42,7 @@ export const INVESTOR_NAV: NavItem[] = [
 export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Dashboard", href: ROUTES.ADMIN_DASHBOARD, icon: LayoutDashboard },
   { label: "Trading Console", href: ROUTES.ADMIN_CONSOLE, icon: Terminal },
-  { label: "Asset Liquidity", href: ROUTES.ADMIN_LIQUIDITY, icon: Droplets },
+  { label: "Trade Categories", href: ROUTES.ADMIN_LIQUIDITY, icon: PieChart },
   // Deposit Verification and Client Messages get LIVE badge counts in
   // AdminSidebar (from /api/admin/notifications/summary) — no static badge here.
   { label: "Deposit Verification", href: ROUTES.ADMIN_DEPOSITS, icon: ShieldCheck },

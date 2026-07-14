@@ -16,7 +16,6 @@ import {
 } from "@/src/features/admin/hooks/useTradingConsole";
 import { computeRiskReward, formatRiskReward } from "@/src/lib/trading/risk-reward";
 import { classifyAssetPair, computeNotionalUsd, computePositionPl, nominalLeverageLabel } from "@/src/lib/trading/lot-size";
-import { PoolAllocationsPanel } from "@/src/features/admin/components/PoolAllocationsPanel";
 
 // ── Live server clock ──────────────────────────────────────────────────────────
 function ServerClock() {
@@ -195,7 +194,7 @@ function TargetingPicker({
       <div className="flex h-9 p-1 bg-slate-50 dark:bg-[#080f18] border border-slate-200 dark:border-[#4d4635] rounded-lg text-[11px] font-bold">
         <button type="button" onClick={() => { setMode("broadcast"); onChange(null, ""); }}
           className={`flex-1 rounded transition-all ${mode === "broadcast" ? "bg-[#d4af37] text-[#3c2f00]" : "text-slate-400 dark:text-[#99907c]"}`}>
-          Broadcast to Pool
+          Broadcast to All Investors
         </button>
         <button type="button" onClick={() => setMode("targeted")}
           className={`flex-1 rounded transition-all ${mode === "targeted" ? "bg-[#d4af37] text-[#3c2f00]" : "text-slate-400 dark:text-[#99907c]"}`}>
@@ -366,7 +365,7 @@ export default function TradingConsolePage() {
     if (!canOpen) return;
     const entryPrice = Number(entry);
     if (!poolId || !(entryPrice > 0) || !(parsedLotSize > 0)) {
-      showToast("Select a pool, and enter a valid entry price and lot size.", "error");
+      showToast("Select a category, and enter a valid entry price and lot size.", "error");
       return;
     }
     if (!isSuperAdmin && !targetInvestorId) {
@@ -385,7 +384,7 @@ export default function TradingConsolePage() {
         targetInvestorId: targetInvestorId ?? undefined,
       });
       const rr = tp && sl ? formatRiskReward(computeRiskReward(entryPrice, Number(tp), Number(sl))) : null;
-      const who = targetInvestorId ? `targeted at ${targetLabel}` : "pool broadcast";
+      const who = targetInvestorId ? `targeted at ${targetLabel}` : "broadcast to all investors";
       addLog(`Opened ${direction} ${asset} @ ${entry}, lot ${parsedLotSize} (${who})${rr ? `, R:R ${rr}` : ""}.`, "text-[#4edea3]");
       showToast(`${asset} ${direction} position is live.`, "success");
       setTp(""); setSl(""); setTargetInvestorId(null); setTargetLabel("");
@@ -494,7 +493,7 @@ export default function TradingConsolePage() {
             <p className="text-[11px] text-slate-500 dark:text-[#99907c] mb-5">
               {closing.target_investor_id
                 ? "The stated P/L is credited entirely to the targeted investor."
-                : "The stated P/L is distributed across pool investors proportional to their allocations."}
+                : "The stated P/L is credited in full to every approved investor — the same dollar amount each."}
               {" "}Atomic, via the ledger.
             </p>
             <div className="space-y-4">
@@ -506,7 +505,7 @@ export default function TradingConsolePage() {
               </div>
               <div className="space-y-2">
                 <label className={label}>
-                  Realized P/L (USD{closing.target_investor_id ? "" : ", pool-level"} — negative for a loss)
+                  Realized P/L (USD{closing.target_investor_id ? "" : ", applies to every investor"} — negative for a loss)
                 </label>
                 <input className={input} value={closePl} onChange={(e) => setClosePl(e.target.value)} placeholder="e.g. 1250 or -400" />
                 {closing.lot_size != null && (
@@ -545,7 +544,7 @@ export default function TradingConsolePage() {
                 </h2>
                 <p className="text-[14px] text-slate-500 dark:text-[#d0c5af] mt-1 max-w-2xl">
                   {isSuperAdmin
-                    ? "Broadcast trades to an entire pool, or target a specific investor. Positions appear live on investor terminals; closing distributes P/L through the ledger."
+                    ? "Broadcast a trade to every investor, or target one specific investor. Positions appear live on investor terminals; closing credits P/L through the ledger."
                     : "Open trades for your assigned investors. Closing a position credits that investor directly through the ledger."}
                 </p>
               </div>
@@ -583,7 +582,7 @@ export default function TradingConsolePage() {
                     />
                   )}
 
-                  {/* Asset + Pool */}
+                  {/* Asset + Category */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className={label}>Asset Pair</label>
@@ -596,7 +595,7 @@ export default function TradingConsolePage() {
                       </select>
                     </div>
                     <div className="space-y-2">
-                      <label className={label}>Strategy Pool</label>
+                      <label className={label}>Trade Category</label>
                       <select value={poolId} onChange={(e) => setPoolId(e.target.value)} className={input}>
                         {pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
@@ -855,8 +854,6 @@ export default function TradingConsolePage() {
                 </div>
               </div>
 
-              <PoolAllocationsPanel canEdit={isSuperAdmin} onLog={addLog} onToast={showToast} />
-
               {/* Still pending their own phases */}
               <div className={`${card} p-6`}>
                 <div className="flex items-center justify-between mb-4">
@@ -865,8 +862,8 @@ export default function TradingConsolePage() {
                 </div>
                 <div className="space-y-3 text-[12px] text-slate-500 dark:text-[#d0c5af]">
                   <p className="flex items-start gap-2">
-                    <span className="material-symbols-outlined text-[16px] text-[#d4af37] mt-0.5">water_drop</span>
-                    <span><span className="font-bold text-slate-700 dark:text-[#dce3f0]">Pool health/rebalance targets</span> live in Asset Liquidity once that phase ships.</span>
+                    <span className="material-symbols-outlined text-[16px] text-[#d4af37] mt-0.5">pie_chart</span>
+                    <span><span className="font-bold text-slate-700 dark:text-[#dce3f0]">Trade category breakdown</span> lives in Trade Categories.</span>
                   </p>
                   <p className="flex items-start gap-2">
                     <span className="material-symbols-outlined text-[16px] text-[#d4af37] mt-0.5">settings</span>
