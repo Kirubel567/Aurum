@@ -85,10 +85,14 @@ async function fetchCryptoPrice(base: string, quote: string): Promise<LivePriceR
 }
 
 async function fetchMetalPrice(base: string, quote: string): Promise<LivePriceResult | null> {
-  // Gold/silver spot pricing needs a paid-tier key on every mainstream
-  // provider we could find with a workable free plan (Frankfurter/ECB and
-  // CoinGecko don't carry metals). Behind an optional env var so this
-  // degrades to "unavailable" — not a crash — until one is configured.
+  // Fallback for metals Twelve Data's free tier doesn't carry (confirmed:
+  // XAG/USD and other non-gold metals 404 with "requires Grow/Venture plan").
+  // Gold itself is handled by fetchForexRate below — Twelve Data serves
+  // XAU/USD live on the same free tier as forex pairs. Needs a paid-tier key
+  // on every other mainstream provider we could find with a workable free
+  // plan (Frankfurter/ECB and CoinGecko don't carry metals either). Behind an
+  // optional env var so this degrades to "unavailable" — not a crash — until
+  // one is configured.
   const apiKey = process.env.METALS_API_KEY;
   if (!apiKey) return null;
   try {
@@ -137,7 +141,13 @@ export async function fetchLivePrice(assetPair: string): Promise<LivePriceResult
 
   const key = assetPair.toUpperCase();
   if (assetClass === "crypto") return cachedFetch(key, () => fetchCryptoPrice(base, quote));
-  if (assetClass === "metal") return cachedFetch(key, () => fetchMetalPrice(base, quote));
+  if (assetClass === "metal") {
+    // Gold rides the same Twelve Data /price endpoint as forex pairs (free
+    // tier). Other metals (silver, etc.) aren't on that tier — fall back to
+    // metals-api.com, which stays gated behind METALS_API_KEY.
+    if (base === "XAU") return cachedFetch(key, () => fetchForexRate(base, quote));
+    return cachedFetch(key, () => fetchMetalPrice(base, quote));
+  }
   if (assetClass === "forex") return cachedFetch(key, () => fetchForexRate(base, quote));
   return null; // "other" (equities/indices) — explicitly out of scope
 }
