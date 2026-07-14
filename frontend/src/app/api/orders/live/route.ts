@@ -63,14 +63,10 @@ export async function GET() {
       .maybeSingle();
     const tradingCapital = Number(wallet.data?.locked_principal ?? 0);
 
-    const [allocations, pools, curve, tradingLedger] = await Promise.all([
-      db
-        .from("investor_pool_allocations")
-        .select("strategy_pool_id, allocation_pct")
-        .eq("user_id", userId),
+    const [pools, curve, tradingLedger] = await Promise.all([
       db
         .from("strategy_pools")
-        .select("id, name, tag_color, tag, target_allocation_pct, sort_order")
+        .select("id, name, tag_color, tag, sort_order")
         .eq("active", true)
         .order("sort_order"),
       buildEquityCurve(userId, "day"),
@@ -87,33 +83,17 @@ export async function GET() {
       0
     );
 
-    const allocationByPool = new Map(
-      (allocations.data ?? []).map((a) => [a.strategy_pool_id, Number(a.allocation_pct)])
-    );
-    // Investors see executions for pools they're allocated to; staff (or an
-    // investor with no allocations yet) see all active pools' executions so
-    // the page is never misleadingly empty.
-    const poolIds =
-      allocationByPool.size > 0
-        ? [...allocationByPool.keys()]
-        : (pools.data ?? []).map((p) => p.id);
-
     // "Active Orders & Executions" is a store for currently running trades
     // only — closed trades live in the console's Settled feed and the
-    // dashboard's Best Trades table, not here. Includes pool-wide broadcasts
-    // for pools this investor is allocated to, PLUS any trade their account
-    // manager targeted specifically at them (which may belong to a pool
-    // they aren't otherwise allocated to).
-    const [openExecutionsRes, closedStats] = await Promise.all([
+    // dashboard's Best Trades table, not here. Every broadcast trade
+    // (target_investor_id NULL) applies to every investor identically, plus
+    // anything their account manager targeted specifically at them.
+    const [openExecutionsRes, closedStats, relevantTradesRes] = await Promise.all([
       db
         .from("trade_executions")
         .select("id, strategy_pool_id, asset_pair, side, leverage, lot_size, entry_price, current_price, opened_at, target_investor_id")
         .eq("status", "open")
-        .or(
-          `target_investor_id.eq.${userId},and(target_investor_id.is.null,strategy_pool_id.in.(${
-            (poolIds.length > 0 ? poolIds : ["00000000-0000-0000-0000-000000000000"]).join(",")
-          }))`
-        )
+        .or(`target_investor_id.eq.${userId},target_investor_id.is.null`)
         .order("opened_at", { ascending: false })
         .limit(30),
       db
@@ -121,6 +101,12 @@ export async function GET() {
         .select("realized_pl_usd, status")
         .eq("status", "closed")
         .not("realized_pl_usd", "is", null),
+      // Every trade (open or closed) relevant to this investor, for the
+      // category-breakdown bar cards below.
+      db
+        .from("trade_executions")
+        .select("strategy_pool_id")
+        .or(`target_investor_id.eq.${userId},target_investor_id.is.null`),
     ]);
 
     // Fetch live prices server-side for all unique open pairs (cached 10s).
@@ -153,11 +139,22 @@ export async function GET() {
       };
     });
 
+    // Category bar cards: % of this investor's trades (open + closed) that
+    // fall in each category. All zero until the first trade is taken.
+    const relevantTrades = relevantTradesRes.data ?? [];
+    const totalRelevantTrades = relevantTrades.length;
+    const countByPool = new Map<string, number>();
+    for (const t of relevantTrades) {
+      countByPool.set(t.strategy_pool_id, (countByPool.get(t.strategy_pool_id) ?? 0) + 1);
+    }
     const strategyPools = (pools.data ?? []).map((pool, i) => ({
       id: pool.id,
       name: pool.name,
-      allocation: allocationByPool.get(pool.id) ?? Number(pool.target_allocation_pct),
-      pool: `Liquidity Pool ${i + 1}`,
+      allocation:
+        totalRelevantTrades > 0
+          ? Number((((countByPool.get(pool.id) ?? 0) / totalRelevantTrades) * 100).toFixed(1))
+          : 0,
+      pool: `Category ${i + 1}`,
       tag: pool.tag ?? "",
       tagColor: (pool.tag_color ?? "gold") as "gold" | "slate" | "dark",
       barColor: POOL_BAR_COLORS[pool.tag_color] ?? POOL_BAR_COLORS.gold,
@@ -181,24 +178,17 @@ export async function GET() {
     // The "balance" on this page is the trading capital, not the wallet.
     const currentBalance = tradingCapital;
 
-    // Real floating P/L: for each open position this investor is exposed
-    // to, their share is 100% if it's targeted directly at them, or their
-    // pool allocation_pct if it's a pool-wide broadcast. Positions opened
-    // before lot_size existed (legacy rows) can't be sized, so they're
-    // skipped rather than guessed — floatingPlKnown reflects whether we
-    // could actually account for at least one relevant open position.
-    const hasRealAllocations = allocationByPool.size > 0;
+    // Real floating P/L: every open position relevant to this investor
+    // (broadcast, or targeted directly at them) contributes its FULL dollar
+    // P/L — no pool/allocation weighting. Every investor's account
+    // experiences the identical trade result. Positions opened before
+    // lot_size existed (legacy rows) can't be sized, so they're skipped
+    // rather than guessed — floatingPlKnown reflects whether we could
+    // actually account for at least one relevant open position.
     let floatingPl = 0;
     let accountedForAny = false;
     for (const row of openExecutionsRes.data ?? []) {
       if (row.lot_size == null) continue;
-      const share =
-        row.target_investor_id === userId
-          ? 1
-          : hasRealAllocations
-            ? (allocationByPool.get(row.strategy_pool_id) ?? 0) / 100
-            : null;
-      if (share == null) continue;
       // Prefer the live price fetched above over the DB snapshot
       const effectivePrice = livePriceMap.get(row.asset_pair) ?? Number(row.current_price ?? row.entry_price);
       const positionPl = computePositionPl(
@@ -208,7 +198,7 @@ export async function GET() {
         Number(row.entry_price),
         effectivePrice
       );
-      floatingPl += positionPl * share;
+      floatingPl += positionPl;
       accountedForAny = true;
     }
     floatingPl = Number(floatingPl.toFixed(2));

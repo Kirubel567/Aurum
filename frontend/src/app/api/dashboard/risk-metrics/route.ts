@@ -23,35 +23,27 @@ export async function GET() {
     const userId = session.user.id;
     const db = createServerClient();
 
-    const [wallet, allocations, openExecs] = await Promise.all([
+    const [wallet, openExecs] = await Promise.all([
       db.from("wallets").select("balance").eq("user_id", userId).eq("currency", "USD").maybeSingle(),
-      db.from("investor_pool_allocations").select("strategy_pool_id, allocation_pct").eq("user_id", userId),
       db
         .from("trade_executions")
         .select("strategy_pool_id, asset_pair, side, lot_size, entry_price, current_price, target_investor_id")
-        .eq("status", "open"),
+        .eq("status", "open")
+        .or(`target_investor_id.eq.${userId},target_investor_id.is.null`),
     ]);
 
     const balance = Number(wallet.data?.balance ?? 0);
-    const allocationByPool = new Map(
-      (allocations.data ?? []).map((a) => [a.strategy_pool_id, Number(a.allocation_pct)])
-    );
 
-    // ── Effective leverage: investor's share of open notional / equity ──────
+    // ── Effective leverage: investor's open notional / equity. Every
+    // relevant position (broadcast, or targeted at them) counts in full —
+    // no pool/allocation weighting. ─────────────────────────────────────────
     let totalNotionalShare = 0;
     for (const row of openExecs.data ?? []) {
       if (row.lot_size == null) continue;
-      const share =
-        row.target_investor_id === userId
-          ? 1
-          : row.target_investor_id == null
-            ? (allocationByPool.get(row.strategy_pool_id) ?? 0) / 100
-            : 0;
-      if (share === 0) continue;
       const price = await fetchLivePrice(row.asset_pair).then(
         (r) => r?.price ?? Number(row.current_price ?? row.entry_price)
       );
-      totalNotionalShare += computeNotionalUsd(row.asset_pair, Number(row.lot_size), price) * share;
+      totalNotionalShare += computeNotionalUsd(row.asset_pair, Number(row.lot_size), price);
     }
     const leverageRatio = balance > 0 ? totalNotionalShare / balance : 0;
     const leverage = leverageRatio > 0 ? `${leverageRatio.toFixed(1)}x` : "0.0x";

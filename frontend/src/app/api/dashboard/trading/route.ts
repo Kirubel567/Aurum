@@ -22,16 +22,22 @@ export async function GET() {
     }
     const db = createServerClient();
 
-    const [allocationsRes, poolsRes, closedRes, openRes] = await Promise.all([
-      db
-        .from("investor_pool_allocations")
-        .select("strategy_pool_id, allocation_pct")
-        .eq("user_id", session.user.id),
+    const userId = session.user.id;
+
+    const [poolsRes, relevantTradesRes, closedRes, openRes] = await Promise.all([
       db
         .from("strategy_pools")
         .select("id, name, tag_color, sort_order")
         .eq("active", true)
         .order("sort_order"),
+      // Every trade that ever applied to this investor: broadcasts (target
+      // NULL) plus anything their account manager targeted specifically at
+      // them. Used purely to classify what % of trades fell in each category
+      // — no money/allocation meaning anymore.
+      db
+        .from("trade_executions")
+        .select("strategy_pool_id")
+        .or(`target_investor_id.eq.${userId},target_investor_id.is.null`),
       db
         .from("trade_executions")
         .select("id, asset_pair, realized_pl_usd, entry_price, take_profit_price, stop_loss_price, opened_at, closed_at, strategy_pool_id")
@@ -45,20 +51,30 @@ export async function GET() {
     ]);
 
     const pools = poolsRes.data ?? [];
-    const allocationByPool = new Map(
-      (allocationsRes.data ?? []).map((a) => [a.strategy_pool_id, Number(a.allocation_pct)])
-    );
+    const relevantTrades = relevantTradesRes.data ?? [];
+    const totalRelevantTrades = relevantTrades.length;
+    const countByPool = new Map<string, number>();
+    for (const t of relevantTrades) {
+      countByPool.set(t.strategy_pool_id, (countByPool.get(t.strategy_pool_id) ?? 0) + 1);
+    }
+    const pctByPool = (poolId: string) =>
+      totalRelevantTrades > 0
+        ? Number(((( countByPool.get(poolId) ?? 0) / totalRelevantTrades) * 100).toFixed(1))
+        : 0;
 
+    // "allocation"/"distribution" now mean: % of trades taken so far that
+    // fall into each category (Forex Majors / Commodities / Global Indices),
+    // not capital allocation. All zero until the first trade exists.
     const allocation = pools.map((pool, i) => ({
       name: pool.name,
-      percent: allocationByPool.get(pool.id) ?? 0,
+      percent: pctByPool(pool.id),
       color: DONUT_COLORS[pool.tag_color] ?? Object.values(DONUT_COLORS)[i % 3],
     }));
 
     const distribution = pools.map((pool, i) => ({
-      strategy: `${pool.name} ${allocationByPool.get(pool.id) ?? 0}%`,
-      pool: `Pool ${i + 1}`,
-      distribution: allocationByPool.get(pool.id) ?? 0,
+      strategy: `${pool.name} ${pctByPool(pool.id)}%`,
+      pool: `Category ${i + 1}`,
+      distribution: pctByPool(pool.id),
     }));
 
     const closed = closedRes.data ?? [];
