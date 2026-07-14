@@ -47,7 +47,7 @@ export interface CurvePoint {
 export async function buildEquityCurve(
   userId: string,
   period: CurvePeriod
-): Promise<{ points: CurvePoint[]; changePercent: number }> {
+): Promise<{ points: CurvePoint[] }> {
   const db = createServerClient();
   const { data: entries, error } = await db
     .from("ledger_entries")
@@ -60,7 +60,7 @@ export async function buildEquityCurve(
 
   // No trading activity yet — charts stay empty until the first trade/yield.
   if (!entries || entries.length === 0) {
-    return { points: [], changePercent: 0 };
+    return { points: [] };
   }
 
   const { windowMs, buckets } = PERIODS[period];
@@ -94,9 +94,5 @@ export async function buildEquityCurve(
     };
   });
 
-  const first = points[0]?.equity ?? 0;
-  const last = points[points.length - 1]?.equity ?? 0;
-  const changePercent = first > 0 ? Number((((last - first) / first) * 100).toFixed(2)) : 0;
-
-  return { points, changePercent };
+  return { points };
 }
