@@ -31,17 +31,34 @@ function splitPair(assetPair: string): { base: string; quote: string } {
 }
 
 async function fetchForexRate(base: string, quote: string): Promise<LivePriceResult | null> {
+  // Twelve Data — free tier (800 req/day, 8/min), genuinely intraday quotes.
+  //
+  // Frankfurter.app (the previous provider here) was removed: it serves the
+  // ECB's REFERENCE rate, published once per business day around 16:00 CET
+  // and frozen for the rest of the day/night. It is not live pricing. Using
+  // it to mark an open trade or price a close silently produced numbers
+  // that could disagree with the real intraday market by the entire day's
+  // trading range — enough to flip a genuinely winning position into an
+  // apparent loss. Confirmed in production: a EUR/USD LONG closed at
+  // Frankfurter's frozen daily print while the real (TradingView/FXCM)
+  // price had moved favorably.
+  //
+  // Behind an optional env var, same defensive pattern as fetchMetalPrice:
+  // no key = unavailable (the console falls back to manual entry), never a
+  // plausible-looking wrong number.
+  const apiKey = process.env.FOREX_API_KEY;
+  if (!apiKey) return null;
   try {
-    // Frankfurter.app — free, no API key, ECB reference rates. Good enough
-    // for a demo/verification quote; not tick-level FX pricing.
-    const res = await fetch(`https://api.frankfurter.app/latest?from=${base}&to=${quote}`, {
-      signal: AbortSignal.timeout(5000),
-    });
+    const res = await fetch(
+      `https://api.twelvedata.com/price?symbol=${base}/${quote}&apikey=${apiKey}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
     if (!res.ok) return null;
     const body = await res.json();
-    const rate = body?.rates?.[quote];
-    if (typeof rate !== "number") return null;
-    return { price: rate, source: "frankfurter.app", asOf: body.date ?? new Date().toISOString() };
+    if (body?.status === "error" || body?.code) return null; // twelvedata error shape
+    const price = Number(body?.price);
+    if (!Number.isFinite(price) || price <= 0) return null;
+    return { price, source: "twelvedata.com", asOf: new Date().toISOString() };
   } catch {
     return null;
   }
