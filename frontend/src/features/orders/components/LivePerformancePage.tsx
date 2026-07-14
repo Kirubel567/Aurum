@@ -336,9 +336,9 @@ function ExecutionsTable({ rows }: { rows: ActiveExecution[] }) {
   );
 }
 
-// ── Strategy pool card ────────────────────────────────────────────────────────
+// ── Trade category card ───────────────────────────────────────────────────────
 
-function PoolIcon({ tagColor }: { tagColor: StrategyPool["tagColor"] }) {
+function CategoryIcon({ tagColor }: { tagColor: StrategyPool["tagColor"] }) {
   const colorClass =
     tagColor === "gold"
       ? "text-[#947600] dark:text-[#e9c349]"
@@ -358,7 +358,7 @@ function PoolIcon({ tagColor }: { tagColor: StrategyPool["tagColor"] }) {
   );
 }
 
-function PoolCard({ pool }: { pool: StrategyPool }) {
+function CategoryCard({ pool }: { pool: StrategyPool }) {
   const borderColor =
     pool.tagColor === "gold"
       ? "#e9c349"
@@ -388,10 +388,10 @@ function PoolCard({ pool }: { pool: StrategyPool }) {
       <div className="flex justify-between items-start mb-4">
         <div>
           <h4 className="text-[10px] font-bold text-slate-500 dark:text-white/60 uppercase tracking-widest">{pool.name}</h4>
-          <p className="text-lg font-semibold text-slate-900 dark:text-white mt-1">{pool.allocation}% Allocation</p>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white mt-1">{pool.allocation}% of Trades</p>
         </div>
         <div className="w-12 h-12 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center">
-          <PoolIcon tagColor={pool.tagColor} />
+          <CategoryIcon tagColor={pool.tagColor} />
         </div>
       </div>
       <div className="w-full h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
@@ -446,7 +446,7 @@ export function LivePerformancePage() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Live Performance</h1>
           <p className="text-sm text-slate-600 dark:text-white/60 max-w-2xl mt-2">
-            Monitor active algorithmic market executions, liquidity pools, and live trading metrics in real-time.
+            Monitor active market executions, trade category breakdown, and live trading metrics in real-time.
           </p>
         </div>
       </div>
@@ -461,7 +461,7 @@ export function LivePerformancePage() {
         </div>
         <div className="col-span-12 lg:col-span-4 space-y-6">
           {data.strategyPools.map((pool) => (
-            <PoolCard key={pool.id} pool={pool} />
+            <CategoryCard key={pool.id} pool={pool} />
           ))}
         </div>
       </div>

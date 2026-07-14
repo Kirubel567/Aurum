@@ -43,7 +43,7 @@ const SUGGESTED = [
   "Check my deposit status",
   "View portfolio performance",
   "Withdrawal eligibility",
-  "Strategy pool details",
+  "Trade category breakdown",
 ];
 
 const GREETING: Message = {
@@ -521,9 +521,9 @@ export function SupportPage() {
             />
             <QuickCard
               icon={<Zap className="size-4 text-slate-500 group-hover:text-[#D4AF37] transition-colors" />}
-              label="Strategy Info"
-              desc="Apex Gold, Silver Shield & more"
-              onClick={() => sendMessage("Tell me about the available strategy pools.")}
+              label="Trade Categories"
+              desc="Forex Majors, Commodities & more"
+              onClick={() => sendMessage("Tell me about the trade categories.")}
             />
             <QuickCard
               icon={<Headphones className="size-4 text-[#D4AF37]" />}

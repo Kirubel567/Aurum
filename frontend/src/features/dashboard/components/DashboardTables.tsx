@@ -61,7 +61,7 @@ export function DashboardTables({ trading }: DashboardTablesProps) {
           <thead>
             <tr className="border-b border-gray-100 dark:border-white/10 text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase">
               <th className="pb-3">Strategy</th>
-              <th className="pb-3">Pools</th>
+              <th className="pb-3">Category</th>
               <th className="pb-3">Distribution</th>
             </tr>
           </thead>
@@ -69,7 +69,7 @@ export function DashboardTables({ trading }: DashboardTablesProps) {
             {investmentDistribution.length === 0 && (
               <tr>
                 <td colSpan={3} className="py-8 text-center text-[11px] text-gray-400 dark:text-white/40">
-                  Pool allocations appear after your first approved deposit.
+                  Category breakdown appears once your first trade is taken.
                 </td>
               </tr>
             )}

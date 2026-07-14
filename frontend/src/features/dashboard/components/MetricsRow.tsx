@@ -192,20 +192,20 @@ export function MetricsRow({ period, summary, curve, trading }: MetricsRowProps)
         </div>
       </div>
 
-      {/* ── Card 3: Active Investments ── */}
+      {/* ── Card 3: Trade Category Breakdown ── */}
       <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] dark:bg-[rgba(255,255,255,0.05)] dark:[backdrop-filter:blur(20px)] dark:border-[rgba(255,255,255,0.1)] dark:shadow-none">
-        <h3 className="mb-6 text-sm font-bold text-gray-900 dark:text-white">Active Investments</h3>
+        <h3 className="mb-6 text-sm font-bold text-gray-900 dark:text-white">Trade Category Breakdown</h3>
         <div className="flex flex-col items-center gap-6">
           {strategyAllocation.length === 0 ? (
             <p className="py-6 text-center text-xs text-gray-400 dark:text-white/40">
-              Pool allocations appear after your first approved deposit.
+              Category breakdown appears once your first trade is taken.
             </p>
           ) : (
             <>
               <DonutChart segments={strategyAllocation} />
               <div className="w-full space-y-3">
                 <div className="text-[10px] font-bold text-gray-400 dark:text-white/40 uppercase tracking-wider">
-                  Strategy Allocation
+                  % of Trades Taken
                 </div>
                 {strategyAllocation.map((item) => (
                   <div key={item.name} className="flex items-center justify-between text-xs">
