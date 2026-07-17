@@ -38,16 +38,25 @@ export async function GET() {
         .from("trade_executions")
         .select("strategy_pool_id")
         .or(`target_investor_id.eq.${userId},target_investor_id.is.null`),
+      // Closed trades this investor is allowed to see: broadcasts (target
+      // NULL, applied to everyone) plus trades their account manager targeted
+      // specifically at them. A trade targeted at ANOTHER investor is private
+      // to that investor and must never surface in this one's top gainer/
+      // loser or best-trades cards.
       db
         .from("trade_executions")
         .select("id, asset_pair, realized_pl_usd, entry_price, take_profit_price, stop_loss_price, opened_at, closed_at, strategy_pool_id")
         .eq("status", "closed")
         .not("realized_pl_usd", "is", null)
+        .or(`target_investor_id.eq.${userId},target_investor_id.is.null`)
         .order("realized_pl_usd", { ascending: false }),
+      // Open positions count — same visibility rule: only broadcasts and this
+      // investor's own targeted trades.
       db
         .from("trade_executions")
         .select("id")
-        .eq("status", "open"),
+        .eq("status", "open")
+        .or(`target_investor_id.eq.${userId},target_investor_id.is.null`),
     ]);
 
     const pools = poolsRes.data ?? [];

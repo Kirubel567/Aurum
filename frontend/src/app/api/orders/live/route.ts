@@ -96,11 +96,16 @@ export async function GET() {
         .or(`target_investor_id.eq.${userId},target_investor_id.is.null`)
         .order("opened_at", { ascending: false })
         .limit(30),
+      // This investor's own closed-trade results for the Win Rate / Realized
+      // P/L cards: broadcasts (applied to everyone) plus trades targeted
+      // specifically at them. A trade targeted at another investor is private
+      // and must not move this investor's win rate or realized total.
       db
         .from("trade_executions")
         .select("realized_pl_usd, status")
         .eq("status", "closed")
-        .not("realized_pl_usd", "is", null),
+        .not("realized_pl_usd", "is", null)
+        .or(`target_investor_id.eq.${userId},target_investor_id.is.null`),
       // Every trade (open or closed) relevant to this investor, for the
       // category-breakdown bar cards below.
       db
@@ -160,7 +165,9 @@ export async function GET() {
       barColor: POOL_BAR_COLORS[pool.tag_color] ?? POOL_BAR_COLORS.gold,
     }));
 
-    // Platform-wide aggregates for the bottom metric cards.
+    // Bottom metric cards. Win Rate and Realized P/L are per-investor (this
+    // investor's broadcasts + their own targeted trades); only Total Fund Eq.
+    // below is a genuinely platform-wide figure (total AUM across all wallets).
     const closed = closedStats.data ?? [];
     const wins = closed.filter((t) => Number(t.realized_pl_usd) > 0).length;
     const winRate = closed.length > 0 ? (wins / closed.length) * 100 : 0;
