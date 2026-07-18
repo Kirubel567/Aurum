@@ -27,9 +27,10 @@ export async function PATCH(
   const db = createServerClient();
 
   const { error } = await db.rpc("admin_adjust_balance", {
-    p_user_id: userId,
-    p_amount:  body.amount,
-    p_reason:  body.reason.trim(),
+    p_user_id:      userId,
+    p_amount:       body.amount,
+    p_reason:       body.reason.trim(),
+    p_performed_by: session.user.id,
   });
 
   if (error) {
