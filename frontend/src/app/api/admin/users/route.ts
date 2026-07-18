@@ -64,10 +64,17 @@ export async function GET(request: Request) {
 
   const users = (data ?? []).map((u) => {
     const balance: number = balanceMap[u.id] ?? 0;
-    const assignment = (u.account_manager_assignments as unknown as Array<{
+    // UNIQUE(investor_id) makes PostgREST treat this embed as one-to-one and
+    // return an OBJECT, not an array — `?.[0]` on it yielded undefined and
+    // every investor showed as unassigned. Accept both shapes to be safe.
+    type AssignmentEmbed = {
       admin_id: string;
       deposit_users: { id: string; full_name: string } | null;
-    }> | null)?.[0];
+    };
+    const rawAssignment = u.account_manager_assignments as unknown;
+    const assignment: AssignmentEmbed | undefined = Array.isArray(rawAssignment)
+      ? (rawAssignment[0] as AssignmentEmbed | undefined)
+      : (rawAssignment as AssignmentEmbed | null) ?? undefined;
 
     const nameParts = (u.full_name ?? "").split(" ").filter(Boolean);
     const initials = nameParts.slice(0, 2).map((p: string) => p[0]?.toUpperCase() ?? "").join("");
