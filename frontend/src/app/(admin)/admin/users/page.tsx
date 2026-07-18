@@ -154,7 +154,13 @@ function AssignManagerModal({
                 <p className="text-xs font-bold text-slate-500 dark:text-[#d0c5af] uppercase tracking-wider">Current Manager</p>
                 <p className="text-body-sm font-bold text-[#0f172a] dark:text-[#dce3f0]">{currentMgr.name}</p>
               </div>
-              <button onClick={() => setSelected(null)} className="text-[11px] font-bold text-[#dc2626] dark:text-[#ffb4ab] hover:opacity-80">Remove</button>
+              <button
+                onClick={async () => { setSaving(true); try { await onAssign(investor.id, null); onClose(); } finally { setSaving(false); } }}
+                disabled={saving}
+                className="text-[11px] font-bold text-[#dc2626] dark:text-[#ffb4ab] hover:opacity-80 disabled:opacity-50"
+              >
+                {saving ? "Removing…" : "Remove"}
+              </button>
             </div>
           )}
           {/* Search */}
@@ -280,54 +286,48 @@ function BalanceModal({
   );
 }
 
-// ── Yield Credit Modal ────────────────────────────────────────────────────────
-function YieldModal({
+// ── Promote to Admin Modal ────────────────────────────────────────────────────
+function PromoteAdminModal({
   user, onClose, onDone,
 }: {
   user: User;
   onClose: () => void;
   onDone: (log: string, kind: LogEntry["kind"]) => void;
 }) {
-  const [amount, setAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
   async function handleSubmit() {
-    const num = parseFloat(amount);
-    if (isNaN(num) || num <= 0) { setError("Enter a positive amount."); return; }
     setSaving(true); setError(null);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}/yield`, {
+      const res = await fetch(`/api/admin/users/${user.id}/role`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: num }),
+        body: JSON.stringify({ role: "admin" }),
       });
       const json = await res.json() as { error?: string };
       if (!res.ok) { setError(json.error ?? "Failed."); return; }
-      const fmt = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(num);
-      onDone(`Yield credit ${fmt} applied to ${user.name}`, "gold");
+      onDone(`${user.name} promoted to admin`, "gold");
       onClose();
     } catch { setError("Network error."); }
     finally { setSaving(false); }
   }
 
   return (
-    <Modal onClose={onClose} title="Manual Yield Credit">
+    <Modal onClose={onClose} title="Promote to Admin">
       <div className="space-y-4">
         <p className="text-sm text-slate-600 dark:text-[#d0c5af]">
-          Crediting yield for <span className="font-bold text-[#0f172a] dark:text-[#dce3f0]">{user.name}</span>
+          Promote <span className="font-bold text-[#0f172a] dark:text-[#dce3f0]">{user.name}</span> to an
+          administrator? They will gain access to the admin console and staff areas. This does not grant
+          super-admin privileges.
         </p>
-        <Field label="Yield Amount (USD)">
-          <input type="number" step="0.01" min="0.01" className={inp} placeholder="e.g. 250.00"
-            value={amount} onChange={(e) => setAmount(e.target.value)} />
-        </Field>
         {error && <p className="text-xs text-[#dc2626] dark:text-[#ffb4ab] font-bold">{error}</p>}
         <div className="flex gap-3 pt-1">
           <button onClick={onClose} className={cancelBtn} disabled={saving}>Cancel</button>
           <button onClick={handleSubmit} disabled={saving}
             className={`${primaryBtn} disabled:opacity-60 flex items-center gap-2 justify-center`}>
             {saving && <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>}
-            {saving ? "Applying…" : "Credit Yield"}
+            {saving ? "Promoting…" : "Promote to Admin"}
           </button>
         </div>
       </div>
@@ -355,7 +355,7 @@ export default function UserManagementPage() {
   const [auditOpen, setAuditOpen]         = useState(false);
   const [assignTarget, setAssignTarget]   = useState<User | null>(null);
   const [balanceTarget, setBalanceTarget] = useState<User | null>(null);
-  const [yieldTarget, setYieldTarget]     = useState<User | null>(null);
+  const [promoteTarget, setPromoteTarget] = useState<User | null>(null);
 
   // New-user form
   const [newName, setNewName]             = useState("");
@@ -506,10 +506,10 @@ export default function UserManagementPage() {
           onDone={(text, kind) => { addLog(text, kind); invalidate(); }}
         />
       )}
-      {yieldTarget && isSuperAdmin && (
-        <YieldModal
-          user={yieldTarget}
-          onClose={() => setYieldTarget(null)}
+      {promoteTarget && isSuperAdmin && (
+        <PromoteAdminModal
+          user={promoteTarget}
+          onClose={() => setPromoteTarget(null)}
           onDone={(text, kind) => { addLog(text, kind); invalidate(); }}
         />
       )}
@@ -657,9 +657,11 @@ export default function UserManagementPage() {
                             <button onClick={() => setBalanceTarget({ ...u })} title="Override Balance" className="hover:text-[#d4af37] dark:hover:text-[#f2ca50] transition-colors text-slate-500 dark:text-[#d0c5af]">
                               <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
                             </button>
-                            <button onClick={() => setYieldTarget({ ...u })} title="Credit Yield" className="hover:text-[#059669] dark:hover:text-[#4edea3] transition-colors text-slate-500 dark:text-[#d0c5af]">
-                              <span className="material-symbols-outlined text-[18px]">trending_up</span>
-                            </button>
+                            {u.role === "investor" && (
+                              <button onClick={() => setPromoteTarget({ ...u })} title="Promote to Admin" className="hover:text-[#d4af37] dark:hover:text-[#f2ca50] transition-colors text-slate-500 dark:text-[#d0c5af]">
+                                <span className="material-symbols-outlined text-[18px]">shield_person</span>
+                              </button>
+                            )}
                             {u.status === "Suspended"
                               ? <button onClick={() => void toggleSuspend(u)} title="Reinstate" className="hover:text-[#059669] dark:hover:text-[#4edea3] transition-colors text-slate-500 dark:text-[#d0c5af]"><span className="material-symbols-outlined text-[18px]">lock_open</span></button>
                               : <button onClick={() => void toggleSuspend(u)}    title="Suspend"   className="hover:text-[#dc2626] dark:hover:text-[#ffb4ab] transition-colors text-slate-500 dark:text-[#d0c5af]"><span className="material-symbols-outlined text-[18px]">block</span></button>
