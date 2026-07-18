@@ -164,24 +164,16 @@ function AssignManagerModal({
               </button>
             </div>
           )}
-          {/* Search — only when assigning (an already-assigned investor can only be removed) */}
-          {!investor.assignedManagerId && (
-            <div className="relative mt-3">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#d0c5af] text-sm">search</span>
-              <input value={search} onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-lg pl-9 pr-4 py-2 text-sm text-[#0f172a] dark:text-[#dce3f0] placeholder-slate-400 dark:placeholder-[#d0c5af]/50 outline-none focus:border-[#d4af37]/40 dark:focus:border-[#f2ca50]/40"
-                placeholder="Search by name or specialization…" />
-            </div>
-          )}
+          {/* Search */}
+          <div className="relative mt-3">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#d0c5af] text-sm">search</span>
+            <input value={search} onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-lg pl-9 pr-4 py-2 text-sm text-[#0f172a] dark:text-[#dce3f0] placeholder-slate-400 dark:placeholder-[#d0c5af]/50 outline-none focus:border-[#d4af37]/40 dark:focus:border-[#f2ca50]/40"
+              placeholder="Search by name or specialization…" />
+          </div>
         </div>
 
-        {/* Manager list — hidden once assigned; remove the current one first to re-assign */}
-        {investor.assignedManagerId ? (
-          <div className="px-6 py-6 text-center text-sm text-slate-500 dark:text-[#d0c5af]">
-            This investor already has an account manager. Use <span className="font-bold">Remove</span> above to
-            unassign them, then you can assign a different manager.
-          </div>
-        ) : (
+        {/* Manager list — pick a different manager to reassign directly */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2 [scrollbar-width:thin] [scrollbar-color:rgba(212,175,55,0.2)_transparent]">
           {filtered.map((m) => {
             const { pct, color } = loadBar(m);
@@ -216,18 +208,15 @@ function AssignManagerModal({
           })}
           {filtered.length === 0 && <p className="text-center text-sm text-slate-400 dark:text-[#d0c5af] py-8">No managers found.</p>}
         </div>
-        )}
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 dark:border-white/5 shrink-0 flex gap-3">
           <button onClick={onClose} className={cancelBtn} disabled={saving}>Cancel</button>
-          {!investor.assignedManagerId && (
-            <button onClick={handleSave} disabled={saving || !selected}
-              className={`${primaryBtn} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center`}>
-              {saving && <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>}
-              {saving ? "Assigning…" : "Assign Manager"}
-            </button>
-          )}
+          <button onClick={handleSave} disabled={saving || selected === (investor.assignedManagerId ?? null)}
+            className={`${primaryBtn} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center`}>
+            {saving && <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>}
+            {saving ? "Saving…" : selected ? (investor.assignedManagerId ? "Reassign Manager" : "Assign Manager") : "Remove Assignment"}
+          </button>
         </div>
       </div>
     </div>
@@ -692,17 +681,26 @@ export default function UserManagementPage() {
                     {/* Assigned Manager cell */}
                     <td className="px-5 py-4">
                       {assignedMgr ? (
-                        <button onClick={() => isSuperAdmin && setAssignTarget({ ...u })}
-                          className="flex items-center gap-2 group/mgr hover:opacity-80 transition-opacity text-left">
-                          <div className="w-7 h-7 rounded-lg bg-[#d4af37] dark:bg-[#f2ca50] flex items-center justify-center text-[9px] font-bold text-white dark:text-[#3c2f00] shrink-0">
-                            {assignedMgr.initials}
-                          </div>
-                          <div>
-                            <p className="text-[13px] font-bold text-[#0f172a] dark:text-[#dce3f0] leading-none">{assignedMgr.name}</p>
-                            <p className="text-[10px] text-[#64748b] dark:text-[#d0c5af] mt-0.5">{assignedMgr.specialization}</p>
-                          </div>
-                          {isSuperAdmin && <span className="material-symbols-outlined text-[14px] text-[#64748b] dark:text-[#d0c5af] opacity-0 group-hover/mgr:opacity-100 transition-opacity ml-1">edit</span>}
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => isSuperAdmin && setAssignTarget({ ...u })}
+                            title={isSuperAdmin ? "Reassign manager" : undefined}
+                            className="flex items-center gap-2 group/mgr hover:opacity-80 transition-opacity text-left">
+                            <div className="w-7 h-7 rounded-lg bg-[#d4af37] dark:bg-[#f2ca50] flex items-center justify-center text-[9px] font-bold text-white dark:text-[#3c2f00] shrink-0">
+                              {assignedMgr.initials}
+                            </div>
+                            <div>
+                              <p className="text-[13px] font-bold text-[#0f172a] dark:text-[#dce3f0] leading-none">{assignedMgr.name}</p>
+                              <p className="text-[10px] text-[#64748b] dark:text-[#d0c5af] mt-0.5">{assignedMgr.specialization}</p>
+                            </div>
+                            {isSuperAdmin && <span className="material-symbols-outlined text-[14px] text-[#64748b] dark:text-[#d0c5af] opacity-0 group-hover/mgr:opacity-100 transition-opacity ml-1">edit</span>}
+                          </button>
+                          {isSuperAdmin && (
+                            <button onClick={() => void handleAssign(u.id, null)} title="Remove assignment"
+                              className="shrink-0 w-6 h-6 flex items-center justify-center rounded-md text-[#dc2626] dark:text-[#ffb4ab] hover:bg-[#dc2626]/10 dark:hover:bg-[#ffb4ab]/10 transition-colors">
+                              <span className="material-symbols-outlined text-[16px]">close</span>
+                            </button>
+                          )}
+                        </div>
                       ) : (
                         isSuperAdmin ? (
                           <button onClick={() => setAssignTarget({ ...u })}
