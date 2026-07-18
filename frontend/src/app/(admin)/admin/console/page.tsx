@@ -17,6 +17,22 @@ import {
 import { computeRiskReward, formatRiskReward } from "@/src/lib/trading/risk-reward";
 import { classifyAssetPair, computeNotionalUsd, computePositionPl, nominalLeverageLabel } from "@/src/lib/trading/lot-size";
 
+// Map an asset pair to the trade category (strategy pool) it belongs to, by
+// asset class, so trading e.g. XAU/USD is counted under Commodities
+// automatically instead of defaulting to whichever pool sits first in the
+// dropdown. Matches on the seeded pool names ("Forex Majors", "Commodities",
+// "Global Indices"); falls back to the first pool if a name isn't found.
+// The admin can still override the auto-pick via the dropdown.
+function poolIdForAsset(assetPair: string, pools: { id: string; name: string }[]): string {
+  if (pools.length === 0) return "";
+  const byName = (needle: string) =>
+    pools.find((p) => p.name.toLowerCase().includes(needle))?.id;
+  const cls = classifyAssetPair(assetPair);
+  if (cls === "metal" || cls === "crypto") return byName("commodit") ?? pools[0].id;
+  if (cls === "other") return byName("indic") ?? byName("global") ?? pools[0].id;
+  return byName("forex") ?? pools[0].id; // forex (and anything unclassified)
+}
+
 // ── Live server clock ──────────────────────────────────────────────────────────
 function ServerClock() {
   const [time, setTime] = useState("");
@@ -280,9 +296,9 @@ export default function TradingConsolePage() {
   const [logOpen, setLogOpen] = useState(true);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "info" } | null>(null);
 
-  // Default the pool selector to the first pool once pools arrive
-  // (adjust-during-render, no effect needed).
-  if (pools.length > 0 && !poolId) setPoolId(pools[0].id);
+  // Default the category selector to whichever pool matches the current
+  // asset (adjust-during-render, no effect needed) — EUR/USD → Forex Majors.
+  if (pools.length > 0 && !poolId) setPoolId(poolIdForAsset(asset, pools));
 
   const showToast = (msg: string, type: "success" | "error" | "info" = "success") =>
     setToast({ msg, type });
@@ -292,6 +308,10 @@ export default function TradingConsolePage() {
   // Auto-fetch live price whenever the selected pair changes.
   async function handleAssetChange(val: string) {
     setAsset(val);
+    // Auto-move the trade category to match the asset class (metal →
+    // Commodities, index → Global Indices, etc.). The admin can still
+    // override it in the dropdown afterwards.
+    if (pools.length > 0) setPoolId(poolIdForAsset(val, pools));
     setEntry("");
     setFetchingEntry(true);
     try {

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 // Change-password block for the admin System Settings page. Styling follows
 // the page's existing design tokens (see the inline token comment at the top
@@ -13,6 +16,42 @@ const inputClass = [
   "dark:bg-black/20 dark:border-[rgba(255,255,255,0.1)] dark:text-[#dce3f0]",
   "dark:focus:border-[#f2ca50] dark:focus:shadow-[0_0_10px_rgba(242,202,80,0.2)]",
 ].join(" ");
+
+// Password input with a built-in show/hide toggle.
+function PasswordField({
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  autoComplete: string;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={revealed ? "text" : "password"}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(inputClass, "pr-11")}
+      />
+      <button
+        type="button"
+        onClick={() => setRevealed((v) => !v)}
+        className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600 dark:hover:text-[#dce3f0]"
+        aria-label={revealed ? "Hide password" : "Show password"}
+        tabIndex={-1}
+      >
+        {revealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+      </button>
+    </div>
+  );
+}
 
 type Status =
   | { kind: "idle" }
@@ -87,29 +126,23 @@ export function ChangePasswordCard() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        <input
-          type="password"
+        <PasswordField
           autoComplete="current-password"
           placeholder="Current password"
           value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          className={inputClass}
+          onChange={setCurrentPassword}
         />
-        <input
-          type="password"
+        <PasswordField
           autoComplete="new-password"
           placeholder="New password (min. 8 characters)"
           value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          className={inputClass}
+          onChange={setNewPassword}
         />
-        <input
-          type="password"
+        <PasswordField
           autoComplete="new-password"
           placeholder="Confirm new password"
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className={inputClass}
+          onChange={setConfirmPassword}
         />
 
         {status.kind === "error" && (

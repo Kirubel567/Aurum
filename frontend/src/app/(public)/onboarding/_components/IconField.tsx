@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 export const inputClassName =
@@ -14,8 +17,15 @@ export function IconInput({
   icon,
   error,
   className,
+  type,
   ...props
 }: IconInputProps) {
+  // Password fields get a built-in show/hide toggle so users can confirm what
+  // they typed. When revealed, the input becomes a normal text field.
+  const [revealed, setRevealed] = useState(false);
+  const isPassword = type === "password";
+  const effectiveType = isPassword && revealed ? "text" : type;
+
   return (
     <div className="space-y-1.5">
       <div className="group relative">
@@ -23,14 +33,26 @@ export function IconInput({
           {icon}
         </span>
         <input
+          type={effectiveType}
           className={cn(
             inputClassName,
-            "pl-11 pr-4",
+            isPassword ? "pl-11 pr-11" : "pl-11 pr-4",
             error && "border-[#EF4444] focus:border-[#EF4444] focus:ring-[#EF4444]/20",
             className
           )}
           {...props}
         />
+        {isPassword && (
+          <button
+            type="button"
+            onClick={() => setRevealed((v) => !v)}
+            className="absolute top-1/2 right-3.5 -translate-y-1/2 text-slate-400 transition-colors hover:text-[#050B14]"
+            aria-label={revealed ? "Hide password" : "Show password"}
+            tabIndex={-1}
+          >
+            {revealed ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          </button>
+        )}
       </div>
       {error && (
         <p className="text-xs font-medium text-[#EF4444]" role="alert">
