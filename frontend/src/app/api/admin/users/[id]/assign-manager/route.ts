@@ -43,18 +43,28 @@ export async function PATCH(
     return NextResponse.json({ error: "Target user is not a staff member." }, { status: 400 });
   }
 
-  // Upsert — UNIQUE(investor_id) enforces one manager per investor
+  // One manager per investor — no direct reassignment. If the investor is
+  // already assigned, the current assignment must be removed first.
+  const { data: existing } = await db
+    .from("account_manager_assignments")
+    .select("admin_id")
+    .eq("investor_id", investorId)
+    .maybeSingle();
+  if (existing) {
+    return NextResponse.json(
+      { error: "This investor already has an account manager. Remove the current assignment first." },
+      { status: 409 }
+    );
+  }
+
   const { error } = await db
     .from("account_manager_assignments")
-    .upsert(
-      {
-        investor_id: investorId,
-        admin_id:    body.managerId,
-        assigned_by: session.user.id,
-        assigned_at: new Date().toISOString(),
-      },
-      { onConflict: "investor_id" }
-    );
+    .insert({
+      investor_id: investorId,
+      admin_id:    body.managerId,
+      assigned_by: session.user.id,
+      assigned_at: new Date().toISOString(),
+    });
 
   if (error) {
     console.error("[assign-manager PATCH]", error.message);

@@ -24,7 +24,7 @@ type User = {
 };
 
 type Manager = {
-  id: string; name: string; initials: string;
+  id: string; name: string; initials: string; role: string;
   specialization: string; investorCount: number; maxCapacity: number;
   status: "Available" | "Busy" | "At Capacity";
 };
@@ -81,6 +81,7 @@ async function fetchManagers(): Promise<Manager[]> {
   return json.users.map((u) => ({
     id: u.id,
     name: u.name,
+    role: u.role,
     initials: u.initials ?? u.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase(),
     specialization: "Account Manager",
     investorCount: u.investorCount,
@@ -163,16 +164,24 @@ function AssignManagerModal({
               </button>
             </div>
           )}
-          {/* Search */}
-          <div className="relative mt-3">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#d0c5af] text-sm">search</span>
-            <input value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-lg pl-9 pr-4 py-2 text-sm text-[#0f172a] dark:text-[#dce3f0] placeholder-slate-400 dark:placeholder-[#d0c5af]/50 outline-none focus:border-[#d4af37]/40 dark:focus:border-[#f2ca50]/40"
-              placeholder="Search by name or specialization…" />
-          </div>
+          {/* Search — only when assigning (an already-assigned investor can only be removed) */}
+          {!investor.assignedManagerId && (
+            <div className="relative mt-3">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#d0c5af] text-sm">search</span>
+              <input value={search} onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-lg pl-9 pr-4 py-2 text-sm text-[#0f172a] dark:text-[#dce3f0] placeholder-slate-400 dark:placeholder-[#d0c5af]/50 outline-none focus:border-[#d4af37]/40 dark:focus:border-[#f2ca50]/40"
+                placeholder="Search by name or specialization…" />
+            </div>
+          )}
         </div>
 
-        {/* Manager list */}
+        {/* Manager list — hidden once assigned; remove the current one first to re-assign */}
+        {investor.assignedManagerId ? (
+          <div className="px-6 py-6 text-center text-sm text-slate-500 dark:text-[#d0c5af]">
+            This investor already has an account manager. Use <span className="font-bold">Remove</span> above to
+            unassign them, then you can assign a different manager.
+          </div>
+        ) : (
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2 [scrollbar-width:thin] [scrollbar-color:rgba(212,175,55,0.2)_transparent]">
           {filtered.map((m) => {
             const { pct, color } = loadBar(m);
@@ -207,15 +216,18 @@ function AssignManagerModal({
           })}
           {filtered.length === 0 && <p className="text-center text-sm text-slate-400 dark:text-[#d0c5af] py-8">No managers found.</p>}
         </div>
+        )}
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 dark:border-white/5 shrink-0 flex gap-3">
           <button onClick={onClose} className={cancelBtn} disabled={saving}>Cancel</button>
-          <button onClick={handleSave} disabled={saving || selected === (investor.assignedManagerId ?? null)}
-            className={`${primaryBtn} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center`}>
-            {saving && <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>}
-            {saving ? "Saving…" : selected ? "Assign Manager" : "Remove Assignment"}
-          </button>
+          {!investor.assignedManagerId && (
+            <button onClick={handleSave} disabled={saving || !selected}
+              className={`${primaryBtn} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center`}>
+              {saving && <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>}
+              {saving ? "Assigning…" : "Assign Manager"}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -335,6 +347,54 @@ function PromoteAdminModal({
   );
 }
 
+// ── Demote to Investor Modal ──────────────────────────────────────────────────
+function DemoteModal({
+  manager, onClose, onDone,
+}: {
+  manager: Manager;
+  onClose: () => void;
+  onDone: (log: string, kind: LogEntry["kind"]) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState<string | null>(null);
+
+  async function handleSubmit() {
+    setSaving(true); setError(null);
+    try {
+      const res = await fetch(`/api/admin/users/${manager.id}/role`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: "investor" }),
+      });
+      const json = await res.json() as { error?: string };
+      if (!res.ok) { setError(json.error ?? "Failed."); return; }
+      onDone(`${manager.name} demoted to investor`, "muted");
+      onClose();
+    } catch { setError("Network error."); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <Modal onClose={onClose} title="Demote to Investor">
+      <div className="space-y-4">
+        <p className="text-sm text-slate-600 dark:text-[#d0c5af]">
+          Demote <span className="font-bold text-[#0f172a] dark:text-[#dce3f0]">{manager.name}</span> back to an
+          investor? They will lose admin access. Any investors assigned to them stay assigned until reassigned.
+        </p>
+        {error && <p className="text-xs text-[#dc2626] dark:text-[#ffb4ab] font-bold">{error}</p>}
+        <div className="flex gap-3 pt-1">
+          <button onClick={onClose} className={cancelBtn} disabled={saving}>Cancel</button>
+          <button onClick={handleSubmit} disabled={saving}
+            className={`${primaryBtn} disabled:opacity-60 flex items-center gap-2 justify-center`}>
+            {saving && <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>}
+            {saving ? "Demoting…" : "Demote to Investor"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function UserManagementPage() {
   const searchParams = useSearchParams();
@@ -356,6 +416,7 @@ export default function UserManagementPage() {
   const [assignTarget, setAssignTarget]   = useState<User | null>(null);
   const [balanceTarget, setBalanceTarget] = useState<User | null>(null);
   const [promoteTarget, setPromoteTarget] = useState<User | null>(null);
+  const [demoteTarget, setDemoteTarget]   = useState<Manager | null>(null);
 
   // New-user form
   const [newName, setNewName]             = useState("");
@@ -484,6 +545,10 @@ export default function UserManagementPage() {
     ...m,
     investors: users.filter((u) => u.assignedManagerId === m.id),
   }));
+  // A plain admin only sees their own book; the super admin sees every manager.
+  const visibleRoster = isSuperAdmin
+    ? managerRoster
+    : managerRoster.filter((m) => m.id === session?.user.id);
 
   const detailUser = detailUserId ? users.find((u) => u.id === detailUserId) : null;
 
@@ -510,6 +575,13 @@ export default function UserManagementPage() {
         <PromoteAdminModal
           user={promoteTarget}
           onClose={() => setPromoteTarget(null)}
+          onDone={(text, kind) => { addLog(text, kind); invalidate(); }}
+        />
+      )}
+      {demoteTarget && isSuperAdmin && (
+        <DemoteModal
+          manager={demoteTarget}
+          onClose={() => setDemoteTarget(null)}
           onDone={(text, kind) => { addLog(text, kind); invalidate(); }}
         />
       )}
@@ -704,7 +776,7 @@ export default function UserManagementPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {loadingManagers && <p className="text-sm text-slate-400 dark:text-[#d0c5af] col-span-3">Loading managers…</p>}
-          {managerRoster.map((m) => {
+          {visibleRoster.map((m) => {
             const pct   = Math.round((m.investorCount / m.maxCapacity) * 100);
             const barCl = pct >= 100 ? "bg-[#dc2626] dark:bg-[#ffb4ab]" : pct >= 75 ? "bg-[#d4af37] dark:bg-[#f2ca50]" : "bg-[#059669] dark:bg-[#4edea3]";
             return (
@@ -737,9 +809,9 @@ export default function UserManagementPage() {
                           <span className="text-[12px] text-[#0f172a] dark:text-[#dce3f0] font-medium truncate max-w-[120px]">{inv.name}</span>
                         </div>
                         {isSuperAdmin && (
-                          <button onClick={() => setAssignTarget({ ...inv })}
-                            className="text-[10px] text-[#64748b] dark:text-[#d0c5af] hover:text-[#d4af37] dark:hover:text-[#f2ca50] transition-colors font-bold">
-                            Reassign
+                          <button onClick={() => void handleAssign(inv.id, null)}
+                            className="text-[10px] text-[#dc2626] dark:text-[#ffb4ab] hover:opacity-80 transition-colors font-bold">
+                            Remove
                           </button>
                         )}
                       </div>
@@ -748,10 +820,16 @@ export default function UserManagementPage() {
                 ) : (
                   <p className="text-[11px] text-slate-400 dark:text-[#d0c5af]/50 italic">No investors assigned yet.</p>
                 )}
+                {isSuperAdmin && m.role !== "super_admin" && m.id !== session?.user.id && (
+                  <button onClick={() => setDemoteTarget(m)}
+                    className="w-full mt-1 text-[11px] font-bold text-[#dc2626] dark:text-[#ffb4ab] border border-[#dc2626]/20 dark:border-[#ffb4ab]/20 rounded-lg py-1.5 hover:bg-[#dc2626]/5 dark:hover:bg-[#ffb4ab]/5 transition-colors">
+                    Demote to Investor
+                  </button>
+                )}
               </div>
             );
           })}
-          {!loadingManagers && managerRoster.length === 0 && (
+          {!loadingManagers && visibleRoster.length === 0 && (
             <p className="text-[11px] text-slate-400 dark:text-[#d0c5af]/50 col-span-3">No account managers yet.</p>
           )}
         </div>
